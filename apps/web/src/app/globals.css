@@ -1009,6 +1009,84 @@ a.resource-row:hover {
   margin-bottom: 26px;
   color: var(--muted);
 }
+.events-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 0.85fr);
+  gap: 24px;
+  align-items: start;
+}
+.event-create-card {
+  padding: clamp(22px, 4vw, 34px);
+}
+.event-form {
+  display: grid;
+  gap: 17px;
+  margin-top: 22px;
+}
+.event-form > .button {
+  border: 0;
+  cursor: pointer;
+}
+.contents-choice {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin: 0;
+  padding: 16px;
+  border: 1px solid #dce2da;
+  border-radius: 12px;
+}
+.contents-choice legend {
+  padding: 0 6px;
+  font-weight: 750;
+}
+.contents-choice label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.82rem;
+}
+.event-row {
+  padding: 24px;
+}
+.event-row-heading {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 16px;
+}
+.event-row h2 {
+  margin: 7px 0 14px;
+}
+.event-row time {
+  font-weight: 750;
+}
+.event-row > p {
+  margin: 12px 0 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+.remove-event {
+  padding: 4px;
+  border: 0;
+  background: transparent;
+  color: #9b4b39;
+  cursor: pointer;
+}
+.custom-type-card {
+  padding: 22px;
+}
+.inline-create-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+}
+.inline-create-form .form-error,
+.inline-create-form .form-success {
+  grid-column: 1 / -1;
+  margin: 0;
+}
 .calendar-item.academic_event {
   background: #f7ebe6;
 }
@@ -1064,6 +1142,9 @@ a.resource-row:hover {
     grid-template-columns: 1fr;
   }
   .session-layout {
+    grid-template-columns: 1fr;
+  }
+  .events-layout {
     grid-template-columns: 1fr;
   }
 }
@@ -1133,6 +1214,9 @@ a.resource-row:hover {
   .active-session-banner {
     align-items: flex-start;
     flex-direction: column;
+  }
+  .inline-create-form {
+    grid-template-columns: 1fr;
   }
   .day-setting-heading {
     grid-row: auto;

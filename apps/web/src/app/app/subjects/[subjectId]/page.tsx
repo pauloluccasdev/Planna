@@ -56,6 +56,9 @@ export default async function SubjectPage({ params }: Props) {
           <h1>{subject.name}</h1>
           <p>Priorize o que precisa estudar e estime a dedicação necessária.</p>
         </div>
+        <Link className="button" href={`/app/subjects/${subjectId}/events`}>
+          Provas e trabalhos
+        </Link>
       </section>
       <section className="content-layout">
         <div className="resource-list">
