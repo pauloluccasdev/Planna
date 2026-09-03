@@ -22,6 +22,7 @@ O projeto está na fase de especificação do MVP. Ainda não há decisão defin
 - [Casos de uso](docs/casos-de-uso.md)
 - [Motor de planejamento](docs/motor-de-planejamento.md)
 - [Indicadores e cálculos](docs/indicadores-e-calculos.md)
+- [Modelo lógico de dados](docs/modelo-logico-de-dados.md)
 - [Pendências e decisões futuras](docs/pendencias.md)
 
 ## Princípios centrais
