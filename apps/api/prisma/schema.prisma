@@ -1,0 +1,639 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  STUDENT
+  ADMIN
+}
+
+enum AccountStatus {
+  ACTIVE
+  BLOCKED
+}
+
+enum RecordStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum EventContentsStatus {
+  INFORMED
+  NOT_INFORMED_YET
+}
+
+enum ProposalStatus {
+  PROCESSING
+  READY
+  REVIEWING
+  CONFIRMED
+  DISCARDED
+  FAILED
+}
+
+enum DiagnosticKind {
+  CAPACITY_DEFICIT
+  MISSING_ESTIMATE
+  UNKNOWN_EVENT_CONTENTS
+}
+
+enum BlockSource {
+  MANUAL
+  AUTOMATIC
+  REPLANNED
+}
+
+enum BlockStatus {
+  CONFIRMED
+  IN_PROGRESS
+  PAUSED
+  OVERDUE
+  COMPLETED
+  CANCELLED
+  REPLANNED
+}
+
+enum SessionKind {
+  PLANNED
+  UNPLANNED
+  RETROACTIVE
+}
+
+enum SessionStatus {
+  RUNNING
+  PAUSED
+  COMPLETED
+  NEEDS_RECONCILIATION
+}
+
+enum SessionSegmentKind {
+  FOCUS
+  POMODORO_BREAK
+}
+
+enum SuggestionStatus {
+  GENERATED
+  EDITING
+  ACCEPTED
+  REJECTED
+}
+
+enum SuggestionGenerationKind {
+  AUTOMATIC_FIRST
+  STUDENT_REQUESTED
+}
+
+enum NotificationKind {
+  STUDY_BLOCK_REMINDER
+  ACADEMIC_EVENT_REMINDER
+  RISK_ALERT
+  OVERDUE_BLOCK
+  REPLANNING_SUGGESTION
+}
+
+enum NotificationStatus {
+  SCHEDULED
+  SENT
+  FAILED
+  CANCELLED
+  READ
+}
+
+enum RecurrenceFrequency {
+  DAILY
+}
+
+model UserAccount {
+  id                    String                 @id @db.Uuid
+  username              String
+  usernameNormalized    String                 @unique @map("username_normalized")
+  email                 String
+  emailNormalized       String                 @unique @map("email_normalized")
+  role                  UserRole               @default(STUDENT)
+  status                AccountStatus          @default(ACTIVE)
+  emailVerifiedAt       DateTime?              @map("email_verified_at") @db.Timestamptz(6)
+  blockedAt             DateTime?              @map("blocked_at") @db.Timestamptz(6)
+  blockedByUserId       String?                @map("blocked_by_user_id") @db.Uuid
+  lastLoginAt           DateTime?              @map("last_login_at") @db.Timestamptz(6)
+  createdAt             DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime               @updatedAt @map("updated_at") @db.Timestamptz(6)
+  blockedBy             UserAccount?           @relation("AccountBlocker", fields: [blockedByUserId], references: [id], onDelete: SetNull)
+  blockedUsers          UserAccount[]          @relation("AccountBlocker")
+  courses               Course[]
+  subjects              Subject[]
+  contents              Content[]
+  contentParts          ContentPart[]
+  customEventTypes      AcademicEventType[]
+  academicEvents        AcademicEvent[]
+  availabilityIntervals AvailabilityInterval[]
+  pomodoroPreference    PomodoroPreference?
+  planningProposals     PlanningProposal[]
+  proposedStudyBlocks   ProposedStudyBlock[]
+  recurrenceSeries      RecurrenceSeries[]
+  studyBlocks           StudyBlock[]
+  studySessions         StudySession[]
+  replanningSuggestions ReplanningSuggestion[]
+  pushSubscriptions     PushSubscription[]
+  notifications         Notification[]
+
+  @@map("user_accounts")
+}
+
+model Course {
+  id              String           @id @default(uuid()) @db.Uuid
+  studentId       String           @map("student_id") @db.Uuid
+  name            String           @db.VarChar(160)
+  description     String?
+  status          RecordStatus     @default(ACTIVE)
+  archivedAt      DateTime?        @map("archived_at") @db.Timestamptz(6)
+  createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
+  student         UserAccount      @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  academicPeriods AcademicPeriod[]
+  subjects        Subject[]
+  proposalScopes  ProposalCourse[]
+
+  @@index([studentId, status])
+  @@map("courses")
+}
+
+model AcademicPeriod {
+  id        String    @id @default(uuid()) @db.Uuid
+  courseId  String    @map("course_id") @db.Uuid
+  name      String    @db.VarChar(120)
+  position  Int?
+  startsOn  DateTime? @map("starts_on") @db.Date
+  endsOn    DateTime? @map("ends_on") @db.Date
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  course    Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  subjects  Subject[]
+
+  @@index([courseId, position])
+  @@map("academic_periods")
+}
+
+model Subject {
+  id               String            @id @default(uuid()) @db.Uuid
+  studentId        String            @map("student_id") @db.Uuid
+  courseId         String            @map("course_id") @db.Uuid
+  academicPeriodId String?           @map("academic_period_id") @db.Uuid
+  name             String            @db.VarChar(160)
+  description      String?
+  status           RecordStatus      @default(ACTIVE)
+  archivedAt       DateTime?         @map("archived_at") @db.Timestamptz(6)
+  createdAt        DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+  student          UserAccount       @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  course           Course            @relation(fields: [courseId], references: [id], onDelete: Restrict)
+  academicPeriod   AcademicPeriod?   @relation(fields: [academicPeriodId], references: [id], onDelete: SetNull)
+  contents         Content[]
+  academicEvents   AcademicEvent[]
+  proposalScopes   ProposalSubject[]
+
+  @@index([studentId, courseId, status])
+  @@index([academicPeriodId])
+  @@map("subjects")
+}
+
+model Content {
+  id                       String                 @id @default(uuid()) @db.Uuid
+  studentId                String                 @map("student_id") @db.Uuid
+  subjectId                String                 @map("subject_id") @db.Uuid
+  name                     String                 @db.VarChar(200)
+  description              String?
+  priority                 Int
+  estimatedDurationSeconds Int?                   @map("estimated_duration_seconds")
+  archivedAt               DateTime?              @map("archived_at") @db.Timestamptz(6)
+  createdAt                DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                DateTime               @updatedAt @map("updated_at") @db.Timestamptz(6)
+  student                  UserAccount            @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  subject                  Subject                @relation(fields: [subjectId], references: [id], onDelete: Restrict)
+  parts                    ContentPart[]
+  academicEventLinks       AcademicEventContent[]
+  proposedStudyBlocks      ProposedStudyBlock[]
+  studyBlocks              StudyBlock[]
+  studySessions            StudySession[]
+
+  @@index([studentId, subjectId, archivedAt])
+  @@map("contents")
+}
+
+model ContentPart {
+  id                 String                      @id @default(uuid()) @db.Uuid
+  studentId          String                      @map("student_id") @db.Uuid
+  contentId          String                      @map("content_id") @db.Uuid
+  name               String                      @db.VarChar(200)
+  description        String?
+  position           Int
+  archivedAt         DateTime?                   @map("archived_at") @db.Timestamptz(6)
+  createdAt          DateTime                    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime                    @updatedAt @map("updated_at") @db.Timestamptz(6)
+  student            UserAccount                 @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  content            Content                     @relation(fields: [contentId], references: [id], onDelete: Restrict)
+  proposedBlockLinks ProposedBlockPart[]
+  studyBlockLinks    StudyBlockPart[]
+  sessionCompletions StudySessionCompletedPart[]
+
+  @@unique([contentId, position])
+  @@index([studentId])
+  @@map("content_parts")
+}
+
+model AcademicEventType {
+  id         String          @id @default(uuid()) @db.Uuid
+  studentId  String?         @map("student_id") @db.Uuid
+  name       String          @db.VarChar(80)
+  isSystem   Boolean         @default(false) @map("is_system")
+  archivedAt DateTime?       @map("archived_at") @db.Timestamptz(6)
+  createdAt  DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  student    UserAccount?    @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  events     AcademicEvent[]
+
+  @@index([studentId, archivedAt])
+  @@map("academic_event_types")
+}
+
+model AcademicEvent {
+  id             String                 @id @default(uuid()) @db.Uuid
+  studentId      String                 @map("student_id") @db.Uuid
+  subjectId      String                 @map("subject_id") @db.Uuid
+  eventTypeId    String                 @map("event_type_id") @db.Uuid
+  title          String                 @db.VarChar(200)
+  description    String?
+  startsAt       DateTime               @map("starts_at") @db.Timestamptz(6)
+  endsAt         DateTime?              @map("ends_at") @db.Timestamptz(6)
+  contentsStatus EventContentsStatus    @map("contents_status")
+  deletedAt      DateTime?              @map("deleted_at") @db.Timestamptz(6)
+  createdAt      DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime               @updatedAt @map("updated_at") @db.Timestamptz(6)
+  student        UserAccount            @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  subject        Subject                @relation(fields: [subjectId], references: [id], onDelete: Restrict)
+  eventType      AcademicEventType      @relation(fields: [eventTypeId], references: [id], onDelete: Restrict)
+  contentLinks   AcademicEventContent[]
+
+  @@index([studentId, startsAt])
+  @@index([subjectId])
+  @@map("academic_events")
+}
+
+model AcademicEventContent {
+  academicEventId String        @map("academic_event_id") @db.Uuid
+  contentId       String        @map("content_id") @db.Uuid
+  academicEvent   AcademicEvent @relation(fields: [academicEventId], references: [id], onDelete: Cascade)
+  content         Content       @relation(fields: [contentId], references: [id], onDelete: Restrict)
+
+  @@id([academicEventId, contentId])
+  @@index([contentId])
+  @@map("academic_event_contents")
+}
+
+model AvailabilityInterval {
+  id             String      @id @default(uuid()) @db.Uuid
+  studentId      String      @map("student_id") @db.Uuid
+  weekday        Int
+  startLocalTime DateTime    @map("start_local_time") @db.Time(0)
+  endLocalTime   DateTime    @map("end_local_time") @db.Time(0)
+  active         Boolean     @default(true)
+  createdAt      DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
+  student        UserAccount @relation(fields: [studentId], references: [id], onDelete: Restrict)
+
+  @@index([studentId, weekday, startLocalTime])
+  @@map("availability_intervals")
+}
+
+model PomodoroPreference {
+  studentId    String      @id @map("student_id") @db.Uuid
+  focusSeconds Int         @map("focus_seconds")
+  breakSeconds Int         @map("break_seconds")
+  createdAt    DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
+  student      UserAccount @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@map("pomodoro_preferences")
+}
+
+model PlanningProposal {
+  id                 String               @id @default(uuid()) @db.Uuid
+  studentId          String               @map("student_id") @db.Uuid
+  periodStart        DateTime             @map("period_start") @db.Timestamptz(6)
+  periodEnd          DateTime             @map("period_end") @db.Timestamptz(6)
+  status             ProposalStatus
+  algorithmVersion   String               @map("algorithm_version") @db.VarChar(40)
+  parametersSnapshot Json                 @map("parameters_snapshot")
+  inputVersion       String               @map("input_version") @db.VarChar(128)
+  requestedAt        DateTime             @default(now()) @map("requested_at") @db.Timestamptz(6)
+  completedAt        DateTime?            @map("completed_at") @db.Timestamptz(6)
+  confirmedAt        DateTime?            @map("confirmed_at") @db.Timestamptz(6)
+  failureCode        String?              @map("failure_code") @db.VarChar(80)
+  revision           Int                  @default(1)
+  createdAt          DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime             @updatedAt @map("updated_at") @db.Timestamptz(6)
+  student            UserAccount          @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  courseScopes       ProposalCourse[]
+  subjectScopes      ProposalSubject[]
+  blocks             ProposedStudyBlock[]
+  diagnostics        ProposalDiagnostic[]
+  confirmedBlocks    StudyBlock[]
+
+  @@index([studentId, status, requestedAt])
+  @@map("planning_proposals")
+}
+
+model ProposalCourse {
+  proposalId String           @map("proposal_id") @db.Uuid
+  courseId   String           @map("course_id") @db.Uuid
+  proposal   PlanningProposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  course     Course           @relation(fields: [courseId], references: [id], onDelete: Restrict)
+
+  @@id([proposalId, courseId])
+  @@index([courseId])
+  @@map("proposal_courses")
+}
+
+model ProposalSubject {
+  proposalId String           @map("proposal_id") @db.Uuid
+  subjectId  String           @map("subject_id") @db.Uuid
+  proposal   PlanningProposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  subject    Subject          @relation(fields: [subjectId], references: [id], onDelete: Restrict)
+
+  @@id([proposalId, subjectId])
+  @@index([subjectId])
+  @@map("proposal_subjects")
+}
+
+model ProposedStudyBlock {
+  id                     String              @id @default(uuid()) @db.Uuid
+  proposalId             String              @map("proposal_id") @db.Uuid
+  studentId              String              @map("student_id") @db.Uuid
+  contentId              String              @map("content_id") @db.Uuid
+  startsAt               DateTime            @map("starts_at") @db.Timestamptz(6)
+  endsAt                 DateTime            @map("ends_at") @db.Timestamptz(6)
+  plannedDurationSeconds Int                 @map("planned_duration_seconds")
+  focusSeconds           Int                 @map("focus_seconds")
+  breakSeconds           Int                 @map("break_seconds")
+  explanationFactors     Json                @map("explanation_factors")
+  sourceOverdueBlockId   String?             @map("source_overdue_block_id") @db.Uuid
+  removedAt              DateTime?           @map("removed_at") @db.Timestamptz(6)
+  revision               Int                 @default(1)
+  createdAt              DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt              DateTime            @updatedAt @map("updated_at") @db.Timestamptz(6)
+  proposal               PlanningProposal    @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+  student                UserAccount         @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  content                Content             @relation(fields: [contentId], references: [id], onDelete: Restrict)
+  sourceOverdueBlock     StudyBlock?         @relation("OverdueProposalSource", fields: [sourceOverdueBlockId], references: [id], onDelete: SetNull)
+  parts                  ProposedBlockPart[]
+  confirmedBlock         StudyBlock?
+
+  @@index([proposalId, startsAt])
+  @@index([studentId])
+  @@index([contentId])
+  @@map("proposed_study_blocks")
+}
+
+model ProposedBlockPart {
+  proposedBlockId String             @map("proposed_block_id") @db.Uuid
+  contentPartId   String             @map("content_part_id") @db.Uuid
+  proposedBlock   ProposedStudyBlock @relation(fields: [proposedBlockId], references: [id], onDelete: Cascade)
+  contentPart     ContentPart        @relation(fields: [contentPartId], references: [id], onDelete: Restrict)
+
+  @@id([proposedBlockId, contentPartId])
+  @@index([contentPartId])
+  @@map("proposed_block_parts")
+}
+
+model ProposalDiagnostic {
+  id               String           @id @default(uuid()) @db.Uuid
+  proposalId       String           @map("proposal_id") @db.Uuid
+  kind             DiagnosticKind
+  courseId         String?          @map("course_id") @db.Uuid
+  subjectId        String?          @map("subject_id") @db.Uuid
+  contentId        String?          @map("content_id") @db.Uuid
+  academicEventId  String?          @map("academic_event_id") @db.Uuid
+  requiredSeconds  Int?             @map("required_seconds")
+  availableSeconds Int?             @map("available_seconds")
+  deficitSeconds   Int?             @map("deficit_seconds")
+  details          Json?
+  createdAt        DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  proposal         PlanningProposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+
+  @@index([proposalId, kind])
+  @@map("proposal_diagnostics")
+}
+
+model RecurrenceSeries {
+  id        String              @id @default(uuid()) @db.Uuid
+  studentId String              @map("student_id") @db.Uuid
+  frequency RecurrenceFrequency @default(DAILY)
+  startsOn  DateTime            @map("starts_on") @db.Date
+  endsOn    DateTime            @map("ends_on") @db.Date
+  createdAt DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime            @updatedAt @map("updated_at") @db.Timestamptz(6)
+  student   UserAccount         @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  blocks    StudyBlock[]
+
+  @@index([studentId, startsOn, endsOn])
+  @@map("recurrence_series")
+}
+
+model StudyBlock {
+  id                     String                 @id @default(uuid()) @db.Uuid
+  studentId              String                 @map("student_id") @db.Uuid
+  contentId              String                 @map("content_id") @db.Uuid
+  proposalId             String?                @map("proposal_id") @db.Uuid
+  proposedBlockId        String?                @unique @map("proposed_block_id") @db.Uuid
+  recurrenceSeriesId     String?                @map("recurrence_series_id") @db.Uuid
+  source                 BlockSource
+  status                 BlockStatus            @default(CONFIRMED)
+  startsAt               DateTime               @map("starts_at") @db.Timestamptz(6)
+  endsAt                 DateTime               @map("ends_at") @db.Timestamptz(6)
+  plannedDurationSeconds Int                    @map("planned_duration_seconds")
+  focusSeconds           Int                    @map("focus_seconds")
+  breakSeconds           Int                    @map("break_seconds")
+  replacesBlockId        String?                @unique @map("replaces_block_id") @db.Uuid
+  cancelledAt            DateTime?              @map("cancelled_at") @db.Timestamptz(6)
+  completedAt            DateTime?              @map("completed_at") @db.Timestamptz(6)
+  revision               Int                    @default(1)
+  createdAt              DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt              DateTime               @updatedAt @map("updated_at") @db.Timestamptz(6)
+  student                UserAccount            @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  content                Content                @relation(fields: [contentId], references: [id], onDelete: Restrict)
+  proposal               PlanningProposal?      @relation(fields: [proposalId], references: [id], onDelete: SetNull)
+  proposedBlock          ProposedStudyBlock?    @relation(fields: [proposedBlockId], references: [id], onDelete: SetNull)
+  recurrenceSeries       RecurrenceSeries?      @relation(fields: [recurrenceSeriesId], references: [id], onDelete: SetNull)
+  replacesBlock          StudyBlock?            @relation("BlockReplacement", fields: [replacesBlockId], references: [id], onDelete: Restrict)
+  replacementBlock       StudyBlock?            @relation("BlockReplacement")
+  parts                  StudyBlockPart[]
+  versions               StudyBlockVersion[]
+  sessions               StudySession[]
+  overdueProposalBlocks  ProposedStudyBlock[]   @relation("OverdueProposalSource")
+  replanningSuggestions  ReplanningSuggestion[] @relation("OverdueBlockSuggestions")
+  createdBySuggestion    ReplanningSuggestion?  @relation("CreatedBlockSuggestion")
+
+  @@index([studentId, startsAt, endsAt, status])
+  @@index([contentId, status, startsAt])
+  @@index([proposalId])
+  @@index([recurrenceSeriesId])
+  @@map("study_blocks")
+}
+
+model StudyBlockPart {
+  studyBlockId  String      @map("study_block_id") @db.Uuid
+  contentPartId String      @map("content_part_id") @db.Uuid
+  studyBlock    StudyBlock  @relation(fields: [studyBlockId], references: [id], onDelete: Cascade)
+  contentPart   ContentPart @relation(fields: [contentPartId], references: [id], onDelete: Restrict)
+
+  @@id([studyBlockId, contentPartId])
+  @@index([contentPartId])
+  @@map("study_block_parts")
+}
+
+model StudyBlockVersion {
+  id              String     @id @default(uuid()) @db.Uuid
+  studyBlockId    String     @map("study_block_id") @db.Uuid
+  versionNumber   Int        @map("version_number")
+  changedAt       DateTime   @default(now()) @map("changed_at") @db.Timestamptz(6)
+  changedByUserId String     @map("changed_by_user_id") @db.Uuid
+  changeReason    String?    @map("change_reason") @db.VarChar(120)
+  snapshot        Json
+  studyBlock      StudyBlock @relation(fields: [studyBlockId], references: [id], onDelete: Cascade)
+
+  @@unique([studyBlockId, versionNumber])
+  @@map("study_block_versions")
+}
+
+model StudySession {
+  id                           String                      @id @default(uuid()) @db.Uuid
+  studentId                    String                      @map("student_id") @db.Uuid
+  contentId                    String                      @map("content_id") @db.Uuid
+  studyBlockId                 String?                     @map("study_block_id") @db.Uuid
+  kind                         SessionKind
+  status                       SessionStatus
+  startedAt                    DateTime                    @map("started_at") @db.Timestamptz(6)
+  endedAt                      DateTime?                   @map("ended_at") @db.Timestamptz(6)
+  focusDurationSeconds         Int?                        @map("focus_duration_seconds")
+  pomodoroBreakDurationSeconds Int?                        @map("pomodoro_break_duration_seconds")
+  realizedDurationSeconds      Int?                        @map("realized_duration_seconds")
+  note                         String?
+  reconciledAt                 DateTime?                   @map("reconciled_at") @db.Timestamptz(6)
+  revision                     Int                         @default(1)
+  createdAt                    DateTime                    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                    DateTime                    @updatedAt @map("updated_at") @db.Timestamptz(6)
+  student                      UserAccount                 @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  content                      Content                     @relation(fields: [contentId], references: [id], onDelete: Restrict)
+  studyBlock                   StudyBlock?                 @relation(fields: [studyBlockId], references: [id], onDelete: Restrict)
+  segments                     StudySessionSegment[]
+  completedParts               StudySessionCompletedPart[]
+
+  @@index([studentId, status])
+  @@index([contentId, startedAt])
+  @@index([studyBlockId])
+  @@map("study_sessions")
+}
+
+model StudySessionSegment {
+  id             String             @id @default(uuid()) @db.Uuid
+  studySessionId String             @map("study_session_id") @db.Uuid
+  kind           SessionSegmentKind
+  startedAt      DateTime           @map("started_at") @db.Timestamptz(6)
+  endedAt        DateTime?          @map("ended_at") @db.Timestamptz(6)
+  sequence       Int
+  studySession   StudySession       @relation(fields: [studySessionId], references: [id], onDelete: Cascade)
+
+  @@unique([studySessionId, sequence])
+  @@index([studySessionId, endedAt])
+  @@map("study_session_segments")
+}
+
+model StudySessionCompletedPart {
+  studySessionId String       @map("study_session_id") @db.Uuid
+  contentPartId  String       @map("content_part_id") @db.Uuid
+  confirmedAt    DateTime     @default(now()) @map("confirmed_at") @db.Timestamptz(6)
+  studySession   StudySession @relation(fields: [studySessionId], references: [id], onDelete: Cascade)
+  contentPart    ContentPart  @relation(fields: [contentPartId], references: [id], onDelete: Restrict)
+
+  @@id([studySessionId, contentPartId])
+  @@index([contentPartId])
+  @@map("study_session_completed_parts")
+}
+
+model ReplanningSuggestion {
+  id                       String                   @id @default(uuid()) @db.Uuid
+  studentId                String                   @map("student_id") @db.Uuid
+  overdueBlockId           String                   @map("overdue_block_id") @db.Uuid
+  status                   SuggestionStatus         @default(GENERATED)
+  generationKind           SuggestionGenerationKind @map("generation_kind")
+  suggestedStartsAt        DateTime                 @map("suggested_starts_at") @db.Timestamptz(6)
+  suggestedEndsAt          DateTime                 @map("suggested_ends_at") @db.Timestamptz(6)
+  suggestedDurationSeconds Int                      @map("suggested_duration_seconds")
+  explanationFactors       Json                     @map("explanation_factors")
+  editedAt                 DateTime?                @map("edited_at") @db.Timestamptz(6)
+  decidedAt                DateTime?                @map("decided_at") @db.Timestamptz(6)
+  createdBlockId           String?                  @unique @map("created_block_id") @db.Uuid
+  revision                 Int                      @default(1)
+  createdAt                DateTime                 @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                DateTime                 @updatedAt @map("updated_at") @db.Timestamptz(6)
+  student                  UserAccount              @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  overdueBlock             StudyBlock               @relation("OverdueBlockSuggestions", fields: [overdueBlockId], references: [id], onDelete: Restrict)
+  createdBlock             StudyBlock?              @relation("CreatedBlockSuggestion", fields: [createdBlockId], references: [id], onDelete: SetNull)
+
+  @@index([studentId, status, createdAt])
+  @@index([overdueBlockId, status])
+  @@map("replanning_suggestions")
+}
+
+model PushSubscription {
+  id            String      @id @default(uuid()) @db.Uuid
+  studentId     String      @map("student_id") @db.Uuid
+  endpoint      String      @unique
+  publicKey     String      @map("public_key")
+  authSecret    String      @map("auth_secret")
+  expiresAt     DateTime?   @map("expires_at") @db.Timestamptz(6)
+  revokedAt     DateTime?   @map("revoked_at") @db.Timestamptz(6)
+  lastSuccessAt DateTime?   @map("last_success_at") @db.Timestamptz(6)
+  createdAt     DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
+  student       UserAccount @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([studentId, revokedAt])
+  @@map("push_subscriptions")
+}
+
+model Notification {
+  id           String             @id @default(uuid()) @db.Uuid
+  studentId    String             @map("student_id") @db.Uuid
+  kind         NotificationKind
+  relatedType  String?            @map("related_type") @db.VarChar(80)
+  relatedId    String?            @map("related_id") @db.Uuid
+  scheduledFor DateTime           @map("scheduled_for") @db.Timestamptz(6)
+  status       NotificationStatus @default(SCHEDULED)
+  sentAt       DateTime?          @map("sent_at") @db.Timestamptz(6)
+  failureCode  String?            @map("failure_code") @db.VarChar(80)
+  createdAt    DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
+  student      UserAccount        @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([studentId, status, scheduledFor])
+  @@map("notifications")
+}
+
+model AuditEvent {
+  id             String   @id @default(uuid()) @db.Uuid
+  actorUserId    String?  @map("actor_user_id") @db.Uuid
+  studentScopeId String?  @map("student_scope_id") @db.Uuid
+  action         String   @db.VarChar(120)
+  entityType     String   @map("entity_type") @db.VarChar(80)
+  entityId       String   @map("entity_id") @db.Uuid
+  occurredAt     DateTime @default(now()) @map("occurred_at") @db.Timestamptz(6)
+  metadata       Json?
+
+  @@index([actorUserId, occurredAt])
+  @@index([studentScopeId, occurredAt])
+  @@map("audit_events")
+}

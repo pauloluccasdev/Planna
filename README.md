@@ -6,7 +6,26 @@ O produto transforma cursos, disciplinas, conteúdos, eventos acadêmicos, prior
 
 ## Estado atual
 
-O projeto está na fase de especificação do MVP. Ainda não há decisão definitiva de framework, banco de dados ou infraestrutura e nenhuma implementação deve começar antes da conclusão dos artefatos técnicos.
+O projeto possui a especificação do MVP e a fundação técnica inicial em um monorepo:
+
+- `apps/web`: Next.js, TypeScript e PWA instalável, sem suporte offline;
+- `apps/api`: NestJS e Prisma;
+- banco: PostgreSQL no Supabase;
+- autenticação planejada: Supabase Auth, mediada pela API.
+
+## Desenvolvimento local
+
+Requisitos: Node.js 24 e npm 11.
+
+```bash
+cp .env.example .env
+npm install
+npm run db:generate
+npm run dev:web
+npm run dev:api
+```
+
+O frontend utiliza `http://localhost:3000` e a API `http://localhost:3001/api/v1`. As credenciais reais ficam somente no `.env`, que não deve ser versionado.
 
 ## Documentação
 
@@ -26,6 +45,7 @@ O projeto está na fase de especificação do MVP. Ainda não há decisão defin
 - [Arquitetura técnica](docs/arquitetura-tecnica.md)
 - [Contratos da API](docs/contratos-api.md)
 - [ADR-001 — Supabase e PostgreSQL](docs/decisoes/ADR-001-supabase-postgresql.md)
+- [ADR-002 — Next.js, NestJS e Prisma](docs/decisoes/ADR-002-next-nest-prisma.md)
 - [Pendências e decisões futuras](docs/pendencias.md)
 
 ## Princípios centrais

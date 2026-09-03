@@ -1,0 +1,32 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+.next/
+dist/
+coverage/
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Tool state
+.turbo/
+*.tsbuildinfo
+apps/web/next-env.d.ts
+apps/api/src/generated/prisma/
+
+# Supabase local state
+supabase/.branches/
+supabase/.temp/
+
+# Editors and OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*

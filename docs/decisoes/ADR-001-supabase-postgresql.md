@@ -16,7 +16,7 @@ Adotar:
 - Supabase como plataforma gerenciada do backend do MVP;
 - PostgreSQL como banco principal e fonte oficial dos dados;
 - Supabase Auth para identidade e credenciais;
-- Row Level Security em todas as tabelas acadêmicas expostas;
+- Row Level Security em todas as tabelas da aplicação, sem acesso acadêmico direto pela PWA;
 - migrações SQL versionadas no repositório;
 - funções transacionais para comandos que envolvam múltiplas tabelas;
 - tarefas agendadas para atrasos, riscos e notificações;
@@ -29,7 +29,7 @@ A escolha do framework da aplicação web e do provedor de hospedagem do fronten
 ### Benefícios
 
 - banco relacional adequado ao domínio;
-- integração de Auth com RLS por `auth.uid()`;
+- integração com Supabase Auth e proteção adicional do schema pelo PostgreSQL;
 - migrações e ambiente local pela CLI;
 - suporte a funções, extensões e tarefas agendadas;
 - menor infraestrutura inicial para o MVP.
@@ -58,9 +58,10 @@ O endpoint não retorna o e-mail resolvido e não expõe se determinado nome de 
 ## Segurança de dados
 
 - `anon` não recebe acesso a dados acadêmicos.
-- `authenticated` recebe somente os grants necessários.
-- cada operação possui política RLS explícita.
-- colunas usadas por políticas, especialmente `student_id`, devem ser indexadas.
+- `authenticated` não recebe acesso direto às tabelas acadêmicas no MVP.
+- NestJS é a fronteira de autorização e usa Prisma somente no servidor.
+- RLS permanece habilitado para impedir exposição acidental pelo Data API.
+- colunas de propriedade, especialmente `student_id`, devem ser indexadas.
 - views e funções devem ser revisadas para não contornar RLS acidentalmente.
 - operações com `service_role` ficam exclusivamente no servidor e validam autorização do caso de uso.
 

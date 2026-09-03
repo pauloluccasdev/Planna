@@ -42,14 +42,13 @@ Estes pontos não bloqueiam a consolidação inicial, mas devem ser decididos an
 
 ## Decisões técnicas ainda não tomadas
 
-- Framework e hospedagem da PWA.
-- Localização da camada de aplicação entre servidor da PWA e Supabase Edge Functions.
-- Estratégia física detalhada de migração no Supabase/PostgreSQL.
+- Hospedagem do frontend Next.js e da API NestJS.
+- Aplicação e validação da migration inicial no projeto Supabase.
 - Configuração final do Supabase Auth e provedor de envio de e-mail.
 - Infraestrutura de notificações push.
 - Hospedagem, observabilidade, backups e ambientes.
-- Estratégia de concorrência para garantir uma sessão ativa por aluno.
 - Estratégia de ambientes/projetos separados no Supabase.
+- Acompanhar as correções dos avisos do `npm audit` herdados pelo Prisma CLI 7.10 (`deepmerge-ts` e `mysql2`). A correção automática disponível exige downgrade incompatível para Prisma 6 e não será forçada.
 
 ## Fora do núcleo atual
 

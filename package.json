@@ -1,0 +1,23 @@
+{
+  "name": "planna",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "engines": {
+    "node": ">=24.0.0",
+    "npm": ">=11.0.0"
+  },
+  "scripts": {
+    "dev:web": "npm run dev --workspace @planna/web",
+    "dev:api": "npm run start:dev --workspace @planna/api",
+    "build": "npm run build --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "format": "npm run format --workspaces --if-present",
+    "db:generate": "npm run db:generate --workspace @planna/api",
+    "db:validate": "npm run db:validate --workspace @planna/api"
+  }
+}

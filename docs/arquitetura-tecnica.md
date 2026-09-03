@@ -2,15 +2,15 @@
 
 ## Status
 
-Arquitetura de referência do MVP após a escolha do Supabase/PostgreSQL. O framework e a hospedagem da PWA ainda serão decididos.
+Arquitetura de referência do MVP com Next.js, NestJS, Prisma e Supabase/PostgreSQL. A hospedagem ainda será decidida.
 
 ## Visão geral
 
 ```text
-PWA online e mobile-first
+PWA Next.js online e mobile-first
           │ HTTPS + JWT
           ▼
-Camada de aplicação/API
+API NestJS + Prisma
 ├── login por username
 ├── comandos transacionais
 ├── motor de planejamento
@@ -49,9 +49,9 @@ Isso favorece transações entre entidades, evolução rápida das regras e oper
 
 ## Fronteiras de acesso aos dados
 
-Leituras simples podem usar o cliente Supabase autenticado somente quando a tabela possui RLS, grants mínimos, testes de políticas e não exige consistência entre várias entidades.
+A PWA não acessa tabelas acadêmicas pelo Data API do Supabase. Leituras e comandos passam pela API NestJS, que valida o JWT, a propriedade e o caso de uso antes de acessar o PostgreSQL com Prisma.
 
-Devem passar por endpoint ou função transacional:
+Devem ser transacionais:
 
 - cadastro e login por nome de usuário;
 - confirmação de proposta;
@@ -69,9 +69,9 @@ Devem passar por endpoint ou função transacional:
 ```text
 Interface restringe ações
         ↓
-API valida ator e caso de uso
+NestJS valida JWT, ator e caso de uso
         ↓
-RLS limita linhas por auth.uid()
+RLS e grants bloqueiam o Data API público
         ↓
 Constraints protegem invariantes locais
         ↓
@@ -178,8 +178,7 @@ Registrar ID de correlação, caso de uso, duração, sucesso/código de falha, 
 
 ## Decisões abertas
 
-- framework e hospedagem da PWA;
-- servidor do framework, Edge Functions ou combinação;
+- hospedagem do frontend e da API;
 - provedor de e-mail e web push;
 - necessidade de fila adicional ao Cron;
 - estratégia de cache sem suporte offline;
