@@ -4,6 +4,7 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service.js';
+import type { Prisma } from '../generated/prisma/client.js';
 import { BlockStatus } from '../generated/prisma/enums.js';
 import type { AvailabilityIntervalDto } from './dto/replace-availability.dto.js';
 
@@ -81,28 +82,51 @@ export class AvailabilityService {
     const conflicts = await this.findFutureBlockConflicts(
       studentId,
       normalized,
+      this.prisma,
     );
     return { valid: conflicts.length === 0, conflicts };
   }
 
+  async coversInterval(
+    studentId: string,
+    startsAt: Date,
+    endsAt: Date,
+  ): Promise<boolean> {
+    const start = instantToLocalPoint(startsAt);
+    const end = instantToLocalPoint(endsAt);
+    if (start.weekday !== end.weekday || startsAt >= endsAt) return false;
+    const intervals = await this.prisma.availabilityInterval.findMany({
+      where: { studentId, weekday: start.weekday, active: true },
+      select: { startLocalTime: true, endLocalTime: true },
+    });
+    return intervals.some(
+      (interval) =>
+        timeToSeconds(databaseTimeToString(interval.startLocalTime)) <=
+          start.seconds &&
+        timeToSeconds(databaseTimeToString(interval.endLocalTime)) >=
+          end.seconds,
+    );
+  }
+
   async replace(studentId: string, intervals: AvailabilityIntervalDto[]) {
     const normalized = this.validateIntervals(intervals);
-    const conflicts = await this.findFutureBlockConflicts(
-      studentId,
-      normalized,
-    );
-    if (conflicts.length > 0) {
-      throw new ConflictException({
-        error: {
-          code: 'AVAILABILITY_HAS_AFFECTED_BLOCKS',
-          message:
-            'A nova disponibilidade deixaria blocos futuros fora da grade.',
-          details: { blockIds: conflicts.map(({ blockId }) => blockId) },
-        },
-      });
-    }
-
     await this.prisma.$transaction(async (transaction) => {
+      await transaction.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${studentId}, 0))`;
+      const conflicts = await this.findFutureBlockConflicts(
+        studentId,
+        normalized,
+        transaction,
+      );
+      if (conflicts.length > 0) {
+        throw new ConflictException({
+          error: {
+            code: 'AVAILABILITY_HAS_AFFECTED_BLOCKS',
+            message:
+              'A nova disponibilidade deixaria blocos futuros fora da grade.',
+            details: { blockIds: conflicts.map(({ blockId }) => blockId) },
+          },
+        });
+      }
       await transaction.availabilityInterval.deleteMany({
         where: { studentId },
       });
@@ -156,8 +180,9 @@ export class AvailabilityService {
   private async findFutureBlockConflicts(
     studentId: string,
     intervals: AvailabilityIntervalDto[],
+    client: PrismaService | Prisma.TransactionClient,
   ) {
-    const blocks = await this.prisma.studyBlock.findMany({
+    const blocks = await client.studyBlock.findMany({
       where: {
         studentId,
         startsAt: { gt: new Date() },

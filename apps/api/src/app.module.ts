@@ -12,6 +12,7 @@ import { AppService } from './app.service.js';
 import { PrismaModule } from './database/prisma.module.js';
 import { PomodoroModule } from './pomodoro/pomodoro.module.js';
 import { SubjectsModule } from './subjects/subjects.module.js';
+import { StudyBlocksModule } from './study-blocks/study-blocks.module.js';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { SubjectsModule } from './subjects/subjects.module.js';
     ContentsModule,
     ContentPartsModule,
     PomodoroModule,
+    StudyBlocksModule,
   ],
   controllers: [AppController],
   providers: [AppService],

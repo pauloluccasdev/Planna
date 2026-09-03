@@ -26,6 +26,14 @@ export function getApiPort(): number {
   return port;
 }
 
+export function getDatabasePoolMax(): number {
+  const value = Number(process.env.DATABASE_POOL_MAX ?? 5);
+  if (!Number.isInteger(value) || value < 1 || value > 20) {
+    throw new Error('DATABASE_POOL_MAX must be an integer between 1 and 20');
+  }
+  return value;
+}
+
 export function getWebOrigins(): string[] {
   return (process.env.WEB_ORIGIN?.trim() ?? DEFAULT_WEB_ORIGIN)
     .split(',')

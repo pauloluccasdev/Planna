@@ -9,6 +9,8 @@ import { AvailabilityService } from './availability.service.js';
 describe('AvailabilityService', () => {
   const transaction = {
     availabilityInterval: { deleteMany: vi.fn(), createMany: vi.fn() },
+    studyBlock: { findMany: vi.fn() },
+    $executeRaw: vi.fn(),
   };
   const prisma = {
     availabilityInterval: { findMany: vi.fn() },
@@ -20,6 +22,7 @@ describe('AvailabilityService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     prisma.studyBlock.findMany.mockResolvedValue([]);
+    transaction.studyBlock.findMany.mockResolvedValue([]);
     prisma.availabilityInterval.findMany.mockResolvedValue([]);
     service = new AvailabilityService(prisma as unknown as PrismaService);
   });
@@ -44,7 +47,7 @@ describe('AvailabilityService', () => {
   });
 
   it('does not replace the grade when a future block would fall outside it', async () => {
-    prisma.studyBlock.findMany.mockResolvedValue([
+    transaction.studyBlock.findMany.mockResolvedValue([
       {
         id: 'block-id',
         startsAt: new Date('2099-08-03T22:00:00.000Z'),
@@ -56,7 +59,7 @@ describe('AvailabilityService', () => {
         { weekday: 1, startLocalTime: '17:00', endLocalTime: '18:00' },
       ]),
     ).rejects.toBeInstanceOf(ConflictException);
-    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(transaction.availabilityInterval.deleteMany).not.toHaveBeenCalled();
   });
 
   it('replaces all intervals atomically when valid', async () => {

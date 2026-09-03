@@ -21,23 +21,62 @@ const password = `${randomUUID()}Aa1!`;
 const admin = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SECRET_KEY, {
   auth: { persistSession: false, autoRefreshToken: false },
 });
-const database = new pg.Client({ connectionString: process.env.DIRECT_URL });
-let databaseConnected = false;
 let userId;
 let courseId;
 
-try {
+async function withDatabase(callback) {
+  const database = new pg.Client({ connectionString: process.env.DIRECT_URL });
   await database.connect();
-  databaseConnected = true;
+  try {
+    return await callback(database);
+  } finally {
+    await database.end().catch(() => {});
+  }
+}
+
+async function cleanupUserData(database, id) {
+  await database.query(
+    'delete from study_block_parts where study_block_id in (select id from study_blocks where student_id = $1)',
+    [id],
+  );
+  await database.query('delete from study_blocks where student_id = $1', [id]);
+  await database.query('delete from pomodoro_preferences where student_id = $1', [id]);
+  await database.query('delete from availability_intervals where student_id = $1', [id]);
+  await database.query('delete from content_parts where student_id = $1', [id]);
+  await database.query('delete from contents where student_id = $1', [id]);
+  await database.query('delete from subjects where student_id = $1', [id]);
+  await database.query(
+    'delete from academic_periods where course_id in (select id from courses where student_id = $1)',
+    [id],
+  );
+  await database.query('delete from courses where student_id = $1', [id]);
+  await database.query('delete from user_accounts where id = $1', [id]);
+}
+
+async function cleanupStaleSmokeUsers() {
+  const staleIds = await withDatabase(async (database) => {
+    const result = await database.query(
+      "select id from user_accounts where username like 'planna_it_%'",
+    );
+    for (const { id } of result.rows) await cleanupUserData(database, id);
+    return result.rows.map(({ id }) => id);
+  });
+  for (const id of staleIds) await admin.auth.admin.deleteUser(id).catch(() => {});
+}
+
+try {
+  await cleanupStaleSmokeUsers();
   const createdUser = await admin.auth.admin.createUser({ email, password, email_confirm: true });
   if (createdUser.error) throw createdUser.error;
   userId = createdUser.data.user.id;
 
-  await database.query(
-    `insert into user_accounts
-      (id, username, username_normalized, email, email_normalized, email_verified_at, updated_at)
-     values ($1, $2, $3, $4, $5, now(), now())`,
-    [userId, username, username, email, email],
+  await withDatabase((database) =>
+    database.query(
+      `insert into user_accounts
+        (id, username, username_normalized, email, email_normalized, email_verified_at, updated_at)
+       values ($1, $2, $3, $4, $5, now(), now())`,
+      [userId, username, username, email, email],
+    ),
   );
 
   const signedIn = await fetch(`${apiUrl}/auth/login`, {
@@ -73,11 +112,74 @@ try {
     throw new Error('GET /courses did not return the created course');
   }
 
-  const deletedCourse = await fetch(`${apiUrl}/courses/${courseId}`, { method: 'DELETE', headers });
-  if (deletedCourse.status !== 204) {
-    throw new Error(`DELETE /courses failed with ${deletedCourse.status}`);
+  const createdSubject = await fetch(`${apiUrl}/courses/${courseId}/subjects`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ name: 'Disciplina de integração' }),
+  });
+  if (createdSubject.status !== 201) {
+    throw new Error(`POST /subjects failed with ${createdSubject.status}`);
   }
-  courseId = undefined;
+  const subjectId = (await createdSubject.json()).data.id;
+
+  const createdContent = await fetch(`${apiUrl}/subjects/${subjectId}/contents`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ name: 'Conteúdo de integração', priority: 5, estimatedDurationSeconds: 3600 }),
+  });
+  if (createdContent.status !== 201) {
+    throw new Error(`POST /contents failed with ${createdContent.status}`);
+  }
+  const contentId = (await createdContent.json()).data.id;
+
+  const availability = await fetch(`${apiUrl}/availability`, {
+    method: 'PUT',
+    headers,
+    body: JSON.stringify({
+      intervals: [{ weekday: 1, startLocalTime: '18:00', endLocalTime: '22:00' }],
+    }),
+  });
+  if (!availability.ok) throw new Error(`PUT /availability failed with ${availability.status}`);
+
+  const pomodoro = await fetch(`${apiUrl}/pomodoro-preference`, {
+    method: 'PUT',
+    headers,
+    body: JSON.stringify({ focusSeconds: 1500, breakSeconds: 300 }),
+  });
+  if (!pomodoro.ok) throw new Error(`PUT /pomodoro-preference failed with ${pomodoro.status}`);
+
+  const createdBlock = await fetch(`${apiUrl}/study-blocks`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      contentId,
+      startsAt: '2099-08-03T19:00:00-03:00',
+      endsAt: '2099-08-03T20:00:00-03:00',
+    }),
+  });
+  if (createdBlock.status !== 201) {
+    throw new Error(`POST /study-blocks failed with ${createdBlock.status}: ${await createdBlock.text()}`);
+  }
+  const blockId = (await createdBlock.json()).data.id;
+
+  const overlappingBlock = await fetch(`${apiUrl}/study-blocks`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      contentId,
+      startsAt: '2099-08-03T19:30:00-03:00',
+      endsAt: '2099-08-03T20:30:00-03:00',
+    }),
+  });
+  if (overlappingBlock.status !== 409) {
+    throw new Error(`Overlapping block should return 409, received ${overlappingBlock.status}`);
+  }
+
+  const cancelledBlock = await fetch(`${apiUrl}/study-blocks/${blockId}/cancel`, {
+    method: 'POST',
+    headers,
+  });
+  if (!cancelledBlock.ok) throw new Error(`POST /study-blocks/:id/cancel failed`);
 
   console.log(
     JSON.stringify({
@@ -85,15 +187,21 @@ try {
       profileResolved: true,
       courseCreated: true,
       courseListed: true,
-      courseDeleted: true,
+      subjectCreated: true,
+      contentCreated: true,
+      availabilitySaved: true,
+      pomodoroSaved: true,
+      studyBlockCreated: true,
+      overlappingBlockRejected: true,
+      studyBlockCancelled: true,
       cleanupScheduled: true,
     }),
   );
 } finally {
-  if (databaseConnected) {
-    if (courseId) await database.query('delete from courses where id = $1', [courseId]).catch(() => {});
-    if (userId) await database.query('delete from user_accounts where id = $1', [userId]).catch(() => {});
-    await database.end();
+  if (userId) {
+    await withDatabase((database) => cleanupUserData(database, userId)).catch(
+      () => {},
+    );
+    await admin.auth.admin.deleteUser(userId).catch(() => {});
   }
-  if (userId) await admin.auth.admin.deleteUser(userId).catch(() => {});
 }
