@@ -35,7 +35,6 @@ Estes pontos não bloqueiam a consolidação inicial, mas devem ser decididos an
 - Faixas visuais de pressão e risco de capacidade.
 - Política para bloco atrasado parcialmente executado: duração original ou somente remanescente.
 - Critérios de concentração e espaçamento de conteúdos no motor automático.
-- Duração ou horário final de evento acadêmico, necessário para impedir sobreposição com blocos.
 - Normalização e regras de unicidade de nome de usuário e e-mail.
 - Estratégia de retenção para propostas descartadas, tokens expirados e inscrições push inválidas.
 - Persistência ou cálculo sob demanda dos diagnósticos históricos de risco.

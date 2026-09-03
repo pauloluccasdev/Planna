@@ -48,11 +48,12 @@
 
 - **RF-EVT-001 — Gerenciar evento:** o aluno deve poder criar, consultar, editar e excluir eventos acadêmicos próprios.
 - **RF-EVT-002 — Definir tipo:** o aluno deve poder escolher um tipo sugerido ou cadastrar um tipo personalizado. Referência: RN-EVT-002.
-- **RF-EVT-003 — Informar data acadêmica:** o evento deve possuir data, horário e disciplina. Referência: RN-EVT-001.
+- **RF-EVT-003 — Informar data acadêmica:** o evento deve possuir data, horário inicial e disciplina; o horário de término é opcional. Referências: RN-EVT-001, RN-EVT-007.
 - **RF-EVT-004 — Relacionar conteúdos:** o aluno deve poder selecionar um ou vários conteúdos da disciplina relacionados ao evento. Referência: RN-EVT-003.
 - **RF-EVT-005 — Registrar conteúdo desconhecido:** o aluno deve poder indicar que os conteúdos ainda não foram informados e completar a seleção depois. Referência: RN-EVT-004.
 - **RF-EVT-006 — Alertar sobre eventos sobrepostos:** o sistema deve permitir eventos coincidentes e alertar sobre a sobreposição. Referência: RN-EVT-006.
 - **RF-EVT-007 — Exibir na agenda:** eventos devem aparecer junto aos blocos, com distinção visual.
+- **RF-EVT-008 — Reservar intervalo:** evento com término deve impedir blocos durante seu intervalo; evento sem término deve permanecer apenas como marcador. Referência: RN-EVT-007.
 
 ## Disponibilidade
 
@@ -65,7 +66,7 @@
 
 - **RF-PLM-001 — Criar bloco:** o aluno deve poder criar bloco para um único conteúdo e selecionar várias partes desse conteúdo. Referência: RN-PLN-007.
 - **RF-PLM-002 — Validar disponibilidade:** o sistema deve impedir bloco fora da disponibilidade semanal. Referência: RN-DSP-002.
-- **RF-PLM-003 — Validar conflitos:** o sistema deve impedir sobreposição com outro bloco ou evento acadêmico. Referências: RN-DSP-004, RN-DSP-005.
+- **RF-PLM-003 — Validar conflitos:** o sistema deve impedir sobreposição com outro bloco ou com o intervalo de evento acadêmico que possua término. Referências: RN-DSP-004, RN-DSP-005.
 - **RF-PLM-004 — Editar bloco:** o aluno deve poder editar blocos futuros, preservando versões anteriores de blocos já confirmados. Referência: RN-RPL-007.
 - **RF-PLM-005 — Criar recorrência diária:** o aluno deve poder repetir um bloco diariamente até uma data final. Referência: RN-PLN-010.
 - **RF-PLM-006 — Alterar recorrência:** o aluno deve poder editar ou excluir somente uma ocorrência ou a série completa. Referência: RN-PLN-011.
@@ -76,7 +77,7 @@
 
 - **RF-PLA-001 — Solicitar geração:** o aluno deve escolher período, cursos e disciplinas para solicitar uma proposta. Referência: RN-PLN-004.
 - **RF-PLA-002 — Validar elegibilidade:** o sistema deve sinalizar e não alocar conteúdo sem estimativa. Referência: RN-ACA-008.
-- **RF-PLA-003 — Preservar compromissos:** a geração deve considerar eventos e blocos confirmados como horários indisponíveis. Referências: RN-PLN-005, RN-DSP-005.
+- **RF-PLA-003 — Preservar compromissos:** a geração deve considerar blocos confirmados e intervalos de eventos com término como horários indisponíveis. Referências: RN-PLN-005, RN-DSP-005.
 - **RF-PLA-004 — Incluir atrasos:** a proposta deve incluir conteúdos com blocos atrasados, ainda que fora da seleção inicial. Referência: RN-PLN-006.
 - **RF-PLA-005 — Priorizar conteúdos:** o sistema deve ordenar a alocação considerando prioridade, urgência, carga, progresso, atraso e disponibilidade. Referências: RN-RSC-001 a RN-RSC-003.
 - **RF-PLA-006 — Gerar blocos:** o sistema deve determinar duração e horário de blocos somente dentro da disponibilidade. Referências: RN-PLN-009, RN-PLN-015.

@@ -186,7 +186,7 @@ Unicidade recomendada por `student_id + nome normalizado`, tratando tipos de sis
 | `title` | Sim | Título. |
 | `description` | Não | Observação. |
 | `starts_at` | Sim | Data e horário informados. |
-| `ends_at` | **A validar** | Necessário para bloquear um intervalo; a regra atual confirmou apenas data e horário. |
+| `ends_at` | Não | Término opcional; quando ausente, o evento é marcador e não reserva intervalo. |
 | `contents_status` | Sim | `informed` ou `not_informed_yet`. |
 | `deleted_at` | Não | Exclusão lógica quando houver referências históricas. |
 
@@ -335,7 +335,8 @@ Restrições:
 - `planned_duration_seconds` deve corresponder ao intervalo conforme política de duração;
 - um bloco não substitui a si mesmo;
 - relação de substituição é consistente nos dois sentidos;
-- bloco confirmado não se sobrepõe a outro bloco ativo ou evento;
+- bloco confirmado não se sobrepõe a outro bloco ativo ou ao intervalo de evento com término;
+- somente eventos com `ends_at` reservam intervalo e participam dessa validação;
 - bloco cabe na disponibilidade vigente;
 - `student_id` é igual ao proprietário do conteúdo e de todos os vínculos.
 
@@ -572,13 +573,12 @@ Nem toda regra cabe em chave estrangeira simples. As seguintes operações devem
 
 ## Decisões bloqueantes antes da modelagem física
 
-1. Duração ou horário final de eventos acadêmicos para detectar conflito real.
-2. Critério de conclusão de conteúdo sem partes.
-3. Semântica de parte concluída reutilizada em outro bloco.
-4. Regra de carga cumprida para estimativa restante.
-5. Política de sobreposição de sessões retroativas.
-6. Estados finais e transições ainda marcados como candidatos.
-7. Política de criação de evento sobre bloco confirmado.
-8. Limites de campos, durações, recorrências e horizonte.
-9. Verificação obrigatória ou não do e-mail.
-10. Retenção de propostas, auditoria e dados cancelados.
+1. Critério de conclusão de conteúdo sem partes.
+2. Semântica de parte concluída reutilizada em outro bloco.
+3. Regra de carga cumprida para estimativa restante.
+4. Política de sobreposição de sessões retroativas.
+5. Estados finais e transições ainda marcados como candidatos.
+6. Política de criação de evento com intervalo sobre bloco confirmado.
+7. Limites de campos, durações, recorrências e horizonte.
+8. Verificação obrigatória ou não do e-mail.
+9. Retenção de propostas, auditoria e dados cancelados.

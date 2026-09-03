@@ -47,7 +47,7 @@ Usuário
 
 ### Calendário e planejamento
 
-**Evento acadêmico** pertence a uma disciplina, possui tipo, data e horário e pode relacionar vários conteúdos. Quando a matéria ainda não é conhecida, guarda essa condição explicitamente.
+**Evento acadêmico** pertence a uma disciplina, possui tipo, data, horário inicial e término opcional, e pode relacionar vários conteúdos. Quando a matéria ainda não é conhecida, guarda essa condição explicitamente. Sem término, funciona como marcador e não reserva um intervalo.
 
 **Disponibilidade semanal** pertence ao aluno e representa um intervalo recorrente em um dia da semana.
 
@@ -116,7 +116,7 @@ Ao aceitar, o bloco original permanece como replanejado e um novo bloco é criad
 3. Um bloco possui exatamente um conteúdo.
 4. Partes de um bloco, sessão ou evento devem pertencer ao conteúdo ou disciplina correspondente.
 5. Um aluno possui no máximo uma sessão de estudo em execução.
-6. Blocos confirmados não podem se sobrepor entre si ou a eventos.
+6. Blocos confirmados não podem se sobrepor entre si ou ao intervalo de eventos com término.
 7. Eventos podem se sobrepor e geram alerta.
 8. Blocos confirmados precisam caber na disponibilidade semanal vigente.
 9. Propostas e sugestões não alteram a agenda antes de confirmação.
@@ -129,7 +129,7 @@ Ao aceitar, o bloco original permanece como replanejado e um novo bloco é criad
 | Conceito | Representa | Pode alterar a agenda? |
 |---|---|---|
 | Conteúdo | O que precisa ser estudado | Não diretamente |
-| Evento | Um compromisso acadêmico | Ocupa horário e influencia urgência |
+| Evento | Um compromisso acadêmico | Com término, ocupa intervalo; sempre influencia urgência |
 | Proposta | Uma possibilidade de planejamento | Não |
 | Bloco | Uma intenção confirmada | Sim, após ação do aluno |
 | Sessão | O estudo efetivamente realizado | Não cria planejamento por si só |

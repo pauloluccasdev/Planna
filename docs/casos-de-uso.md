@@ -58,7 +58,7 @@ Cada caso apresenta ator, objetivo, pré-condições, fluxo principal, alternati
 - **Objetivo:** adicionar bloco diretamente à agenda.
 - **Pré-condições:** conteúdo existente e horário livre.
 - **Fluxo principal:** escolhe data, horário, conteúdo, partes e Pomodoro; o sistema valida disponibilidade e conflitos; o aluno confirma.
-- **Alternativas:** fora da grade, pode ampliá-la; conflito com bloco ou evento impede confirmação; pode configurar repetição diária com data final.
+- **Alternativas:** fora da grade, pode ampliá-la; conflito com bloco ou intervalo de evento com término impede confirmação; pode configurar repetição diária com data final.
 - **Resultado:** um ou vários blocos confirmados são criados.
 - **Requisitos:** RF-PLM-001 a RF-PLM-008.
 

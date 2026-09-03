@@ -30,6 +30,7 @@ Este documento registra somente decisões confirmadas. As identificações devem
 - **RN-EVT-004** — Se ainda não conhecer os conteúdos, o aluno pode marcar "conteúdos ainda não informados" e completar depois.
 - **RN-EVT-005** — Eventos não possuem estimativa própria; a carga vem das estimativas dos conteúdos.
 - **RN-EVT-006** — Eventos podem se sobrepor, mas o Planna deve alertar.
+- **RN-EVT-007** — O horário de término é opcional. Evento com início e término reserva o intervalo; evento sem término é apenas um marcador e não reserva período na disponibilidade.
 
 ## Disponibilidade e conflitos
 
@@ -37,7 +38,7 @@ Este documento registra somente decisões confirmadas. As identificações devem
 - **RN-DSP-002** — O Planna impede a criação ou confirmação de blocos fora da disponibilidade.
 - **RN-DSP-003** — Ao tentar criar um bloco fora da grade, o aluno pode ampliar a disponibilidade semanal e então prosseguir.
 - **RN-DSP-004** — O Planna impede blocos de estudo sobrepostos.
-- **RN-DSP-005** — O Planna impede blocos durante um evento acadêmico.
+- **RN-DSP-005** — O Planna impede blocos durante o intervalo de um evento acadêmico que possua horário de término.
 - **RN-DSP-006** — Uma disponibilidade não pode ser removida ou reduzida se isso invalidar blocos futuros; estes devem ser tratados primeiro.
 
 ## Planejamento

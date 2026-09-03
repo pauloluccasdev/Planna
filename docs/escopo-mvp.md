@@ -23,7 +23,7 @@
 
 - Tipos sugeridos como prova, teste, trabalho e simulado.
 - Tipos personalizados.
-- Data e horário únicos por evento.
+- Data e horário inicial por evento, com horário de término opcional.
 - Vínculo obrigatório com uma disciplina.
 - Seleção de conteúdos cobrados ou estado "conteúdos ainda não informados".
 - Exibição dos eventos na mesma agenda dos blocos.

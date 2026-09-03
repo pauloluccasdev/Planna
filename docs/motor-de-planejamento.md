@@ -9,7 +9,7 @@ Para o MVP, o motor deve ser determinístico e baseado em regras. IA generativa 
 ## Princípios
 
 1. Nunca alocar fora da disponibilidade semanal.
-2. Nunca sobrepor blocos confirmados ou eventos acadêmicos.
+2. Nunca sobrepor blocos confirmados ou intervalos de eventos acadêmicos com término.
 3. Preservar todo bloco já confirmado.
 4. Incluir atrasos mesmo quando não estiverem na seleção inicial.
 5. Excluir da geração automática conteúdo sem estimativa.
@@ -40,7 +40,7 @@ Para o MVP, o motor deve ser determinístico e baseado em regras. IA generativa 
 ### Pressão temporal
 
 - eventos dentro ou próximos ao período;
-- data e horário de cada evento;
+- data, horário inicial e término opcional de cada evento;
 - conteúdos explicitamente relacionados;
 - eventos marcados como “conteúdos ainda não informados”.
 
@@ -84,12 +84,12 @@ O conteúdo deve ser listado como não elegível, com motivo, quando falhar ness
 
 1. Materializar a grade semanal entre início e fim escolhidos.
 2. Recortar o intervalo inicial para não alocar no passado.
-3. Subtrair eventos acadêmicos.
+3. Subtrair os intervalos de eventos acadêmicos que possuam término.
 4. Subtrair blocos confirmados elegíveis à ocupação da agenda.
 5. Normalizar intervalos restantes em ordem cronológica.
 6. Descartar fragmentos menores que a duração mínima do bloco — parâmetro ainda a validar.
 
-Eventos sobrepostos devem ser combinados na subtração para não duplicar tempo ocupado.
+Intervalos de eventos sobrepostos devem ser combinados na subtração para não duplicar tempo ocupado.
 
 ## Carga de um conteúdo
 
@@ -210,7 +210,8 @@ O motor não distribui partes automaticamente. Ele propõe o conteúdo e deixa a
 
 - Conteúdo explicitamente relacionado deve ter sua carga tentada antes do evento.
 - Um evento pode elevar conteúdo de prioridade baixa acima de outro sem prazo próximo.
-- O horário do evento é indisponível para estudo.
+- O intervalo do evento com término é indisponível para estudo.
+- Evento sem término é marcador pontual e não reduz a disponibilidade.
 - Eventos sobrepostos permanecem válidos e geram alerta.
 - Evento sem conteúdos conhecidos não permite alocação inventada; deve produzir alerta para completar a informação.
 - O tratamento de evento criado sobre bloco já confirmado permanece pendente.
