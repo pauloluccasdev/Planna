@@ -767,6 +767,9 @@ ALTER TABLE "pomodoro_preferences"
   ADD CONSTRAINT "pomodoro_focus_positive" CHECK ("focus_seconds" > 0),
   ADD CONSTRAINT "pomodoro_break_positive" CHECK ("break_seconds" > 0);
 
+ALTER TABLE "content_parts"
+  ADD CONSTRAINT "content_parts_position_positive" CHECK ("position" > 0);
+
 ALTER TABLE "planning_proposals"
   ADD CONSTRAINT "planning_proposals_period_order" CHECK ("period_start" < "period_end"),
   ADD CONSTRAINT "planning_proposals_revision_positive" CHECK ("revision" > 0);
