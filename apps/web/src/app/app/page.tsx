@@ -86,6 +86,11 @@ export default async function DashboardPage() {
             </li>
             <li>Adicionar conteúdos e prioridades</li>
             <li>Informar disponibilidade semanal</li>
+            <li>
+              <Link href="/app/settings/study">
+                Configurar horários e Pomodoro →
+              </Link>
+            </li>
           </ol>
         </aside>
       </section>
