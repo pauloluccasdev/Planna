@@ -11,6 +11,7 @@ type Content = {
   name: string;
   priority: number;
   estimatedDurationSeconds: number | null;
+  _count: { parts: number };
 };
 
 export const metadata: Metadata = { title: "Conteúdos" };
@@ -65,15 +66,22 @@ export default async function SubjectPage({ params }: Props) {
             </div>
           ) : (
             contents.map((content) => (
-              <div className="dashboard-card content-row" key={content.id}>
+              <Link
+                className="dashboard-card content-row"
+                href={`/app/contents/${content.id}`}
+                key={content.id}
+              >
                 <div>
                   <span className="resource-status">
                     Prioridade {content.priority}
                   </span>
                   <h2>{content.name}</h2>
                 </div>
-                <span>{durationLabel(content.estimatedDurationSeconds)}</span>
-              </div>
+                <span>
+                  {durationLabel(content.estimatedDurationSeconds)} ·{" "}
+                  {content._count.parts} partes →
+                </span>
+              </Link>
             ))
           )}
         </div>

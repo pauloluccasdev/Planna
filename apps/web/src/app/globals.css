@@ -587,6 +587,46 @@ a.resource-row:hover {
   border: 0;
   cursor: pointer;
 }
+.part-row {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+  min-height: 104px;
+  padding: 22px;
+}
+.part-position {
+  color: #8a9892;
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.75rem;
+}
+.part-row h2 {
+  margin: 0;
+  font-size: 1.08rem;
+}
+.part-row p {
+  margin: 7px 0 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+.order-actions {
+  display: flex;
+  gap: 6px;
+}
+.order-actions button {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 1px solid #d5dcd7;
+  border-radius: 9px;
+  background: #f8faf6;
+  cursor: pointer;
+}
+.order-actions button:disabled {
+  cursor: default;
+  opacity: 0.35;
+}
 @media (max-width: 800px) {
   .nav nav > a:first-child {
     display: none;
