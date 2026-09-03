@@ -8,6 +8,7 @@ import { ContentsModule } from './contents/contents.module.js';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { PrismaModule } from './database/prisma.module.js';
+import { PomodoroModule } from './pomodoro/pomodoro.module.js';
 import { SubjectsModule } from './subjects/subjects.module.js';
 
 @Module({
@@ -20,6 +21,7 @@ import { SubjectsModule } from './subjects/subjects.module.js';
     SubjectsModule,
     ContentsModule,
     ContentPartsModule,
+    PomodoroModule,
   ],
   controllers: [AppController],
   providers: [AppService],
