@@ -30,6 +30,23 @@ const sessionSelection = {
   note: true,
   revision: true,
   content: { select: { id: true, name: true } },
+  studyBlock: {
+    select: {
+      id: true,
+      endsAt: true,
+      plannedDurationSeconds: true,
+      focusSeconds: true,
+      breakSeconds: true,
+      parts: {
+        select: {
+          contentPart: {
+            select: { id: true, name: true, position: true },
+          },
+        },
+        orderBy: { contentPart: { position: 'asc' as const } },
+      },
+    },
+  },
   segments: {
     select: {
       id: true,
@@ -78,8 +95,12 @@ export class StudySessionsService {
 
   active(studentId: string) {
     return this.prisma.studySession.findFirst({
-      where: { studentId, status: SessionStatus.RUNNING },
+      where: {
+        studentId,
+        status: { in: [SessionStatus.RUNNING, SessionStatus.PAUSED] },
+      },
       select: sessionSelection,
+      orderBy: { updatedAt: 'desc' },
     });
   }
 

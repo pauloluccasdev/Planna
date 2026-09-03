@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { authenticatedApi } from "../_lib/api";
 import { logout } from "./actions";
+import { startStudySession } from "./session/actions";
 
 export const metadata: Metadata = { title: "Minha semana" };
 
@@ -74,17 +75,30 @@ type Props = { searchParams: Promise<{ week?: string }> };
 export default async function DashboardPage({ searchParams }: Props) {
   const { week } = await searchParams;
   const range = weekRange(week);
-  const [meResponse, calendarResponse] = await Promise.all([
-    authenticatedApi("me"),
-    authenticatedApi(
-      `calendar?from=${encodeURIComponent(range.from)}&to=${encodeURIComponent(range.to)}`,
-    ),
-  ]);
+  const [meResponse, calendarResponse, activeSessionResponse] =
+    await Promise.all([
+      authenticatedApi("me"),
+      authenticatedApi(
+        `calendar?from=${encodeURIComponent(range.from)}&to=${encodeURIComponent(range.to)}`,
+      ),
+      authenticatedApi("study-sessions/active"),
+    ]);
   if (!meResponse?.ok) redirect("/login");
   const { data: user } = (await meResponse.json()) as MeResponse;
   const calendar = calendarResponse?.ok
     ? ((await calendarResponse.json()) as { data: CalendarItem[] }).data
     : [];
+  const activeSession = activeSessionResponse?.ok
+    ? (
+        (await activeSessionResponse.json()) as {
+          data: {
+            id: string;
+            status: string;
+            content: { name: string };
+          } | null;
+        }
+      ).data
+    : null;
 
   return (
     <main className="dashboard-shell">
@@ -110,6 +124,23 @@ export default async function DashboardPage({ searchParams }: Props) {
           Organizar estudos
         </Link>
       </section>
+      {activeSession ? (
+        <section className="active-session-banner">
+          <div>
+            <span>
+              {activeSession.status === "PAUSED"
+                ? "Sessão pausada"
+                : "Sessão em andamento"}
+            </span>
+            <b>{activeSession.content.name}</b>
+          </div>
+          <Link className="button" href={`/app/session?id=${activeSession.id}`}>
+            {activeSession.status === "PAUSED"
+              ? "Continuar sessão"
+              : "Abrir cronômetro"}
+          </Link>
+        </section>
+      ) : null}
       <section className="dashboard-grid">
         <article className="dashboard-card agenda-placeholder">
           <div className="card-heading">
@@ -148,7 +179,7 @@ export default async function DashboardPage({ searchParams }: Props) {
                   <time dateTime={item.startsAt}>
                     {dateTime.format(new Date(item.startsAt))}
                   </time>
-                  <div>
+                  <div className="calendar-item-copy">
                     <span>
                       {item.type === "study_block"
                         ? item.content.subject.name
@@ -160,6 +191,14 @@ export default async function DashboardPage({ searchParams }: Props) {
                         : item.title}
                     </h3>
                   </div>
+                  {item.type === "study_block" &&
+                  ["CONFIRMED", "OVERDUE"].includes(item.status) ? (
+                    <form action={startStudySession.bind(null, item.id)}>
+                      <button className="calendar-start" type="submit">
+                        Iniciar
+                      </button>
+                    </form>
+                  ) : null}
                 </article>
               ))}
             </div>
