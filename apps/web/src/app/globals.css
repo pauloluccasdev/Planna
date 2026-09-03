@@ -19,7 +19,9 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 button,
-input {
+input,
+select,
+textarea {
   font: inherit;
 }
 button {
@@ -274,7 +276,9 @@ h1 {
   font-size: 0.82rem;
   font-weight: 750;
 }
-.field input {
+.field input,
+.field select,
+.field textarea {
   width: 100%;
   min-height: 52px;
   padding: 0 15px;
@@ -283,7 +287,25 @@ h1 {
   outline: none;
   background: #fbfcf9;
 }
-.field input:focus {
+.field textarea {
+  min-height: 90px;
+  padding-block: 13px;
+  resize: vertical;
+}
+.field select {
+  appearance: none;
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--ink) 50%),
+    linear-gradient(135deg, var(--ink) 50%, transparent 50%);
+  background-position:
+    calc(100% - 18px) 23px,
+    calc(100% - 13px) 23px;
+  background-repeat: no-repeat;
+  background-size: 5px 5px;
+}
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
   border-color: var(--ink);
   box-shadow: 0 0 0 3px rgb(23 60 53 / 10%);
 }
@@ -528,6 +550,43 @@ a.resource-row:hover {
   cursor: wait;
   opacity: 0.7;
 }
+.content-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(420px, 1.1fr);
+  gap: 24px;
+  align-items: start;
+}
+.content-row {
+  display: flex;
+  min-height: 110px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 24px;
+}
+.content-row h2 {
+  margin: 7px 0 0;
+  font-size: 1.15rem;
+}
+.content-row > span {
+  color: var(--muted);
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+.content-create-form {
+  display: grid;
+  gap: 18px;
+  margin-top: 28px;
+}
+.form-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.content-create-form .button {
+  border: 0;
+  cursor: pointer;
+}
 @media (max-width: 800px) {
   .nav nav > a:first-child {
     display: none;
@@ -560,6 +619,9 @@ a.resource-row:hover {
     grid-template-columns: 1fr;
   }
   .resource-layout {
+    grid-template-columns: 1fr;
+  }
+  .content-layout {
     grid-template-columns: 1fr;
   }
 }
@@ -598,5 +660,8 @@ a.resource-row:hover {
   }
   .user-menu > span {
     display: none;
+  }
+  .form-columns {
+    grid-template-columns: 1fr;
   }
 }

@@ -50,12 +50,17 @@ export default async function CoursePage({ params }: Props) {
             </div>
           ) : (
             subjects.map((subject) => (
-              <div className="dashboard-card resource-row" key={subject.id}>
+              <Link
+                className="dashboard-card resource-row"
+                href={`/app/subjects/${subject.id}`}
+                key={subject.id}
+              >
                 <div>
                   <span className="resource-status">Disciplina</span>
                   <h2>{subject.name}</h2>
                 </div>
-              </div>
+                <span>Ver conteúdos →</span>
+              </Link>
             ))
           )}
         </div>
