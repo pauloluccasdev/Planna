@@ -17,6 +17,13 @@ export class AuthController {
   @Get('me')
   @UseGuards(SupabaseAuthGuard)
   me(@CurrentUser() user: AuthUser) {
-    return { data: { id: user.id, email: user.email } };
+    return {
+      data: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+      },
+    };
   }
 }

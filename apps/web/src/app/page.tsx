@@ -30,7 +30,7 @@ export default function Home() {
         </a>
         <nav aria-label="Navegação principal">
           <a href="#como-funciona">Como funciona</a>
-          <a className="button button-small" href="#acesso">
+          <a className="button button-small" href="/login">
             Entrar
           </a>
         </nav>
@@ -50,7 +50,7 @@ export default function Home() {
             mudam.
           </p>
           <div className="hero-actions" id="acesso">
-            <a className="button" href="#como-funciona">
+            <a className="button" href="/login">
               Começar a planejar
             </a>
             <span>MVP em desenvolvimento</span>

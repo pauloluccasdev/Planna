@@ -78,7 +78,7 @@ export class SupabaseAuthService {
 
     const account = await this.prisma.userAccount.findUnique({
       where: { id: subject },
-      select: { email: true, status: true },
+      select: { email: true, username: true, role: true, status: true },
     });
     if (!account || account.status !== AccountStatus.ACTIVE) {
       throw new UnauthorizedException({
@@ -92,6 +92,8 @@ export class SupabaseAuthService {
     return {
       id: subject,
       email: account.email,
+      username: account.username,
+      role: account.role,
       claims: data.claims,
     };
   }
