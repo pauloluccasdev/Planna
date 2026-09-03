@@ -1,0 +1,73 @@
+import { ConflictException, NotFoundException } from '@nestjs/common';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { PrismaService } from '../database/prisma.service.js';
+import { StudySessionsService } from './study-sessions.service.js';
+
+describe('StudySessionsService', () => {
+  const transaction = {
+    $executeRaw: vi.fn(),
+    studySession: {
+      findFirst: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      findUniqueOrThrow: vi.fn(),
+    },
+    studySessionSegment: {
+      updateMany: vi.fn(),
+      create: vi.fn(),
+      findMany: vi.fn(),
+    },
+    studySessionCompletedPart: { deleteMany: vi.fn(), createMany: vi.fn() },
+    studyBlock: { findFirst: vi.fn(), update: vi.fn() },
+    content: { findFirst: vi.fn() },
+    contentPart: { count: vi.fn() },
+  };
+  const prisma = {
+    studySession: { findFirst: vi.fn(), findMany: vi.fn() },
+    $transaction: vi.fn(async (callback) => callback(transaction)),
+  };
+  let service: StudySessionsService;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    service = new StudySessionsService(prisma as unknown as PrismaService);
+  });
+
+  it('does not expose another student session', async () => {
+    prisma.studySession.findFirst.mockResolvedValue(null);
+    await expect(
+      service.get('student-id', 'session-id'),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    expect(prisma.studySession.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'session-id', studentId: 'student-id' },
+      }),
+    );
+  });
+
+  it('rejects a second running timer for the same student', async () => {
+    transaction.studySession.findFirst.mockResolvedValue({
+      id: 'active-session',
+    });
+    await expect(
+      service.startPlanned('student-id', 'block-id'),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(transaction.studyBlock.findFirst).not.toHaveBeenCalled();
+  });
+
+  it('rejects an unplanned session for a foreign content', async () => {
+    transaction.studySession.findFirst.mockResolvedValue(null);
+    transaction.content.findFirst.mockResolvedValue(null);
+    await expect(
+      service.startUnplanned('student-id', { contentId: 'foreign-content' }),
+    ).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it('only pauses a running session owned by the student', async () => {
+    transaction.studySession.findFirst.mockResolvedValue(null);
+    await expect(
+      service.pause('student-id', 'session-id'),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(transaction.studySessionSegment.updateMany).not.toHaveBeenCalled();
+  });
+});

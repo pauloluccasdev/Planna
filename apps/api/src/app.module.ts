@@ -13,6 +13,7 @@ import { PrismaModule } from './database/prisma.module.js';
 import { PomodoroModule } from './pomodoro/pomodoro.module.js';
 import { SubjectsModule } from './subjects/subjects.module.js';
 import { StudyBlocksModule } from './study-blocks/study-blocks.module.js';
+import { StudySessionsModule } from './study-sessions/study-sessions.module.js';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { StudyBlocksModule } from './study-blocks/study-blocks.module.js';
     ContentPartsModule,
     PomodoroModule,
     StudyBlocksModule,
+    StudySessionsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -36,6 +36,15 @@ async function withDatabase(callback) {
 
 async function cleanupUserData(database, id) {
   await database.query(
+    'delete from study_session_completed_parts where study_session_id in (select id from study_sessions where student_id = $1)',
+    [id],
+  );
+  await database.query(
+    'delete from study_session_segments where study_session_id in (select id from study_sessions where student_id = $1)',
+    [id],
+  );
+  await database.query('delete from study_sessions where student_id = $1', [id]);
+  await database.query(
     'delete from study_block_parts where study_block_id in (select id from study_blocks where student_id = $1)',
     [id],
   );
@@ -175,11 +184,49 @@ try {
     throw new Error(`Overlapping block should return 409, received ${overlappingBlock.status}`);
   }
 
-  const cancelledBlock = await fetch(`${apiUrl}/study-blocks/${blockId}/cancel`, {
+  const startedSession = await fetch(
+    `${apiUrl}/study-blocks/${blockId}/sessions/start`,
+    { method: 'POST', headers },
+  );
+  if (startedSession.status !== 201) {
+    throw new Error(`Starting planned session failed with ${startedSession.status}`);
+  }
+  const sessionId = (await startedSession.json()).data.id;
+
+  const secondSession = await fetch(`${apiUrl}/study-sessions/unplanned/start`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ contentId }),
+  });
+  if (secondSession.status !== 409) {
+    throw new Error(`A second running session should return 409, received ${secondSession.status}`);
+  }
+
+  const pausedSession = await fetch(`${apiUrl}/study-sessions/${sessionId}/pause`, {
     method: 'POST',
     headers,
   });
-  if (!cancelledBlock.ok) throw new Error(`POST /study-blocks/:id/cancel failed`);
+  if (!pausedSession.ok) throw new Error('Pausing session failed');
+
+  const resumedSession = await fetch(`${apiUrl}/study-sessions/${sessionId}/resume`, {
+    method: 'POST',
+    headers,
+  });
+  if (!resumedSession.ok) throw new Error('Resuming session failed');
+
+  const completedSession = await fetch(
+    `${apiUrl}/study-sessions/${sessionId}/complete`,
+    {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ note: 'Sessão de integração concluída' }),
+    },
+  );
+  if (!completedSession.ok) throw new Error('Completing session failed');
+  const completedBody = await completedSession.json();
+  if (completedBody.data.status !== 'COMPLETED') {
+    throw new Error('Session did not transition to COMPLETED');
+  }
 
   console.log(
     JSON.stringify({
@@ -193,7 +240,11 @@ try {
       pomodoroSaved: true,
       studyBlockCreated: true,
       overlappingBlockRejected: true,
-      studyBlockCancelled: true,
+      plannedSessionStarted: true,
+      concurrentSessionRejected: true,
+      sessionPaused: true,
+      sessionResumed: true,
+      sessionCompleted: true,
       cleanupScheduled: true,
     }),
   );
