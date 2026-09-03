@@ -1,6 +1,8 @@
 const DEFAULT_API_PORT = 3001;
 const DEFAULT_WEB_ORIGIN = 'http://localhost:3000';
 
+import 'dotenv/config';
+
 export function getRequiredEnvironment(name: string): string {
   const value = process.env[name]?.trim();
 

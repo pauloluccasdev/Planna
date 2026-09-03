@@ -26,6 +26,18 @@ describe('AppController (e2e)', () => {
       .expect({ data: { service: 'planna-api', status: 'ok' } });
   });
 
+  it('/api/v1/me (GET) requires a bearer token', () => {
+    return request(app.getHttpServer())
+      .get('/api/v1/me')
+      .expect(401)
+      .expect({
+        error: {
+          code: 'AUTHENTICATION_REQUIRED',
+          message: 'Informe um token Bearer válido.',
+        },
+      });
+  });
+
   afterEach(async () => {
     await app.close();
   });
