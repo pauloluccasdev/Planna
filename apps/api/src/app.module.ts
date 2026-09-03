@@ -3,6 +3,7 @@ import { AcademicPeriodsModule } from './academic-periods/academic-periods.modul
 import { AcademicEventTypesModule } from './academic-event-types/academic-event-types.module.js';
 import { AcademicEventsModule } from './academic-events/academic-events.module.js';
 import { AuthModule } from './auth/auth.module.js';
+import { CalendarModule } from './calendar/calendar.module.js';
 import { AvailabilityModule } from './availability/availability.module.js';
 import { ContentPartsModule } from './content-parts/content-parts.module.js';
 import { CoursesModule } from './courses/courses.module.js';
@@ -24,6 +25,7 @@ import { StudySessionsModule } from './study-sessions/study-sessions.module.js';
     AcademicEventsModule,
     AvailabilityModule,
     AuthModule,
+    CalendarModule,
     CoursesModule,
     SubjectsModule,
     ContentsModule,

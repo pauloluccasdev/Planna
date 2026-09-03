@@ -277,6 +277,20 @@ try {
     throw new Error('Planned versus realized metrics are inconsistent');
   }
 
+  const calendar = await fetch(
+    `${apiUrl}/calendar?from=2099-08-01T00%3A00%3A00-03%3A00&to=2099-08-10T00%3A00%3A00-03%3A00`,
+    { headers },
+  );
+  if (!calendar.ok) throw new Error(`GET /calendar failed with ${calendar.status}`);
+  const calendarBody = await calendar.json();
+  if (
+    calendarBody.data.length !== 1 ||
+    calendarBody.data[0].type !== 'study_block' ||
+    calendarBody.data[0].id !== blockId
+  ) {
+    throw new Error('Calendar did not return the expected study block');
+  }
+
   console.log(
     JSON.stringify({
       authenticated: true,
@@ -298,6 +312,7 @@ try {
       sessionCompleted: true,
       retroactiveSessionCreated: true,
       metricsCalculated: true,
+      calendarListed: true,
       cleanupScheduled: true,
     }),
   );
