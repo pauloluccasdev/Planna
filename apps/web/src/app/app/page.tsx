@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { authenticatedApi } from "../_lib/api";
 import { logout } from "./actions";
@@ -36,10 +37,10 @@ export default async function DashboardPage() {
   return (
     <main className="dashboard-shell">
       <header className="dashboard-header">
-        <a className="brand" href="/app">
+        <Link className="brand" href="/app">
           <span className="brand-mark">P</span>
           Planna
-        </a>
+        </Link>
         <div className="user-menu">
           <span>@{user.username}</span>
           <form action={logout}>
@@ -53,7 +54,9 @@ export default async function DashboardPage() {
           <h1>Olá, {user.username}.</h1>
           <p>Seus blocos e compromissos acadêmicos aparecerão aqui.</p>
         </div>
-        <span className="button">Novo bloco em breve</span>
+        <Link className="button" href="/app/courses">
+          Organizar estudos
+        </Link>
       </section>
       <section className="dashboard-grid">
         <article className="dashboard-card agenda-placeholder">
@@ -78,7 +81,9 @@ export default async function DashboardPage() {
         <aside className="dashboard-card next-actions">
           <span className="eyebrow">Próximos passos</span>
           <ol>
-            <li>Cadastrar curso e disciplinas</li>
+            <li>
+              <Link href="/app/courses">Cadastrar curso e disciplinas →</Link>
+            </li>
             <li>Adicionar conteúdos e prioridades</li>
             <li>Informar disponibilidade semanal</li>
           </ol>

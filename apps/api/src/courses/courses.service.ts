@@ -16,6 +16,7 @@ const courseSelection = {
   archivedAt: true,
   createdAt: true,
   updatedAt: true,
+  _count: { select: { subjects: { where: { archivedAt: null } } } },
 } as const;
 
 @Injectable()
