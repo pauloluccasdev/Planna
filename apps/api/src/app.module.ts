@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AcademicPeriodsModule } from './academic-periods/academic-periods.module.js';
 import { AcademicEventTypesModule } from './academic-event-types/academic-event-types.module.js';
+import { AcademicEventsModule } from './academic-events/academic-events.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { AvailabilityModule } from './availability/availability.module.js';
 import { ContentPartsModule } from './content-parts/content-parts.module.js';
@@ -17,6 +18,7 @@ import { SubjectsModule } from './subjects/subjects.module.js';
     PrismaModule,
     AcademicPeriodsModule,
     AcademicEventTypesModule,
+    AcademicEventsModule,
     AvailabilityModule,
     AuthModule,
     CoursesModule,
