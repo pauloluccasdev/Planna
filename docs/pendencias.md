@@ -19,6 +19,15 @@ Estes pontos não bloqueiam a consolidação inicial, mas devem ser decididos an
 - Política de retenção do registro técnico de itens cancelados ou excluídos.
 - Dados mínimos do perfil e consentimentos de privacidade.
 - Fluxo operacional de solicitação de exclusão de conta fora do aplicativo.
+- Obrigatoriedade ou não de verificar o e-mail antes do primeiro acesso.
+- Comportamento ao cadastrar ou editar evento sobre um bloco já confirmado.
+- Comportamento ao arquivar conteúdo ou disciplina com blocos futuros.
+- Permissão ou não para cancelar um bloco enquanto sua sessão está em execução.
+- Política para proposta que se torna inválida enquanto está sendo revisada.
+- Possível expiração de propostas e sugestões não respondidas.
+- Regra para recorrência diária que encontra evento ou indisponibilidade em uma data futura.
+- Consequência de reutilizar em novos blocos uma parte já concluída.
+- Estado final de uma sessão reconciliada após fechamento inesperado.
 
 ## Decisões técnicas ainda não tomadas
 

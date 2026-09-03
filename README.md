@@ -15,6 +15,11 @@ O projeto está na fase de especificação do MVP. Ainda não há decisão defin
 - [Regras de negócio](docs/regras-de-negocio.md)
 - [Fluxos principais](docs/fluxos-principais.md)
 - [Glossário do domínio](docs/glossario.md)
+- [Requisitos funcionais](docs/requisitos-funcionais.md)
+- [Requisitos não funcionais](docs/requisitos-nao-funcionais.md)
+- [Modelo de domínio](docs/modelo-de-dominio.md)
+- [Estados e transições](docs/estados-e-transicoes.md)
+- [Casos de uso](docs/casos-de-uso.md)
 - [Pendências e decisões futuras](docs/pendencias.md)
 
 ## Princípios centrais
