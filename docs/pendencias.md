@@ -28,6 +28,13 @@ Estes pontos não bloqueiam a consolidação inicial, mas devem ser decididos an
 - Regra para recorrência diária que encontra evento ou indisponibilidade em uma data futura.
 - Consequência de reutilizar em novos blocos uma parte já concluída.
 - Estado final de uma sessão reconciliada após fechamento inesperado.
+- Regra de redução da estimativa restante para conclusão antecipada, tempo excedente e estudo não planejado.
+- Forma de exibir tempo não planejado no KPI principal.
+- Data de atribuição histórica de cancelamentos e replanejamentos.
+- Inclusão ou não do indicador histórico de atrasos ocorridos, além dos atrasos atuais.
+- Faixas visuais de pressão e risco de capacidade.
+- Política para bloco atrasado parcialmente executado: duração original ou somente remanescente.
+- Critérios de concentração e espaçamento de conteúdos no motor automático.
 
 ## Decisões técnicas ainda não tomadas
 
