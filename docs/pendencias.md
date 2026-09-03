@@ -38,18 +38,18 @@ Estes pontos não bloqueiam a consolidação inicial, mas devem ser decididos an
 - Normalização e regras de unicidade de nome de usuário e e-mail.
 - Estratégia de retenção para propostas descartadas, tokens expirados e inscrições push inválidas.
 - Persistência ou cálculo sob demanda dos diagnósticos históricos de risco.
+- Política de criação parcial ou atômica de série recorrente quando houver ocorrência inválida.
 
 ## Decisões técnicas ainda não tomadas
 
-- Arquitetura da aplicação.
-- Framework de frontend/PWA.
-- Tecnologia de backend.
-- Banco de dados e estratégia de migração.
-- Provedor de autenticação e e-mail.
+- Framework e hospedagem da PWA.
+- Localização da camada de aplicação entre servidor da PWA e Supabase Edge Functions.
+- Estratégia física detalhada de migração no Supabase/PostgreSQL.
+- Configuração final do Supabase Auth e provedor de envio de e-mail.
 - Infraestrutura de notificações push.
 - Hospedagem, observabilidade, backups e ambientes.
-- Contratos de API.
 - Estratégia de concorrência para garantir uma sessão ativa por aluno.
+- Estratégia de ambientes/projetos separados no Supabase.
 
 ## Fora do núcleo atual
 

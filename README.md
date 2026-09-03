@@ -23,6 +23,9 @@ O projeto está na fase de especificação do MVP. Ainda não há decisão defin
 - [Motor de planejamento](docs/motor-de-planejamento.md)
 - [Indicadores e cálculos](docs/indicadores-e-calculos.md)
 - [Modelo lógico de dados](docs/modelo-logico-de-dados.md)
+- [Arquitetura técnica](docs/arquitetura-tecnica.md)
+- [Contratos da API](docs/contratos-api.md)
+- [ADR-001 — Supabase e PostgreSQL](docs/decisoes/ADR-001-supabase-postgresql.md)
 - [Pendências e decisões futuras](docs/pendencias.md)
 
 ## Princípios centrais
