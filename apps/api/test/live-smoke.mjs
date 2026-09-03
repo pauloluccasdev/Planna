@@ -21,9 +21,6 @@ const password = `${randomUUID()}Aa1!`;
 const admin = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SECRET_KEY, {
   auth: { persistSession: false, autoRefreshToken: false },
 });
-const publicClient = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_PUBLISHABLE_KEY, {
-  auth: { persistSession: false, autoRefreshToken: false },
-});
 const database = new pg.Client({ connectionString: process.env.DIRECT_URL });
 let databaseConnected = false;
 let userId;
@@ -43,10 +40,17 @@ try {
     [userId, username, username, email, email],
   );
 
-  const signedIn = await publicClient.auth.signInWithPassword({ email, password });
-  if (signedIn.error) throw signedIn.error;
+  const signedIn = await fetch(`${apiUrl}/auth/login`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ username, password }),
+  });
+  if (!signedIn.ok) {
+    throw new Error(`POST /auth/login failed with ${signedIn.status}: ${await signedIn.text()}`);
+  }
+  const loginBody = await signedIn.json();
   const headers = {
-    authorization: `Bearer ${signedIn.data.session.access_token}`,
+    authorization: `Bearer ${loginBody.data.session.accessToken}`,
     'content-type': 'application/json',
   };
 
