@@ -12,6 +12,7 @@ import {
   SessionStatus,
 } from '../generated/prisma/enums.js';
 import type { CompleteStudySessionDto } from './dto/complete-study-session.dto.js';
+import type { CreateRetroactiveSessionDto } from './dto/create-retroactive-session.dto.js';
 import type { ListStudySessionsQueryDto } from './dto/list-study-sessions-query.dto.js';
 import type { StartUnplannedSessionDto } from './dto/start-unplanned-session.dto.js';
 
@@ -239,6 +240,24 @@ export class StudySessionsService {
     });
   }
 
+  startPomodoroBreak(studentId: string, id: string) {
+    return this.switchRunningSegment(
+      studentId,
+      id,
+      SessionSegmentKind.FOCUS,
+      SessionSegmentKind.POMODORO_BREAK,
+    );
+  }
+
+  resumeFocus(studentId: string, id: string) {
+    return this.switchRunningSegment(
+      studentId,
+      id,
+      SessionSegmentKind.POMODORO_BREAK,
+      SessionSegmentKind.FOCUS,
+    );
+  }
+
   complete(studentId: string, id: string, input: CompleteStudySessionDto) {
     return this.prisma.$transaction(async (transaction) => {
       await this.lockStudent(transaction, studentId);
@@ -334,6 +353,170 @@ export class StudySessionsService {
           },
         });
       }
+      return transaction.studySession.findUniqueOrThrow({
+        where: { id },
+        select: sessionSelection,
+      });
+    });
+  }
+
+  createRetroactive(studentId: string, input: CreateRetroactiveSessionDto) {
+    const startedAt = new Date(input.startedAt);
+    const endedAt = new Date(input.endedAt);
+    if (startedAt >= endedAt || endedAt > new Date()) {
+      throw new UnprocessableEntityException({
+        error: {
+          code: 'INVALID_RETROACTIVE_SESSION_RANGE',
+          message: 'Informe um intervalo anterior válido.',
+        },
+      });
+    }
+    const realizedSeconds = Math.floor(
+      (endedAt.getTime() - startedAt.getTime()) / 1000,
+    );
+    const breakSeconds = input.pomodoroBreakDurationSeconds ?? 0;
+    if (breakSeconds > realizedSeconds) {
+      throw new UnprocessableEntityException({
+        error: {
+          code: 'INVALID_RETROACTIVE_BREAK_DURATION',
+          message: 'O tempo de pausa não pode superar a duração da sessão.',
+        },
+      });
+    }
+
+    return this.prisma.$transaction(async (transaction) => {
+      await this.lockStudent(transaction, studentId);
+      const content = await transaction.content.findFirst({
+        where: { id: input.contentId, studentId, archivedAt: null },
+        select: { id: true },
+      });
+      if (!content) {
+        throw new NotFoundException({
+          error: {
+            code: 'CONTENT_NOT_FOUND',
+            message: 'Conteúdo não encontrado.',
+          },
+        });
+      }
+      const block = input.studyBlockId
+        ? await transaction.studyBlock.findFirst({
+            where: {
+              id: input.studyBlockId,
+              studentId,
+              contentId: input.contentId,
+              status: {
+                in: [
+                  BlockStatus.CONFIRMED,
+                  BlockStatus.IN_PROGRESS,
+                  BlockStatus.PAUSED,
+                  BlockStatus.OVERDUE,
+                ],
+              },
+            },
+            select: { id: true },
+          })
+        : null;
+      if (input.studyBlockId && !block) {
+        throw new ConflictException({
+          error: {
+            code: 'INVALID_RETROACTIVE_STUDY_BLOCK',
+            message: 'O bloco não pertence ao conteúdo ou já foi finalizado.',
+          },
+        });
+      }
+      const partIds = input.completedPartIds ?? [];
+      if (partIds.length > 0) {
+        const partCount = await transaction.contentPart.count({
+          where: {
+            id: { in: partIds },
+            studentId,
+            contentId: input.contentId,
+            archivedAt: null,
+          },
+        });
+        if (partCount !== partIds.length) {
+          throw new UnprocessableEntityException({
+            error: {
+              code: 'INVALID_COMPLETED_PARTS',
+              message: 'Todas as partes devem pertencer ao conteúdo estudado.',
+            },
+          });
+        }
+      }
+      const session = await transaction.studySession.create({
+        data: {
+          studentId,
+          contentId: input.contentId,
+          studyBlockId: block?.id,
+          kind: SessionKind.RETROACTIVE,
+          status: SessionStatus.COMPLETED,
+          startedAt,
+          endedAt,
+          focusDurationSeconds: realizedSeconds - breakSeconds,
+          pomodoroBreakDurationSeconds: breakSeconds,
+          realizedDurationSeconds: realizedSeconds,
+          note: input.note?.trim() || null,
+          completedParts: {
+            create: partIds.map((contentPartId) => ({ contentPartId })),
+          },
+        },
+        select: sessionSelection,
+      });
+      if (block) {
+        await transaction.studyBlock.update({
+          where: { id: block.id },
+          data: {
+            status: BlockStatus.COMPLETED,
+            completedAt: endedAt,
+            revision: { increment: 1 },
+          },
+        });
+      }
+      return session;
+    });
+  }
+
+  private switchRunningSegment(
+    studentId: string,
+    id: string,
+    expectedKind: SessionSegmentKind,
+    nextKind: SessionSegmentKind,
+  ) {
+    return this.prisma.$transaction(async (transaction) => {
+      await this.lockStudent(transaction, studentId);
+      const session = await transaction.studySession.findFirst({
+        where: { id, studentId, status: SessionStatus.RUNNING },
+        select: { id: true, _count: { select: { segments: true } } },
+      });
+      if (!session) {
+        this.throwInvalidTransition('A sessão não está em execução.');
+      }
+      const current = await transaction.studySessionSegment.findFirst({
+        where: { studySessionId: id, endedAt: null },
+        select: { id: true, kind: true },
+      });
+      if (!current || current.kind !== expectedKind) {
+        this.throwInvalidTransition(
+          'O ciclo atual não permite essa transição.',
+        );
+      }
+      const now = new Date();
+      await transaction.studySessionSegment.update({
+        where: { id: current.id },
+        data: { endedAt: now },
+      });
+      await transaction.studySessionSegment.create({
+        data: {
+          studySessionId: id,
+          kind: nextKind,
+          startedAt: now,
+          sequence: session._count.segments + 1,
+        },
+      });
+      await transaction.studySession.update({
+        where: { id },
+        data: { revision: { increment: 1 } },
+      });
       return transaction.studySession.findUniqueOrThrow({
         where: { id },
         select: sessionSelection,

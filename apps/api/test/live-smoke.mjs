@@ -202,6 +202,18 @@ try {
     throw new Error(`A second running session should return 409, received ${secondSession.status}`);
   }
 
+  const breakSession = await fetch(
+    `${apiUrl}/study-sessions/${sessionId}/pomodoro-break`,
+    { method: 'POST', headers },
+  );
+  if (!breakSession.ok) throw new Error('Starting Pomodoro break failed');
+
+  const focusSession = await fetch(`${apiUrl}/study-sessions/${sessionId}/focus`, {
+    method: 'POST',
+    headers,
+  });
+  if (!focusSession.ok) throw new Error('Resuming Pomodoro focus failed');
+
   const pausedSession = await fetch(`${apiUrl}/study-sessions/${sessionId}/pause`, {
     method: 'POST',
     headers,
@@ -228,6 +240,28 @@ try {
     throw new Error('Session did not transition to COMPLETED');
   }
 
+  const retroactiveSession = await fetch(`${apiUrl}/study-sessions/retroactive`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      contentId,
+      startedAt: '2020-01-10T19:00:00-03:00',
+      endedAt: '2020-01-10T20:00:00-03:00',
+      pomodoroBreakDurationSeconds: 600,
+      note: 'Registro retroativo de integração',
+    }),
+  });
+  if (retroactiveSession.status !== 201) {
+    throw new Error(`Creating retroactive session failed with ${retroactiveSession.status}`);
+  }
+  const retroactiveBody = await retroactiveSession.json();
+  if (
+    retroactiveBody.data.realizedDurationSeconds !== 3600 ||
+    retroactiveBody.data.focusDurationSeconds !== 3000
+  ) {
+    throw new Error('Retroactive session durations were not calculated correctly');
+  }
+
   console.log(
     JSON.stringify({
       authenticated: true,
@@ -242,9 +276,12 @@ try {
       overlappingBlockRejected: true,
       plannedSessionStarted: true,
       concurrentSessionRejected: true,
+      pomodoroBreakRecorded: true,
+      pomodoroFocusResumed: true,
       sessionPaused: true,
       sessionResumed: true,
       sessionCompleted: true,
+      retroactiveSessionCreated: true,
       cleanupScheduled: true,
     }),
   );

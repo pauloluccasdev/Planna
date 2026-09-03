@@ -3,6 +3,7 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../generated/prisma/client.js';
 import {
   getDatabasePoolMax,
+  getDatabaseTransactionTimeout,
   getRequiredEnvironment,
 } from '../config/environment.js';
 
@@ -13,7 +14,13 @@ export class PrismaService extends PrismaClient implements OnModuleDestroy {
       connectionString: getRequiredEnvironment('DATABASE_URL'),
       max: getDatabasePoolMax(),
     });
-    super({ adapter });
+    super({
+      adapter,
+      transactionOptions: {
+        maxWait: getDatabaseTransactionTimeout(),
+        timeout: getDatabaseTransactionTimeout(),
+      },
+    });
   }
 
   async onModuleDestroy(): Promise<void> {

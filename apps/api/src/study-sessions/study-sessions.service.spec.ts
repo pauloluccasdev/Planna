@@ -1,4 +1,8 @@
-import { ConflictException, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  NotFoundException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PrismaService } from '../database/prisma.service.js';
 import { StudySessionsService } from './study-sessions.service.js';
@@ -14,7 +18,9 @@ describe('StudySessionsService', () => {
     },
     studySessionSegment: {
       updateMany: vi.fn(),
+      update: vi.fn(),
       create: vi.fn(),
+      findFirst: vi.fn(),
       findMany: vi.fn(),
     },
     studySessionCompletedPart: { deleteMany: vi.fn(), createMany: vi.fn() },
@@ -69,5 +75,27 @@ describe('StudySessionsService', () => {
       service.pause('student-id', 'session-id'),
     ).rejects.toBeInstanceOf(ConflictException);
     expect(transaction.studySessionSegment.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('rejects a retroactive session in the future', async () => {
+    expect(() =>
+      service.createRetroactive('student-id', {
+        contentId: 'content-id',
+        startedAt: '2099-01-01T19:00:00-03:00',
+        endedAt: '2099-01-01T20:00:00-03:00',
+      }),
+    ).toThrow(UnprocessableEntityException);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('rejects a retroactive break longer than the session', async () => {
+    expect(() =>
+      service.createRetroactive('student-id', {
+        contentId: 'content-id',
+        startedAt: '2020-01-01T19:00:00-03:00',
+        endedAt: '2020-01-01T20:00:00-03:00',
+        pomodoroBreakDurationSeconds: 3601,
+      }),
+    ).toThrow(UnprocessableEntityException);
   });
 });

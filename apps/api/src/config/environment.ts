@@ -34,6 +34,16 @@ export function getDatabasePoolMax(): number {
   return value;
 }
 
+export function getDatabaseTransactionTimeout(): number {
+  const value = Number(process.env.DATABASE_TRANSACTION_TIMEOUT_MS ?? 15_000);
+  if (!Number.isInteger(value) || value < 5_000 || value > 60_000) {
+    throw new Error(
+      'DATABASE_TRANSACTION_TIMEOUT_MS must be an integer between 5000 and 60000',
+    );
+  }
+  return value;
+}
+
 export function getWebOrigins(): string[] {
   return (process.env.WEB_ORIGIN?.trim() ?? DEFAULT_WEB_ORIGIN)
     .split(',')

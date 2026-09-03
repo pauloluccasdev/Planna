@@ -12,6 +12,7 @@ import type { AuthUser } from '../auth/auth-user.js';
 import { CurrentUser } from '../auth/auth-user.decorator.js';
 import { SupabaseAuthGuard } from '../auth/supabase-auth.guard.js';
 import { CompleteStudySessionDto } from './dto/complete-study-session.dto.js';
+import { CreateRetroactiveSessionDto } from './dto/create-retroactive-session.dto.js';
 import { ListStudySessionsQueryDto } from './dto/list-study-sessions-query.dto.js';
 import { StartUnplannedSessionDto } from './dto/start-unplanned-session.dto.js';
 import { StudySessionsService } from './study-sessions.service.js';
@@ -74,6 +75,22 @@ export class StudySessionsController {
     return { data: await this.sessions.resume(user.id, id) };
   }
 
+  @Post('study-sessions/:id/pomodoro-break')
+  async startPomodoroBreak(
+    @CurrentUser() user: AuthUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    return { data: await this.sessions.startPomodoroBreak(user.id, id) };
+  }
+
+  @Post('study-sessions/:id/focus')
+  async resumeFocus(
+    @CurrentUser() user: AuthUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    return { data: await this.sessions.resumeFocus(user.id, id) };
+  }
+
   @Post('study-sessions/:id/complete')
   async complete(
     @CurrentUser() user: AuthUser,
@@ -81,5 +98,13 @@ export class StudySessionsController {
     @Body() input: CompleteStudySessionDto,
   ) {
     return { data: await this.sessions.complete(user.id, id, input) };
+  }
+
+  @Post('study-sessions/retroactive')
+  async retroactive(
+    @CurrentUser() user: AuthUser,
+    @Body() input: CreateRetroactiveSessionDto,
+  ) {
+    return { data: await this.sessions.createRetroactive(user.id, input) };
   }
 }
