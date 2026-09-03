@@ -10,6 +10,19 @@ export const metadata: Metadata = { title: "Minha semana" };
 type MeResponse = {
   data: { username: string; email: string; role: string };
 };
+type MetricsSummary = {
+  compliance: {
+    eligibleBlocks: number;
+    completedBlocks: number;
+    percentage: number | null;
+  };
+  time: {
+    plannedCompletedSeconds: number;
+    realizedCompletedSeconds: number;
+    additionalUnplanned: { realizedSeconds: number };
+  };
+  adaptation: { currentOverdueBlocks: number };
+};
 type CalendarItem =
   | {
       type: "study_block";
@@ -49,6 +62,13 @@ function dateInBrazil() {
   }).format(new Date());
 }
 
+function durationLabel(seconds: number) {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  if (!hours) return `${minutes}min`;
+  return `${hours}h${minutes ? ` ${minutes}min` : ""}`;
+}
+
 function weekRange(anchorText?: string) {
   const validAnchor = /^\d{4}-\d{2}-\d{2}$/.test(anchorText ?? "")
     ? anchorText!
@@ -75,13 +95,16 @@ type Props = { searchParams: Promise<{ week?: string }> };
 export default async function DashboardPage({ searchParams }: Props) {
   const { week } = await searchParams;
   const range = weekRange(week);
-  const [meResponse, calendarResponse, activeSessionResponse] =
+  const [meResponse, calendarResponse, activeSessionResponse, metricsResponse] =
     await Promise.all([
       authenticatedApi("me"),
       authenticatedApi(
         `calendar?from=${encodeURIComponent(range.from)}&to=${encodeURIComponent(range.to)}`,
       ),
       authenticatedApi("study-sessions/active"),
+      authenticatedApi(
+        `metrics/summary?from=${encodeURIComponent(range.from)}&to=${encodeURIComponent(range.to)}`,
+      ),
     ]);
   if (!meResponse?.ok) redirect("/login");
   const { data: user } = (await meResponse.json()) as MeResponse;
@@ -98,6 +121,9 @@ export default async function DashboardPage({ searchParams }: Props) {
           } | null;
         }
       ).data
+    : null;
+  const metrics = metricsResponse?.ok
+    ? ((await metricsResponse.json()) as { data: MetricsSummary }).data
     : null;
 
   return (
@@ -141,6 +167,50 @@ export default async function DashboardPage({ searchParams }: Props) {
           </Link>
         </section>
       ) : null}
+      <section className="metrics-strip" aria-label="Resumo da semana">
+        <article>
+          <span>Blocos cumpridos</span>
+          <strong>
+            {metrics?.compliance.percentage == null
+              ? "—"
+              : `${Math.round(metrics.compliance.percentage)}%`}
+          </strong>
+          <small>
+            {metrics?.compliance.completedBlocks ?? 0} de{" "}
+            {metrics?.compliance.eligibleBlocks ?? 0}
+          </small>
+        </article>
+        <article>
+          <span>Planejado × realizado</span>
+          <strong>
+            {durationLabel(metrics?.time.realizedCompletedSeconds ?? 0)}
+          </strong>
+          <small>
+            de {durationLabel(metrics?.time.plannedCompletedSeconds ?? 0)} nos
+            blocos concluídos
+          </small>
+        </article>
+        <article
+          className={
+            (metrics?.adaptation.currentOverdueBlocks ?? 0) > 0
+              ? "metric-alert"
+              : ""
+          }
+        >
+          <span>Atrasos identificados</span>
+          <strong>{metrics?.adaptation.currentOverdueBlocks ?? 0}</strong>
+          <small>blocos que precisam de atenção</small>
+        </article>
+        <article>
+          <span>Estudo extra</span>
+          <strong>
+            {durationLabel(
+              metrics?.time.additionalUnplanned.realizedSeconds ?? 0,
+            )}
+          </strong>
+          <small>sessões fora do planejamento</small>
+        </article>
+      </section>
       <section className="dashboard-grid">
         <article className="dashboard-card agenda-placeholder">
           <div className="card-heading">
