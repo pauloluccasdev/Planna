@@ -262,6 +262,21 @@ try {
     throw new Error('Retroactive session durations were not calculated correctly');
   }
 
+  const metrics = await fetch(
+    `${apiUrl}/metrics/summary?from=2020-01-01T00%3A00%3A00-03%3A00&to=2100-01-01T00%3A00%3A00-03%3A00`,
+    { headers },
+  );
+  if (!metrics.ok) throw new Error(`GET /metrics/summary failed with ${metrics.status}`);
+  const metricsBody = await metrics.json();
+  if (
+    metricsBody.data.compliance.eligibleBlocks !== 1 ||
+    metricsBody.data.compliance.completedBlocks !== 1 ||
+    metricsBody.data.time.plannedCompletedSeconds !== 3600 ||
+    metricsBody.data.time.additionalUnplanned.realizedSeconds !== 3600
+  ) {
+    throw new Error('Planned versus realized metrics are inconsistent');
+  }
+
   console.log(
     JSON.stringify({
       authenticated: true,
@@ -282,6 +297,7 @@ try {
       sessionResumed: true,
       sessionCompleted: true,
       retroactiveSessionCreated: true,
+      metricsCalculated: true,
       cleanupScheduled: true,
     }),
   );

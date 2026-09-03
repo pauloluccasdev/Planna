@@ -11,6 +11,7 @@ import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { PrismaModule } from './database/prisma.module.js';
 import { PomodoroModule } from './pomodoro/pomodoro.module.js';
+import { MetricsModule } from './metrics/metrics.module.js';
 import { SubjectsModule } from './subjects/subjects.module.js';
 import { StudyBlocksModule } from './study-blocks/study-blocks.module.js';
 import { StudySessionsModule } from './study-sessions/study-sessions.module.js';
@@ -28,6 +29,7 @@ import { StudySessionsModule } from './study-sessions/study-sessions.module.js';
     ContentsModule,
     ContentPartsModule,
     PomodoroModule,
+    MetricsModule,
     StudyBlocksModule,
     StudySessionsModule,
   ],
