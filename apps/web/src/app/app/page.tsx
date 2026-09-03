@@ -146,9 +146,14 @@ export default async function DashboardPage({ searchParams }: Props) {
           <h1>Olá, {user.username}.</h1>
           <p>Seus blocos e compromissos acadêmicos aparecerão aqui.</p>
         </div>
-        <Link className="button" href="/app/courses">
-          Organizar estudos
-        </Link>
+        <div className="dashboard-intro-actions">
+          <Link className="secondary-button" href="/app/study/new">
+            Registrar estudo
+          </Link>
+          <Link className="button" href="/app/courses">
+            Organizar estudos
+          </Link>
+        </div>
       </section>
       {activeSession ? (
         <section className="active-session-banner">

@@ -24,6 +24,14 @@ import { UpdateContentDto } from './dto/update-content.dto.js';
 export class ContentsController {
   constructor(private readonly contents: ContentsService) {}
 
+  @Get('contents')
+  async listAll(
+    @CurrentUser() user: AuthUser,
+    @Query() query: ListContentsQueryDto,
+  ) {
+    return { data: await this.contents.listAll(user.id, query) };
+  }
+
   @Get('subjects/:subjectId/contents')
   async list(
     @CurrentUser() user: AuthUser,

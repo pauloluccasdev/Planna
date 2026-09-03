@@ -22,6 +22,19 @@ describe('ContentsService', () => {
     service = new ContentsService(prisma as unknown as PrismaService);
   });
 
+  it('lists only contents owned by the authenticated student', async () => {
+    prisma.content.findMany.mockResolvedValue([]);
+    await service.listAll('student-id', {});
+    expect(prisma.content.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          studentId: 'student-id',
+          archivedAt: null,
+        }),
+      }),
+    );
+  });
+
   it('does not create content under a foreign subject', async () => {
     prisma.subject.findFirst.mockResolvedValue(null);
     await expect(

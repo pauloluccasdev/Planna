@@ -1120,6 +1120,42 @@ a.resource-row:hover {
   grid-column: 1 / -1;
   margin: 0;
 }
+.dashboard-intro-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.dashboard-intro-actions .secondary-button {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+.study-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px;
+  padding-bottom: 70px;
+}
+.study-form-card {
+  padding: clamp(22px, 4vw, 34px);
+}
+.study-form-card h2 {
+  margin: 8px 0;
+}
+.study-form-card > p {
+  min-height: 42px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.study-form-card form {
+  display: grid;
+  gap: 18px;
+  margin-top: 24px;
+}
+.study-form-card form > .button {
+  border: 0;
+  cursor: pointer;
+}
 .calendar-item.academic_event {
   background: #f7ebe6;
 }
@@ -1181,6 +1217,9 @@ a.resource-row:hover {
     grid-template-columns: repeat(2, 1fr);
   }
   .events-layout {
+    grid-template-columns: 1fr;
+  }
+  .study-form-grid {
     grid-template-columns: 1fr;
   }
 }

@@ -19,12 +19,43 @@ const contentSelection = {
   archivedAt: true,
   createdAt: true,
   updatedAt: true,
+  subject: {
+    select: {
+      id: true,
+      name: true,
+      course: { select: { id: true, name: true } },
+    },
+  },
+  parts: {
+    where: { archivedAt: null },
+    select: { id: true, name: true, position: true },
+    orderBy: { position: 'asc' as const },
+  },
   _count: { select: { parts: { where: { archivedAt: null } } } },
 } as const;
 
 @Injectable()
 export class ContentsService {
   constructor(private readonly prisma: PrismaService) {}
+
+  listAll(studentId: string, query: ListContentsQueryDto) {
+    return this.prisma.content.findMany({
+      where: {
+        studentId,
+        archivedAt:
+          query.status === RecordStatus.ARCHIVED ? { not: null } : null,
+        ...(query.subjectId ? { subjectId: query.subjectId } : {}),
+        ...(query.courseId ? { subject: { courseId: query.courseId } } : {}),
+      },
+      select: contentSelection,
+      orderBy: [
+        { subject: { course: { name: 'asc' } } },
+        { subject: { name: 'asc' } },
+        { priority: 'desc' },
+        { name: 'asc' },
+      ],
+    });
+  }
 
   async list(
     studentId: string,

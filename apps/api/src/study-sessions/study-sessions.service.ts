@@ -29,7 +29,17 @@ const sessionSelection = {
   realizedDurationSeconds: true,
   note: true,
   revision: true,
-  content: { select: { id: true, name: true } },
+  content: {
+    select: {
+      id: true,
+      name: true,
+      parts: {
+        where: { archivedAt: null },
+        select: { id: true, name: true, position: true },
+        orderBy: { position: 'asc' as const },
+      },
+    },
+  },
   studyBlock: {
     select: {
       id: true,

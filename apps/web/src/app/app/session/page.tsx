@@ -10,7 +10,11 @@ export const metadata: Metadata = { title: "Sessão de estudo" };
 type Session = {
   id: string;
   status: "RUNNING" | "PAUSED" | "COMPLETED";
-  content: { id: string; name: string };
+  content: {
+    id: string;
+    name: string;
+    parts?: Array<{ id: string; name: string; position: number }>;
+  };
   note: string | null;
   segments: Array<{
     kind: "FOCUS" | "POMODORO_BREAK";
@@ -63,8 +67,9 @@ export default async function StudySessionPage({ searchParams }: Props) {
     );
   }
 
-  const selectedParts =
-    session.studyBlock?.parts.map((item) => item.contentPart) ?? [];
+  const selectedParts = session.studyBlock
+    ? session.studyBlock.parts.map((item) => item.contentPart)
+    : (session.content.parts ?? []);
   const alreadyCompleted = new Set(
     session.completedParts.map((item) => item.contentPart.id),
   );
@@ -97,7 +102,7 @@ export default async function StudySessionPage({ searchParams }: Props) {
           />
         </article>
         <article className="dashboard-card completion-card">
-          <span className="eyebrow">Finalizar bloco</span>
+          <span className="eyebrow">Finalizar estudo</span>
           <h2>O que você concluiu?</h2>
           <p>
             Confirme as partes finalizadas e, se quiser, deixe uma observação.
@@ -128,7 +133,7 @@ export default async function StudySessionPage({ searchParams }: Props) {
               />
             </label>
             <button className="danger-button" type="submit">
-              Concluir este bloco
+              {session.studyBlock ? "Concluir este bloco" : "Concluir sessão"}
             </button>
           </form>
         </article>
