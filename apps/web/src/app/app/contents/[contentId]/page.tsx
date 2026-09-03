@@ -59,6 +59,9 @@ export default async function ContentPage({ params }: Props) {
               "Divida o conteúdo para acompanhar o progresso com mais precisão."}
           </p>
         </div>
+        <Link className="button" href={`/app/contents/${contentId}/blocks/new`}>
+          Planejar este conteúdo
+        </Link>
       </section>
       <section className="content-layout">
         <div className="resource-list">
