@@ -37,6 +37,11 @@ export async function startStudySession(blockId: string) {
   redirect(`/app/session?id=${result.data.id}`);
 }
 
+export async function cancelStudyBlock(blockId: string) {
+  await mutate<{ id: string }>(`study-blocks/${blockId}/cancel`);
+  revalidatePath("/app");
+}
+
 export async function pauseStudySession(sessionId: string) {
   const result = await mutate<SessionMutation>(
     `study-sessions/${sessionId}/pause`,

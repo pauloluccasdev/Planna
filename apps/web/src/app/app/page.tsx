@@ -3,7 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { authenticatedApi } from "../_lib/api";
 import { logout } from "./actions";
-import { startStudySession } from "./session/actions";
+import { BlockActions } from "./block-actions";
 
 export const metadata: Metadata = { title: "Minha semana" };
 
@@ -268,11 +268,7 @@ export default async function DashboardPage({ searchParams }: Props) {
                   </div>
                   {item.type === "study_block" &&
                   ["CONFIRMED", "OVERDUE"].includes(item.status) ? (
-                    <form action={startStudySession.bind(null, item.id)}>
-                      <button className="calendar-start" type="submit">
-                        Iniciar
-                      </button>
-                    </form>
+                    <BlockActions blockId={item.id} canStart={!activeSession} />
                   ) : null}
                 </article>
               ))}

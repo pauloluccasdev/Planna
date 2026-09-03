@@ -867,6 +867,29 @@ a.resource-row:hover {
   font-weight: 750;
   cursor: pointer;
 }
+.calendar-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.calendar-cancel {
+  padding: 5px;
+  border: 0;
+  background: transparent;
+  color: #9b4b39;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.calendar-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.calendar-actions .form-error {
+  flex-basis: 100%;
+  margin: 0;
+}
 .active-session-banner {
   display: flex;
   align-items: center;
