@@ -1,0 +1,7 @@
+INSERT INTO "academic_event_types" ("id", "name", "is_system", "created_at")
+VALUES
+  ('00000000-0000-4000-8000-000000000001', 'Prova', TRUE, NOW()),
+  ('00000000-0000-4000-8000-000000000002', 'Trabalho', TRUE, NOW()),
+  ('00000000-0000-4000-8000-000000000003', 'Simulado', TRUE, NOW()),
+  ('00000000-0000-4000-8000-000000000004', 'Teste', TRUE, NOW())
+ON CONFLICT ("id") DO NOTHING;
