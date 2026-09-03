@@ -1,0 +1,41 @@
+# Pendências e decisões futuras
+
+Estes pontos não bloqueiam a consolidação inicial, mas devem ser decididos antes da implementação da área correspondente.
+
+## Regras ainda a detalhar
+
+- Campos obrigatórios e limites de tamanho para cursos, disciplinas, conteúdos, partes e observações.
+- Estados completos e transições permitidas para blocos, sessões, propostas, conteúdos e partes.
+- Fórmula e pesos exatos do motor de priorização.
+- Duração mínima e máxima de blocos gerados automaticamente.
+- Distribuição dos ciclos de Pomodoro dentro de blocos de diferentes durações.
+- Critério preciso para considerar um conteúdo concluído quando não possui partes.
+- Comportamento de uma parte associada a vários blocos.
+- Validação de sobreposição em registros retroativos.
+- Limites para séries recorrentes e geração de planejamento semestral.
+- Antecedências e categorias exatas das notificações.
+- Tratamento quando a permissão de notificação for negada.
+- Política de sessão interrompida, frequência de confirmação de atividade e correção de horário.
+- Política de retenção do registro técnico de itens cancelados ou excluídos.
+- Dados mínimos do perfil e consentimentos de privacidade.
+- Fluxo operacional de solicitação de exclusão de conta fora do aplicativo.
+
+## Decisões técnicas ainda não tomadas
+
+- Arquitetura da aplicação.
+- Framework de frontend/PWA.
+- Tecnologia de backend.
+- Banco de dados e estratégia de migração.
+- Provedor de autenticação e e-mail.
+- Infraestrutura de notificações push.
+- Hospedagem, observabilidade, backups e ambientes.
+- Contratos de API.
+- Estratégia de concorrência para garantir uma sessão ativa por aluno.
+
+## Fora do núcleo atual
+
+- Momento exato de entrada da IA no roadmap.
+- Contratos de ferramentas somente de leitura para a IA.
+- Fluxo de confirmação de ações sugeridas pela IA.
+- Importação padronizada de blocos via planilha e PDF.
+- Estratégia offline.
