@@ -50,6 +50,13 @@ export class AuthController {
     };
   }
 
+  @Post('auth/logout')
+  @UseGuards(SupabaseAuthGuard)
+  async logout(@Headers('authorization') authorization: string) {
+    const accessToken = authorization.slice('Bearer '.length);
+    return { data: await this.auth.logout(accessToken) };
+  }
+
   @Get('me')
   @UseGuards(SupabaseAuthGuard)
   me(@CurrentUser() user: AuthUser) {

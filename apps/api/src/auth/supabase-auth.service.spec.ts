@@ -264,4 +264,26 @@ describe('SupabaseAuthService', () => {
       UnauthorizedException,
     );
   });
+
+  it('revokes all provider sessions during logout', async () => {
+    const service = new SupabaseAuthService({} as PrismaService);
+    const internal = service as unknown as {
+      adminClient: {
+        auth: {
+          admin: { signOut: ReturnType<typeof vi.fn> };
+        };
+      };
+    };
+    internal.adminClient.auth.admin.signOut = vi
+      .fn()
+      .mockResolvedValue({ error: null });
+
+    await expect(service.logout('access-token')).resolves.toEqual({
+      completed: true,
+    });
+    expect(internal.adminClient.auth.admin.signOut).toHaveBeenCalledWith(
+      'access-token',
+      'global',
+    );
+  });
 });

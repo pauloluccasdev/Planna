@@ -95,6 +95,9 @@ POST /auth/logout
 GET  /me
 ```
 
+O logout exige autenticação, revoga as sessões no provedor e a interface remove
+os cookies locais mesmo quando o provedor estiver indisponível.
+
 ## Cursos e períodos
 
 ```text

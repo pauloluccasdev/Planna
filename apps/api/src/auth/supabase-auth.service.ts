@@ -238,6 +238,22 @@ export class SupabaseAuthService {
     return { completed: true };
   }
 
+  async logout(accessToken: string) {
+    const { error } = await this.adminClient.auth.admin.signOut(
+      accessToken,
+      'global',
+    );
+    if (error) {
+      throw new InternalServerErrorException({
+        error: {
+          code: 'LOGOUT_FAILED',
+          message: 'Não foi possível encerrar a sessão no servidor.',
+        },
+      });
+    }
+    return { completed: true };
+  }
+
   async verifyAccessToken(token: string): Promise<AuthUser> {
     const { data, error } = await this.client.auth.getClaims(token);
     const subject = data?.claims.sub;
