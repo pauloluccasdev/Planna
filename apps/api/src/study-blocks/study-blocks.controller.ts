@@ -4,6 +4,7 @@ import {
   Get,
   Param,
   ParseUUIDPipe,
+  Patch,
   Post,
   Query,
   UseGuards,
@@ -14,6 +15,7 @@ import { SupabaseAuthGuard } from '../auth/supabase-auth.guard.js';
 import { CreateStudyBlockDto } from './dto/create-study-block.dto.js';
 import { CreateRecurringStudyBlockDto } from './dto/create-recurring-study-block.dto.js';
 import { ListStudyBlocksQueryDto } from './dto/list-study-blocks-query.dto.js';
+import { UpdateStudyBlockDto } from './dto/update-study-block.dto.js';
 import { StudyBlocksService } from './study-blocks.service.js';
 
 @Controller('study-blocks')
@@ -53,6 +55,23 @@ export class StudyBlocksController {
     @Param('id', new ParseUUIDPipe()) id: string,
   ) {
     return { data: await this.blocks.get(user.id, id) };
+  }
+
+  @Patch(':id')
+  async update(
+    @CurrentUser() user: AuthUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() input: UpdateStudyBlockDto,
+  ) {
+    return { data: await this.blocks.update(user.id, id, input) };
+  }
+
+  @Get(':id/history')
+  async history(
+    @CurrentUser() user: AuthUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    return { data: await this.blocks.history(user.id, id) };
   }
 
   @Post(':id/cancel')

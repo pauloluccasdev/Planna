@@ -85,6 +85,24 @@ describe('StudyBlocksService', () => {
     ).rejects.toBeInstanceOf(UnprocessableEntityException);
   });
 
+  it('does not edit a block that is no longer confirmed', async () => {
+    prisma.studyBlock.findFirst.mockResolvedValue({
+      id: 'block-id',
+      contentId: 'content-id',
+      status: 'OVERDUE',
+      startsAt: new Date('2099-09-20T23:00:00.000Z'),
+      endsAt: new Date('2099-09-21T00:00:00.000Z'),
+      focusSeconds: 1500,
+      breakSeconds: 300,
+      revision: 1,
+      parts: [],
+    });
+    await expect(
+      service.update('student-id', 'block-id', { revision: 1 }),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
   it('rejects a daily recurrence ending before its first occurrence', async () => {
     await expect(
       service.createDailyRecurrence('student-id', {

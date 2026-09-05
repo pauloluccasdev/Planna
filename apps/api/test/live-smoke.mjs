@@ -376,6 +376,50 @@ try {
   }
   const blockId = (await createdBlock.json()).data.id;
 
+  const updatedBlock = await fetch(`${apiUrl}/study-blocks/${blockId}`, {
+    method: 'PATCH',
+    headers,
+    body: JSON.stringify({
+      revision: 1,
+      focusSeconds: 1200,
+      breakSeconds: 300,
+      partIds: [],
+    }),
+  });
+  const updatedBlockBody = await updatedBlock.json();
+  if (
+    !updatedBlock.ok ||
+    updatedBlockBody.data.revision !== 2 ||
+    updatedBlockBody.data.focusSeconds !== 1200
+  ) {
+    throw new Error('Future study block was not updated');
+  }
+  const blockHistory = await fetch(
+    `${apiUrl}/study-blocks/${blockId}/history`,
+    { headers },
+  );
+  const blockHistoryBody = await blockHistory.json();
+  if (
+    !blockHistory.ok ||
+    blockHistoryBody.data.length !== 1 ||
+    blockHistoryBody.data[0].versionNumber !== 1 ||
+    blockHistoryBody.data[0].snapshot.focusSeconds !== 1500
+  ) {
+    throw new Error('Study block previous version was not preserved');
+  }
+  const staleBlockUpdate = await fetch(`${apiUrl}/study-blocks/${blockId}`, {
+    method: 'PATCH',
+    headers,
+    body: JSON.stringify({
+      revision: 1,
+      focusSeconds: 1500,
+      breakSeconds: 300,
+    }),
+  });
+  if (staleBlockUpdate.status !== 409) {
+    throw new Error('Stale study block update should return 409');
+  }
+
   const overlappingBlock = await fetch(`${apiUrl}/study-blocks`, {
     method: 'POST',
     headers,
@@ -716,6 +760,8 @@ try {
       availabilitySaved: true,
       pomodoroSaved: true,
       studyBlockCreated: true,
+      studyBlockUpdatedWithHistory: true,
+      staleStudyBlockUpdateRejected: true,
       overlappingBlockRejected: true,
       dailyRecurrenceCreated: true,
       recurrenceSeriesPersisted: true,
