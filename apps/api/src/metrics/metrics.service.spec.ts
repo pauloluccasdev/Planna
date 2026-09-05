@@ -2,6 +2,7 @@ import { UnprocessableEntityException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PrismaService } from '../database/prisma.service.js';
 import { BlockStatus } from '../generated/prisma/enums.js';
+import type { OverdueService } from '../overdue/overdue.service.js';
 import { MetricsService } from './metrics.service.js';
 
 describe('MetricsService', () => {
@@ -13,6 +14,7 @@ describe('MetricsService', () => {
     },
     studySession: { aggregate: vi.fn() },
   };
+  const overdue = { reconcileStudent: vi.fn() };
   const range = {
     from: '2026-09-01T00:00:00-03:00',
     to: '2026-10-01T00:00:00-03:00',
@@ -21,7 +23,11 @@ describe('MetricsService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    service = new MetricsService(prisma as unknown as PrismaService);
+    overdue.reconcileStudent.mockResolvedValue({ markedOverdue: 0 });
+    service = new MetricsService(
+      prisma as unknown as PrismaService,
+      overdue as unknown as OverdueService,
+    );
   });
 
   it('returns no percentage when there are no eligible blocks', async () => {

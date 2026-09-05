@@ -338,6 +338,8 @@ Jobs não precisam ser públicos. Contratos internos idempotentes:
 
 Cada execução registra janela, resultado, quantidade processada e falhas recuperáveis.
 
+No MVP atual, a reconciliação idempotente de atraso também é executada antes das consultas autenticadas de agenda, blocos e indicadores. Assim, o aluno recebe o estado correto ao abrir o Planna mesmo antes da ativação do job periódico.
+
 ## Pendências antes da implementação
 
 - verificação de e-mail;

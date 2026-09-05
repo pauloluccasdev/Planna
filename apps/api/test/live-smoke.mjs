@@ -296,6 +296,27 @@ try {
     throw new Error('Rejected recurrence created a partial series');
   }
 
+  const expiredBlock = await fetch(`${apiUrl}/study-blocks`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      contentId,
+      startsAt: '2020-01-08T18:00:00-03:00',
+      endsAt: '2020-01-08T19:00:00-03:00',
+    }),
+  });
+  if (expiredBlock.status !== 201) {
+    throw new Error(`Creating expired block failed with ${expiredBlock.status}`);
+  }
+  const expiredBlockId = (await expiredBlock.json()).data.id;
+  const reconciledBlock = await fetch(`${apiUrl}/study-blocks/${expiredBlockId}`, {
+    headers,
+  });
+  const reconciledBlockBody = await reconciledBlock.json();
+  if (!reconciledBlock.ok || reconciledBlockBody.data.status !== 'OVERDUE') {
+    throw new Error('Expired block was not automatically marked overdue');
+  }
+
   const startedSession = await fetch(
     `${apiUrl}/study-blocks/${blockId}/sessions/start`,
     { method: 'POST', headers },
@@ -405,10 +426,11 @@ try {
     throw new Error(`GET /metrics/summary failed with ${metrics.status}`);
   const metricsBody = await metrics.json();
   if (
-    metricsBody.data.compliance.eligibleBlocks !== 4 ||
+    metricsBody.data.compliance.eligibleBlocks !== 5 ||
     metricsBody.data.compliance.completedBlocks !== 1 ||
     metricsBody.data.time.plannedCompletedSeconds !== 3600 ||
-    metricsBody.data.time.additionalUnplanned.realizedSeconds !== 3600
+    metricsBody.data.time.additionalUnplanned.realizedSeconds !== 3600 ||
+    metricsBody.data.adaptation.currentOverdueBlocks !== 1
   ) {
     throw new Error('Planned versus realized metrics are inconsistent');
   }
@@ -471,6 +493,7 @@ try {
       dailyRecurrenceCreated: true,
       recurrenceSeriesPersisted: true,
       conflictingRecurrenceRejectedAtomically: true,
+      expiredBlockMarkedOverdue: true,
       plannedSessionStarted: true,
       concurrentSessionRejected: true,
       pomodoroBreakRecorded: true,

@@ -1,6 +1,7 @@
 import { UnprocessableEntityException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PrismaService } from '../database/prisma.service.js';
+import type { OverdueService } from '../overdue/overdue.service.js';
 import { CalendarService } from './calendar.service.js';
 
 describe('CalendarService', () => {
@@ -8,11 +9,16 @@ describe('CalendarService', () => {
     studyBlock: { findMany: vi.fn() },
     academicEvent: { findMany: vi.fn() },
   };
+  const overdue = { reconcileStudent: vi.fn() };
   let service: CalendarService;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    service = new CalendarService(prisma as unknown as PrismaService);
+    overdue.reconcileStudent.mockResolvedValue({ markedOverdue: 0 });
+    service = new CalendarService(
+      prisma as unknown as PrismaService,
+      overdue as unknown as OverdueService,
+    );
   });
 
   it('rejects an inverted calendar range', async () => {

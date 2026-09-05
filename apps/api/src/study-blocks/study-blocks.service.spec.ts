@@ -6,6 +6,7 @@ import {
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AvailabilityService } from '../availability/availability.service.js';
 import type { PrismaService } from '../database/prisma.service.js';
+import type { OverdueService } from '../overdue/overdue.service.js';
 import { StudyBlocksService } from './study-blocks.service.js';
 
 describe('StudyBlocksService', () => {
@@ -18,6 +19,7 @@ describe('StudyBlocksService', () => {
     $transaction: vi.fn(),
   };
   const availability = { coversInterval: vi.fn(), coversIntervals: vi.fn() };
+  const overdue = { reconcileStudent: vi.fn() };
   let service: StudyBlocksService;
 
   beforeEach(() => {
@@ -25,9 +27,11 @@ describe('StudyBlocksService', () => {
     prisma.content.findFirst.mockResolvedValue({ id: 'content-id' });
     availability.coversInterval.mockResolvedValue(true);
     availability.coversIntervals.mockResolvedValue([true]);
+    overdue.reconcileStudent.mockResolvedValue({ markedOverdue: 0 });
     service = new StudyBlocksService(
       prisma as unknown as PrismaService,
       availability as unknown as AvailabilityService,
+      overdue as unknown as OverdueService,
     );
   });
 

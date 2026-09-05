@@ -13,6 +13,7 @@ import { AppService } from './app.service.js';
 import { PrismaModule } from './database/prisma.module.js';
 import { PomodoroModule } from './pomodoro/pomodoro.module.js';
 import { MetricsModule } from './metrics/metrics.module.js';
+import { OverdueModule } from './overdue/overdue.module.js';
 import { SubjectsModule } from './subjects/subjects.module.js';
 import { StudyBlocksModule } from './study-blocks/study-blocks.module.js';
 import { StudySessionsModule } from './study-sessions/study-sessions.module.js';
@@ -32,6 +33,7 @@ import { StudySessionsModule } from './study-sessions/study-sessions.module.js';
     ContentPartsModule,
     PomodoroModule,
     MetricsModule,
+    OverdueModule,
     StudyBlocksModule,
     StudySessionsModule,
   ],

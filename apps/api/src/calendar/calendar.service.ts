@@ -1,11 +1,15 @@
 import { Injectable, UnprocessableEntityException } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service.js';
 import { BlockStatus } from '../generated/prisma/enums.js';
+import { OverdueService } from '../overdue/overdue.service.js';
 import type { CalendarQueryDto } from './dto/calendar-query.dto.js';
 
 @Injectable()
 export class CalendarService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly overdue: OverdueService,
+  ) {}
 
   async list(studentId: string, query: CalendarQueryDto) {
     const from = new Date(query.from);
@@ -18,6 +22,7 @@ export class CalendarService {
         },
       });
     }
+    await this.overdue.reconcileStudent(studentId);
     const [blocks, events] = await Promise.all([
       this.prisma.studyBlock.findMany({
         where: {

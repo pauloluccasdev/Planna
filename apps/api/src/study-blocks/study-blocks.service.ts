@@ -8,6 +8,7 @@ import { randomUUID } from 'node:crypto';
 import { AvailabilityService } from '../availability/availability.service.js';
 import { PrismaService } from '../database/prisma.service.js';
 import { BlockSource, BlockStatus } from '../generated/prisma/enums.js';
+import { OverdueService } from '../overdue/overdue.service.js';
 import type { CreateStudyBlockDto } from './dto/create-study-block.dto.js';
 import type { CreateRecurringStudyBlockDto } from './dto/create-recurring-study-block.dto.js';
 import type { ListStudyBlocksQueryDto } from './dto/list-study-blocks-query.dto.js';
@@ -65,9 +66,11 @@ export class StudyBlocksService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly availability: AvailabilityService,
+    private readonly overdue: OverdueService,
   ) {}
 
-  list(studentId: string, query: ListStudyBlocksQueryDto) {
+  async list(studentId: string, query: ListStudyBlocksQueryDto) {
+    await this.overdue.reconcileStudent(studentId);
     return this.prisma.studyBlock.findMany({
       where: {
         studentId,
@@ -80,6 +83,7 @@ export class StudyBlocksService {
   }
 
   async get(studentId: string, id: string) {
+    await this.overdue.reconcileStudent(studentId);
     const block = await this.prisma.studyBlock.findFirst({
       where: { id, studentId },
       select: blockSelection,

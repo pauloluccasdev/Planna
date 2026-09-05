@@ -6,21 +6,31 @@ import {
   SessionStatus,
 } from '../generated/prisma/enums.js';
 import type { MetricsQueryDto } from './dto/metrics-query.dto.js';
+import { OverdueService } from '../overdue/overdue.service.js';
 
 @Injectable()
 export class MetricsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly overdue: OverdueService,
+  ) {}
 
   async summary(studentId: string, query: MetricsQueryDto) {
+    await this.overdue.reconcileStudent(studentId);
     const [compliance, time, adaptation] = await Promise.all([
-      this.compliance(studentId, query),
+      this.compliance(studentId, query, false),
       this.time(studentId, query),
-      this.adaptation(studentId, query),
+      this.adaptation(studentId, query, false),
     ]);
     return { compliance, time, adaptation };
   }
 
-  async compliance(studentId: string, query: MetricsQueryDto) {
+  async compliance(
+    studentId: string,
+    query: MetricsQueryDto,
+    reconcile = true,
+  ) {
+    if (reconcile) await this.overdue.reconcileStudent(studentId);
     const range = this.parseRange(query);
     const blocks = await this.prisma.studyBlock.groupBy({
       by: ['status'],
@@ -123,7 +133,12 @@ export class MetricsService {
     };
   }
 
-  async adaptation(studentId: string, query: MetricsQueryDto) {
+  async adaptation(
+    studentId: string,
+    query: MetricsQueryDto,
+    reconcile = true,
+  ) {
+    if (reconcile) await this.overdue.reconcileStudent(studentId);
     const range = this.parseRange(query);
     const academicFilter = this.academicFilter(query);
     const [statuses, overdueNow] = await Promise.all([

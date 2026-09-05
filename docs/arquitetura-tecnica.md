@@ -101,6 +101,8 @@ Nenhuma camada isolada é suficiente.
 
 Processos assíncronos usam identificadores idempotentes, estado observável e retentativas limitadas.
 
+Enquanto o job periódico não estiver implantado, a API reconcilia blocos vencidos de forma idempotente antes de responder agenda, blocos e indicadores. O job futuro complementa essa garantia para notificações sem acesso ativo do aluno.
+
 ## Tarefas agendadas
 
 Supabase Cron pode executar SQL ou chamar Edge Functions. Jobs candidatos:
