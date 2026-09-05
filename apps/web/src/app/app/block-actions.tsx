@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import {
@@ -12,9 +13,15 @@ type Props = {
   blockId: string;
   recurrenceSeriesId: string | null;
   canStart: boolean;
+  canEdit: boolean;
 };
 
-export function BlockActions({ blockId, recurrenceSeriesId, canStart }: Props) {
+export function BlockActions({
+  blockId,
+  recurrenceSeriesId,
+  canStart,
+  canEdit,
+}: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState("");
@@ -65,6 +72,11 @@ export function BlockActions({ blockId, recurrenceSeriesId, canStart }: Props) {
 
   return (
     <div className="calendar-actions">
+      {canEdit ? (
+        <Link className="calendar-edit" href={`/app/blocks/${blockId}/edit`}>
+          Editar
+        </Link>
+      ) : null}
       <button
         className="calendar-start"
         type="button"

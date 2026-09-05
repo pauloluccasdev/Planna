@@ -31,6 +31,8 @@ let userId;
 let courseId;
 let fixtureSessionId;
 let fixtureEarlyBlockId;
+let fixtureAlternateContentId;
+let fixtureAlternatePartId;
 
 async function withDatabase(callback) {
   const database = new pg.Client({
@@ -694,6 +696,34 @@ try {
   }
 
   if (keepTestUser) {
+    const alternateContent = await fetch(
+      `${apiUrl}/subjects/${subjectId}/contents`,
+      {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          name: 'Conteúdo alternativo',
+          priority: 4,
+          estimatedDurationSeconds: 1800,
+        }),
+      },
+    );
+    if (alternateContent.status !== 201) {
+      throw new Error('Creating alternate browser content failed');
+    }
+    fixtureAlternateContentId = (await alternateContent.json()).data.id;
+    const alternatePart = await fetch(
+      `${apiUrl}/contents/${fixtureAlternateContentId}/parts`,
+      {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ name: 'Parte alternativa' }),
+      },
+    );
+    if (alternatePart.status !== 201) {
+      throw new Error('Creating alternate browser content part failed');
+    }
+    fixtureAlternatePartId = (await alternatePart.json()).data.id;
     const today = new Intl.DateTimeFormat('sv-SE', {
       timeZone: 'America/Sao_Paulo',
       year: 'numeric',
@@ -791,6 +821,8 @@ try {
               subjectId,
               sessionId: fixtureSessionId,
               earlyBlockId: fixtureEarlyBlockId,
+              alternateContentId: fixtureAlternateContentId,
+              alternatePartId: fixtureAlternatePartId,
             },
           }
         : {}),

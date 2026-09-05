@@ -276,6 +276,10 @@ export default async function DashboardPage({ searchParams }: Props) {
                       blockId={item.id}
                       recurrenceSeriesId={item.recurrenceSeriesId}
                       canStart={!activeSession}
+                      canEdit={
+                        item.status === "CONFIRMED" &&
+                        new Date(item.startsAt) > new Date()
+                      }
                     />
                   ) : null}
                 </article>
