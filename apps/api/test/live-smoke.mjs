@@ -174,6 +174,27 @@ try {
   const me = await fetch(`${apiUrl}/me`, { headers });
   if (!me.ok) throw new Error(`GET /me failed with ${me.status}`);
 
+  const refreshed = await fetch(`${apiUrl}/auth/refresh`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      refreshToken: loginBody.data.session.refreshToken,
+    }),
+  });
+  if (!refreshed.ok) {
+    throw new Error(
+      `POST /auth/refresh failed with ${refreshed.status}: ${await refreshed.text()}`,
+    );
+  }
+  const refreshBody = await refreshed.json();
+  if (
+    !refreshBody.data.session.accessToken ||
+    !refreshBody.data.session.refreshToken
+  ) {
+    throw new Error('POST /auth/refresh did not rotate the session');
+  }
+  headers.authorization = `Bearer ${refreshBody.data.session.accessToken}`;
+
   const createdCourse = await fetch(`${apiUrl}/courses`, {
     method: 'POST',
     headers,
@@ -846,6 +867,7 @@ try {
   console.log(
     JSON.stringify({
       authenticated: true,
+      sessionRefreshed: true,
       profileResolved: true,
       courseCreated: true,
       courseListed: true,

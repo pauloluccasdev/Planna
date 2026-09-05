@@ -1,7 +1,9 @@
 import { cookies } from "next/headers";
-
-const accessCookie = "planna_access_token";
-const refreshCookie = "planna_refresh_token";
+import {
+  accessCookie,
+  refreshCookie,
+  sessionCookieOptions,
+} from "./session-config";
 
 export function apiUrl(path: string) {
   const base = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL;
@@ -28,19 +30,11 @@ export async function saveSession(session: {
   expiresIn: number;
 }) {
   const store = await cookies();
-  const common = {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax" as const,
-    path: "/",
-  };
   store.set(accessCookie, session.accessToken, {
-    ...common,
-    maxAge: session.expiresIn,
+    ...sessionCookieOptions(session.expiresIn),
   });
   store.set(refreshCookie, session.refreshToken, {
-    ...common,
-    maxAge: 60 * 60 * 24 * 30,
+    ...sessionCookieOptions(60 * 60 * 24 * 30),
   });
 }
 

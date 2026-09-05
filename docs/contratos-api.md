@@ -92,11 +92,17 @@ impede a reutilização de token emitido antes da troca.
 
 ```text
 POST /auth/logout
+POST /auth/refresh
 GET  /me
 ```
 
 O logout exige autenticação, revoga as sessões no provedor e a interface remove
 os cookies locais mesmo quando o provedor estiver indisponível.
+
+A renovação recebe o refresh token somente no servidor, valida novamente o
+estado da conta e devolve um novo par rotacionado. Nas rotas privadas, o proxy da
+aplicação renova a sessão até 60 segundos antes do vencimento; falhas removem os
+cookies e redirecionam ao login.
 
 ## Cursos e períodos
 

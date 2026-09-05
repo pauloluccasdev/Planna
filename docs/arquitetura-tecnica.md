@@ -37,7 +37,7 @@ Isso favorece transações entre entidades, evolução rápida das regras e oper
 
 ## Módulos
 
-- **Identidade e acesso:** cadastro, login por nome de usuário, recuperação, sessão e bloqueio; Supabase Auth é a autoridade de credenciais.
+- **Identidade e acesso:** cadastro, login por nome de usuário, recuperação, renovação automática, logout e bloqueio; Supabase Auth é a autoridade de credenciais. Tokens ficam em cookies HTTP-only, e o proxy do Next.js renova sessões antes de renderizar rotas privadas.
 - **Estrutura acadêmica:** cursos, períodos, disciplinas, conteúdos, partes e arquivamento.
 - **Calendário:** disponibilidade, eventos, blocos, recorrências e conflitos.
 - **Planejamento:** propostas determinísticas e explicáveis; confirmação é comando separado.

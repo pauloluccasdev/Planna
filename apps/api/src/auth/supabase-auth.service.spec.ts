@@ -286,4 +286,81 @@ describe('SupabaseAuthService', () => {
       'global',
     );
   });
+
+  it('rotates a valid refresh token and returns the active account', async () => {
+    const prisma = {
+      userAccount: {
+        findUnique: vi.fn().mockResolvedValue({
+          id: '9ecb881f-e831-43e8-8212-2d28545cbf45',
+          username: 'aluno',
+          role: 'STUDENT',
+          status: 'ACTIVE',
+          passwordChangedAt: null,
+        }),
+      },
+    };
+    const service = new SupabaseAuthService(prisma as unknown as PrismaService);
+    const refreshSession = vi.fn().mockResolvedValue({
+      data: {
+        user: { id: '9ecb881f-e831-43e8-8212-2d28545cbf45' },
+        session: {
+          access_token: 'new-access-token',
+          refresh_token: 'new-refresh-token',
+          expires_at: 1_788_544_800,
+          expires_in: 3_600,
+          token_type: 'bearer',
+        },
+      },
+      error: null,
+    });
+    const internal = service as unknown as {
+      createIsolatedClient: ReturnType<typeof vi.fn>;
+    };
+    internal.createIsolatedClient = vi.fn().mockReturnValue({
+      auth: { refreshSession },
+    });
+
+    await expect(
+      service.refreshSession('valid-refresh-token'),
+    ).resolves.toEqual({
+      user: {
+        id: '9ecb881f-e831-43e8-8212-2d28545cbf45',
+        username: 'aluno',
+        role: 'STUDENT',
+      },
+      session: {
+        accessToken: 'new-access-token',
+        refreshToken: 'new-refresh-token',
+        expiresAt: 1_788_544_800,
+        expiresIn: 3_600,
+        tokenType: 'bearer',
+      },
+    });
+    expect(refreshSession).toHaveBeenCalledWith({
+      refresh_token: 'valid-refresh-token',
+    });
+  });
+
+  it('rejects an invalid refresh token without querying an account', async () => {
+    const prisma = {
+      userAccount: { findUnique: vi.fn() },
+    };
+    const service = new SupabaseAuthService(prisma as unknown as PrismaService);
+    const internal = service as unknown as {
+      createIsolatedClient: ReturnType<typeof vi.fn>;
+    };
+    internal.createIsolatedClient = vi.fn().mockReturnValue({
+      auth: {
+        refreshSession: vi.fn().mockResolvedValue({
+          data: { user: null, session: null },
+          error: { code: 'refresh_token_not_found' },
+        }),
+      },
+    });
+
+    await expect(
+      service.refreshSession('invalid-refresh-token'),
+    ).rejects.toBeInstanceOf(UnauthorizedException);
+    expect(prisma.userAccount.findUnique).not.toHaveBeenCalled();
+  });
 });

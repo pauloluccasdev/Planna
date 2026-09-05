@@ -152,9 +152,7 @@ export class SupabaseAuthService {
     if (!account || account.status !== AccountStatus.ACTIVE)
       this.throwInvalidCredentials();
 
-    const loginClient = createClient(this.supabaseUrl, this.publishableKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    });
+    const loginClient = this.createIsolatedClient();
     const { data, error } = await loginClient.auth.signInWithPassword({
       email: account.email,
       password: input.password,
@@ -167,13 +165,7 @@ export class SupabaseAuthService {
     });
     return {
       user: { id: account.id, username: account.username, role: account.role },
-      session: {
-        accessToken: data.session.access_token,
-        refreshToken: data.session.refresh_token,
-        expiresAt: data.session.expires_at,
-        expiresIn: data.session.expires_in,
-        tokenType: data.session.token_type,
-      },
+      session: this.serializeSession(data.session),
     };
   }
 
@@ -254,6 +246,45 @@ export class SupabaseAuthService {
     return { completed: true };
   }
 
+  async refreshSession(refreshToken: string) {
+    const refreshClient = this.createIsolatedClient();
+    const { data, error } = await refreshClient.auth.refreshSession({
+      refresh_token: refreshToken,
+    });
+    if (error || !data.user || !data.session) this.throwInvalidRefreshToken();
+
+    const account = await this.prisma.userAccount.findUnique({
+      where: { id: data.user.id },
+      select: {
+        id: true,
+        username: true,
+        role: true,
+        status: true,
+        passwordChangedAt: true,
+      },
+    });
+    const issuedAt = data.session.expires_at
+      ? new Date((data.session.expires_at - data.session.expires_in) * 1_000)
+      : null;
+    if (
+      !account ||
+      account.status !== AccountStatus.ACTIVE ||
+      !issuedAt ||
+      (account.passwordChangedAt && issuedAt < account.passwordChangedAt)
+    ) {
+      await this.adminClient.auth.admin.signOut(
+        data.session.access_token,
+        'global',
+      );
+      this.throwInvalidRefreshToken();
+    }
+
+    return {
+      user: { id: account.id, username: account.username, role: account.role },
+      session: this.serializeSession(data.session),
+    };
+  }
+
   async verifyAccessToken(token: string): Promise<AuthUser> {
     const { data, error } = await this.client.auth.getClaims(token);
     const subject = data?.claims.sub;
@@ -313,8 +344,39 @@ export class SupabaseAuthService {
     });
   }
 
+  private throwInvalidRefreshToken(): never {
+    throw new UnauthorizedException({
+      error: {
+        code: 'INVALID_REFRESH_TOKEN',
+        message: 'Não foi possível renovar esta sessão.',
+      },
+    });
+  }
+
+  private serializeSession(session: {
+    access_token: string;
+    refresh_token: string;
+    expires_at?: number;
+    expires_in: number;
+    token_type: string;
+  }) {
+    return {
+      accessToken: session.access_token,
+      refreshToken: session.refresh_token,
+      expiresAt: session.expires_at,
+      expiresIn: session.expires_in,
+      tokenType: session.token_type,
+    };
+  }
+
   private normalize(value: string) {
     return value.trim().normalize('NFKC').toLocaleLowerCase('pt-BR');
+  }
+
+  private createIsolatedClient() {
+    return createClient(this.supabaseUrl, this.publishableKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
   }
 
   private throwAccountConflict(): never {

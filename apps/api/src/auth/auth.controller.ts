@@ -16,6 +16,7 @@ import { LoginDto } from './dto/login.dto.js';
 import { RegisterDto } from './dto/register.dto.js';
 import { PasswordRecoveryDto } from './dto/password-recovery.dto.js';
 import { PasswordResetDto } from './dto/password-reset.dto.js';
+import { RefreshSessionDto } from './dto/refresh-session.dto.js';
 
 @Controller()
 export class AuthController {
@@ -55,6 +56,11 @@ export class AuthController {
   async logout(@Headers('authorization') authorization: string) {
     const accessToken = authorization.slice('Bearer '.length);
     return { data: await this.auth.logout(accessToken) };
+  }
+
+  @Post('auth/refresh')
+  async refresh(@Body() input: RefreshSessionDto) {
+    return { data: await this.auth.refreshSession(input.refreshToken) };
   }
 
   @Get('me')
