@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { authenticatedApi } from "../../../_lib/api";
 import { movePart } from "./actions";
 import { PartForm } from "./part-form";
+import { PartManager } from "./part-manager";
 
 type Props = { params: Promise<{ contentId: string }> };
 type Content = {
@@ -179,6 +180,7 @@ export default async function ContentPage({ params }: Props) {
                     </button>
                   </form>
                 </div>
+                <PartManager contentId={contentId} part={part} />
               </article>
             ))
           )}

@@ -8,6 +8,7 @@ export type PartFormState = {
   message?: string;
   errors?: { name?: string };
 };
+export type PartEditState = { message?: string; success?: string };
 
 export type ContentEditState = {
   message?: string;
@@ -79,6 +80,48 @@ export async function createPart(
   if (!response.ok) return { message: "Não foi possível cadastrar a parte." };
   revalidatePath(`/app/contents/${contentId}`);
   return {};
+}
+
+export async function updatePart(
+  contentId: string,
+  partId: string,
+  _state: PartEditState,
+  formData: FormData,
+): Promise<PartEditState> {
+  const name = String(formData.get("name") ?? "").trim();
+  const description = String(formData.get("description") ?? "").trim();
+  if (name.length < 2) return { message: "Informe o nome da parte." };
+  if (name.length > 200) return { message: "Use no máximo 200 caracteres." };
+  const response = await authenticatedApi(`content-parts/${partId}`, {
+    method: "PATCH",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ name, description }),
+  });
+  if (!response || response.status === 401) redirect("/login");
+  if (!response.ok) return { message: "Não foi possível atualizar a parte." };
+  revalidatePath(`/app/contents/${contentId}`);
+  return { success: "Parte atualizada." };
+}
+
+export async function removePart(contentId: string, partId: string) {
+  const response = await authenticatedApi(`content-parts/${partId}`, {
+    method: "DELETE",
+  });
+  if (!response || response.status === 401) redirect("/login");
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as {
+      error?: { code?: string; message?: string };
+    } | null;
+    return {
+      ok: false,
+      message:
+        payload?.error?.code === "ENTITY_HAS_HISTORY"
+          ? "Esta parte possui histórico e não pode ser excluída."
+          : (payload?.error?.message ?? "Não foi possível excluir a parte."),
+    };
+  }
+  revalidatePath(`/app/contents/${contentId}`);
+  return { ok: true, message: "" };
 }
 
 type Part = { id: string };

@@ -617,6 +617,49 @@ a.resource-row:hover {
   min-height: 104px;
   padding: 22px;
 }
+.part-manager {
+  grid-column: 2 / -1;
+}
+.part-manager summary {
+  width: max-content;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+.part-manager form {
+  display: grid;
+  gap: 13px;
+  margin-top: 14px;
+  padding: 16px;
+  border-radius: 12px;
+  background: #f7f9f5;
+}
+.part-manager .form-error,
+.part-manager .form-success {
+  margin: 0;
+}
+.part-edit-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.part-edit-actions .button {
+  border: 0;
+  cursor: pointer;
+}
+.part-delete {
+  padding: 0 12px;
+  border: 0;
+  background: transparent;
+  color: #9b4b39;
+  font-weight: 750;
+  cursor: pointer;
+}
+.part-edit-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
 .part-position {
   color: #8a9892;
   font-family: var(--font-geist-mono), monospace;
