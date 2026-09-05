@@ -43,12 +43,21 @@ const blockSelection = {
   focusSeconds: true,
   breakSeconds: true,
   revision: true,
+  cancelledAt: true,
+  completedAt: true,
   content: {
     select: {
       id: true,
       name: true,
       priority: true,
-      subject: { select: { id: true, name: true, courseId: true } },
+      subject: {
+        select: {
+          id: true,
+          name: true,
+          courseId: true,
+          course: { select: { id: true, name: true } },
+        },
+      },
     },
   },
   parts: {

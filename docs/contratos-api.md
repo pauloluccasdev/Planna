@@ -264,6 +264,12 @@ GET   /study-blocks/{block_id}/history
 
 `calendar` retorna itens discriminados por `type = study_block | academic_event`.
 
+A consulta individual retorna estado, origem, horários, duração planejada,
+configuração de foco e pausa, conteúdo, partes e datas finais aplicáveis. O
+histórico versionado fica disponível em `GET /study-blocks/{block_id}/history`
+e pode ser consultado mesmo quando o bloco já foi concluído, cancelado ou
+replanejado.
+
 ### Recorrência diária
 
 ```text

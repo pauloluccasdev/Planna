@@ -323,6 +323,14 @@ export default async function DashboardPage({ searchParams }: Props) {
                         ? item.content.name
                         : item.title}
                     </h3>
+                    {item.type === "study_block" ? (
+                      <Link
+                        className="calendar-detail-link"
+                        href={`/app/blocks/${item.id}`}
+                      >
+                        Ver detalhes
+                      </Link>
+                    ) : null}
                   </div>
                   {item.type === "study_block" &&
                   ["CONFIRMED", "OVERDUE"].includes(item.status) ? (

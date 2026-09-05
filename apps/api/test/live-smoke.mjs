@@ -741,6 +741,19 @@ try {
   ) {
     throw new Error('Future study block was not updated');
   }
+  const blockDetails = await fetch(`${apiUrl}/study-blocks/${blockId}`, {
+    headers,
+  });
+  const blockDetailsBody = await blockDetails.json();
+  if (
+    !blockDetails.ok ||
+    blockDetailsBody.data.content.subject.course.name !==
+      'Curso de integração atualizado' ||
+    !Object.hasOwn(blockDetailsBody.data, 'cancelledAt') ||
+    !Object.hasOwn(blockDetailsBody.data, 'completedAt')
+  ) {
+    throw new Error('Study block details are incomplete');
+  }
   const blockHistory = await fetch(
     `${apiUrl}/study-blocks/${blockId}/history`,
     { headers },
@@ -1327,6 +1340,7 @@ try {
       uncoveredContentDetectedAfterCancellation: true,
       studyBlockCreated: true,
       studyBlockUpdatedWithHistory: true,
+      studyBlockDetailsAvailable: true,
       staleStudyBlockUpdateRejected: true,
       overlappingBlockRejected: true,
       dailyRecurrenceCreated: true,
@@ -1364,6 +1378,7 @@ try {
               subjectId,
               sessionId: fixtureSessionId,
               earlyBlockId: fixtureEarlyBlockId,
+              editedBlockId: blockId,
               alternateContentId: fixtureAlternateContentId,
               alternatePartId: fixtureAlternatePartId,
               planningProposalId: fixturePlanningProposalId,
