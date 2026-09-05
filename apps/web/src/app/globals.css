@@ -1209,6 +1209,52 @@ a.resource-row:hover {
   font-size: 0.82rem;
   line-height: 1.5;
 }
+.periods-panel {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  margin-bottom: 24px;
+  padding: clamp(22px, 4vw, 32px);
+}
+.periods-panel h2 {
+  margin: 7px 0 12px;
+}
+.periods-panel > div > p {
+  color: var(--muted);
+}
+.period-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.period-list > span {
+  display: grid;
+  gap: 2px;
+  padding: 9px 12px;
+  border-radius: 9px;
+  background: #eef4ef;
+}
+.period-list small,
+.resource-row small {
+  color: var(--muted);
+}
+.period-create-form,
+.subject-create-form {
+  display: grid;
+  gap: 14px;
+}
+.period-create-form .form-error,
+.period-create-form .form-success,
+.subject-create-form .form-message,
+.subject-create-form .form-success {
+  margin: 0;
+}
+.period-create-form > .secondary-button,
+.subject-create-form > .button {
+  justify-self: start;
+  border: 0;
+  cursor: pointer;
+}
 .calendar-item.academic_event {
   background: #f7ebe6;
 }
@@ -1273,6 +1319,9 @@ a.resource-row:hover {
     grid-template-columns: 1fr;
   }
   .study-form-grid {
+    grid-template-columns: 1fr;
+  }
+  .periods-panel {
     grid-template-columns: 1fr;
   }
 }
