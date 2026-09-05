@@ -1255,6 +1255,56 @@ a.resource-row:hover {
   border: 0;
   cursor: pointer;
 }
+.content-progress {
+  display: grid;
+  grid-template-columns: 1fr minmax(180px, 0.45fr);
+  gap: 24px;
+  align-items: center;
+  margin-bottom: 24px;
+  padding: clamp(22px, 4vw, 32px);
+}
+.content-progress h2 {
+  margin: 7px 0;
+}
+.content-progress p,
+.progress-summary small {
+  margin: 0;
+  color: var(--muted);
+}
+.progress-summary {
+  display: grid;
+  gap: 8px;
+}
+.progress-summary strong {
+  font-size: 2rem;
+}
+.progress-track {
+  height: 9px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e5e9e3;
+}
+.progress-track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent);
+}
+.planning-warning {
+  grid-column: 1 / -1;
+  padding: 13px 15px;
+  border-radius: 10px;
+  background: #fff0e7;
+  color: #80412f;
+  font-size: 0.82rem;
+}
+.part-row.part-completed {
+  background: #eef6ee;
+}
+.part-row small {
+  color: #3d715e;
+  font-weight: 750;
+}
 .calendar-item.academic_event {
   background: #f7ebe6;
 }
@@ -1323,6 +1373,12 @@ a.resource-row:hover {
   }
   .periods-panel {
     grid-template-columns: 1fr;
+  }
+  .content-progress {
+    grid-template-columns: 1fr;
+  }
+  .planning-warning {
+    grid-column: auto;
   }
 }
 @media (max-width: 480px) {

@@ -4,7 +4,11 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service.js';
-import { RecordStatus } from '../generated/prisma/enums.js';
+import {
+  BlockStatus,
+  RecordStatus,
+  SessionStatus,
+} from '../generated/prisma/enums.js';
 import type { CreateContentDto } from './dto/create-content.dto.js';
 import type { ListContentsQueryDto } from './dto/list-contents-query.dto.js';
 import type { UpdateContentDto } from './dto/update-content.dto.js';
@@ -82,6 +86,76 @@ export class ContentsService {
     });
     if (!content) this.throwNotFound();
     return content;
+  }
+
+  async progress(studentId: string, id: string) {
+    const content = await this.prisma.content.findFirst({
+      where: { id, studentId },
+      select: {
+        id: true,
+        parts: {
+          where: { archivedAt: null },
+          select: { id: true },
+        },
+      },
+    });
+    if (!content) this.throwNotFound();
+    const partIds = content.parts.map(({ id: partId }) => partId);
+    const [completedPartRows, executionCount, futureBlockCount] =
+      await Promise.all([
+        partIds.length
+          ? this.prisma.studySessionCompletedPart.findMany({
+              where: {
+                contentPartId: { in: partIds },
+                studySession: {
+                  studentId,
+                  contentId: id,
+                  status: SessionStatus.COMPLETED,
+                },
+              },
+              select: { contentPartId: true },
+              distinct: ['contentPartId'],
+            })
+          : Promise.resolve([]),
+        this.prisma.studySession.count({ where: { studentId, contentId: id } }),
+        this.prisma.studyBlock.count({
+          where: {
+            studentId,
+            contentId: id,
+            endsAt: { gt: new Date() },
+            status: {
+              in: [
+                BlockStatus.CONFIRMED,
+                BlockStatus.IN_PROGRESS,
+                BlockStatus.PAUSED,
+                BlockStatus.OVERDUE,
+              ],
+            },
+          },
+        }),
+      ]);
+    const completedPartIds = completedPartRows.map(
+      ({ contentPartId }) => contentPartId,
+    );
+    const completed =
+      partIds.length > 0 && completedPartIds.length === partIds.length;
+    const status = completed
+      ? 'COMPLETED'
+      : executionCount > 0
+        ? 'IN_PROGRESS'
+        : 'PENDING';
+    return {
+      status,
+      totalParts: partIds.length,
+      completedParts: completedPartIds.length,
+      completedPartIds,
+      percentage:
+        partIds.length > 0
+          ? (completedPartIds.length * 100) / partIds.length
+          : null,
+      futureBlockCount,
+      needsFuturePlanning: !completed && futureBlockCount === 0,
+    };
   }
 
   async create(studentId: string, subjectId: string, input: CreateContentDto) {

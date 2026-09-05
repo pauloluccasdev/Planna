@@ -120,7 +120,9 @@ Filtros: `status`, `academic_period_id` e cursor.
 ```text
 GET    /subjects/{subject_id}/contents
 POST   /subjects/{subject_id}/contents
+GET    /contents?course_id=&subject_id=&status=
 GET    /contents/{content_id}
+GET    /contents/{content_id}/progress
 PATCH  /contents/{content_id}
 POST   /contents/{content_id}/archive
 POST   /contents/{content_id}/restore
@@ -133,7 +135,7 @@ DELETE /content-parts/{part_id}
 PUT    /contents/{content_id}/parts-order
 ```
 
-Conteúdo exige `priority`; estimativa é opcional. Respostas incluem `planning_eligibility`, `progress_status` e `has_future_blocks` derivados.
+Conteúdo exige `priority`; estimativa é opcional. `GET /contents/{content_id}/progress` retorna estado derivado, partes confirmadas, percentual quando calculável, quantidade de blocos futuros e a sinalização `needs_future_planning`. O critério de conclusão sem partes permanece pendente e não é inferido silenciosamente.
 
 ## Eventos acadêmicos
 
@@ -304,24 +306,24 @@ Respostas não incluem identificadores ou resumos acadêmicos.
 
 ## Códigos de erro iniciais
 
-| HTTP | Código | Uso |
-|---:|---|---|
-| 400 | `VALIDATION_ERROR` | Campo ou combinação inválida. |
-| 401 | `INVALID_CREDENTIALS` | Login inválido sem revelar qual campo. |
-| 401 | `AUTHENTICATION_REQUIRED` | Token ausente ou inválido. |
-| 403 | `ACCOUNT_BLOCKED` | Conta bloqueada. |
-| 403 | `FORBIDDEN` | Papel ou propriedade insuficiente. |
-| 404 | `RESOURCE_NOT_FOUND` | Recurso ausente ou invisível ao ator. |
-| 409 | `RESOURCE_VERSION_CONFLICT` | Revisão desatualizada. |
-| 409 | `STUDY_BLOCK_CONFLICT` | Horário ocupado. |
-| 409 | `OUTSIDE_AVAILABILITY` | Fora da grade. |
-| 409 | `ACTIVE_STUDY_SESSION_EXISTS` | Cronômetro já em execução. |
-| 409 | `ENTITY_HAS_HISTORY` | Exclusão física não permitida. |
-| 409 | `PROPOSAL_STALE` | Entradas mudaram. |
-| 422 | `CONTENT_MISSING_ESTIMATE` | Inelegível à geração. |
-| 422 | `CONTENT_PART_MISMATCH` | Parte não pertence ao conteúdo. |
-| 429 | `RATE_LIMITED` | Limite excedido. |
-| 500 | `INTERNAL_ERROR` | Falha inesperada com `request_id`. |
+| HTTP | Código                        | Uso                                    |
+| ---: | ----------------------------- | -------------------------------------- |
+|  400 | `VALIDATION_ERROR`            | Campo ou combinação inválida.          |
+|  401 | `INVALID_CREDENTIALS`         | Login inválido sem revelar qual campo. |
+|  401 | `AUTHENTICATION_REQUIRED`     | Token ausente ou inválido.             |
+|  403 | `ACCOUNT_BLOCKED`             | Conta bloqueada.                       |
+|  403 | `FORBIDDEN`                   | Papel ou propriedade insuficiente.     |
+|  404 | `RESOURCE_NOT_FOUND`          | Recurso ausente ou invisível ao ator.  |
+|  409 | `RESOURCE_VERSION_CONFLICT`   | Revisão desatualizada.                 |
+|  409 | `STUDY_BLOCK_CONFLICT`        | Horário ocupado.                       |
+|  409 | `OUTSIDE_AVAILABILITY`        | Fora da grade.                         |
+|  409 | `ACTIVE_STUDY_SESSION_EXISTS` | Cronômetro já em execução.             |
+|  409 | `ENTITY_HAS_HISTORY`          | Exclusão física não permitida.         |
+|  409 | `PROPOSAL_STALE`              | Entradas mudaram.                      |
+|  422 | `CONTENT_MISSING_ESTIMATE`    | Inelegível à geração.                  |
+|  422 | `CONTENT_PART_MISMATCH`       | Parte não pertence ao conteúdo.        |
+|  429 | `RATE_LIMITED`                | Limite excedido.                       |
+|  500 | `INTERNAL_ERROR`              | Falha inesperada com `request_id`.     |
 
 ## Operações automáticas internas
 

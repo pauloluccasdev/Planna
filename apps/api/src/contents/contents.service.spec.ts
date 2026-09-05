@@ -14,6 +14,9 @@ describe('ContentsService', () => {
       count: vi.fn(),
       delete: vi.fn(),
     },
+    studySession: { count: vi.fn() },
+    studySessionCompletedPart: { findMany: vi.fn() },
+    studyBlock: { count: vi.fn() },
   };
   let service: ContentsService;
 
@@ -80,6 +83,63 @@ describe('ContentsService', () => {
           priority: 4,
           estimatedDurationSeconds: 5400,
         }),
+      }),
+    );
+  });
+
+  it('derives completion from all active parts confirmed by sessions', async () => {
+    prisma.content.findFirst.mockResolvedValue({
+      id: 'content-id',
+      parts: [{ id: 'part-1' }, { id: 'part-2' }],
+    });
+    prisma.studySessionCompletedPart.findMany.mockResolvedValue([
+      { contentPartId: 'part-1' },
+      { contentPartId: 'part-2' },
+    ]);
+    prisma.studySession.count.mockResolvedValue(2);
+    prisma.studyBlock.count.mockResolvedValue(0);
+    await expect(service.progress('student-id', 'content-id')).resolves.toEqual(
+      expect.objectContaining({
+        status: 'COMPLETED',
+        completedParts: 2,
+        percentage: 100,
+        needsFuturePlanning: false,
+      }),
+    );
+  });
+
+  it('signals content with remaining work and no future block', async () => {
+    prisma.content.findFirst.mockResolvedValue({
+      id: 'content-id',
+      parts: [{ id: 'part-1' }, { id: 'part-2' }],
+    });
+    prisma.studySessionCompletedPart.findMany.mockResolvedValue([
+      { contentPartId: 'part-1' },
+    ]);
+    prisma.studySession.count.mockResolvedValue(1);
+    prisma.studyBlock.count.mockResolvedValue(0);
+    await expect(service.progress('student-id', 'content-id')).resolves.toEqual(
+      expect.objectContaining({
+        status: 'IN_PROGRESS',
+        completedParts: 1,
+        percentage: 50,
+        needsFuturePlanning: true,
+      }),
+    );
+  });
+
+  it('does not invent completion criteria for content without parts', async () => {
+    prisma.content.findFirst.mockResolvedValue({
+      id: 'content-id',
+      parts: [],
+    });
+    prisma.studySession.count.mockResolvedValue(1);
+    prisma.studyBlock.count.mockResolvedValue(0);
+    await expect(service.progress('student-id', 'content-id')).resolves.toEqual(
+      expect.objectContaining({
+        status: 'IN_PROGRESS',
+        percentage: null,
+        needsFuturePlanning: true,
       }),
     );
   });

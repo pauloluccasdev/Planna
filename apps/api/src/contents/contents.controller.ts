@@ -58,6 +58,14 @@ export class ContentsController {
     return { data: await this.contents.get(user.id, id) };
   }
 
+  @Get('contents/:id/progress')
+  async progress(
+    @CurrentUser() user: AuthUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    return { data: await this.contents.progress(user.id, id) };
+  }
+
   @Patch('contents/:id')
   async update(
     @CurrentUser() user: AuthUser,

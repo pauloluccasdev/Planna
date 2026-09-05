@@ -20,14 +20,30 @@ type Part = {
   description: string | null;
   position: number;
 };
+type ContentProgress = {
+  status: "PENDING" | "IN_PROGRESS" | "COMPLETED";
+  totalParts: number;
+  completedParts: number;
+  completedPartIds: string[];
+  percentage: number | null;
+  futureBlockCount: number;
+  needsFuturePlanning: boolean;
+};
+
+const statusLabels: Record<ContentProgress["status"], string> = {
+  PENDING: "Pendente",
+  IN_PROGRESS: "Em andamento",
+  COMPLETED: "Concluído",
+};
 
 export const metadata: Metadata = { title: "Partes do conteúdo" };
 
 export default async function ContentPage({ params }: Props) {
   const { contentId } = await params;
-  const [contentResponse, partsResponse] = await Promise.all([
+  const [contentResponse, partsResponse, progressResponse] = await Promise.all([
     authenticatedApi(`contents/${contentId}`),
     authenticatedApi(`contents/${contentId}/parts`),
+    authenticatedApi(`contents/${contentId}/progress`),
   ]);
   if (!contentResponse || contentResponse.status === 401) redirect("/login");
   if (contentResponse.status === 404) notFound();
@@ -37,6 +53,10 @@ export default async function ContentPage({ params }: Props) {
   const parts = partsResponse?.ok
     ? ((await partsResponse.json()) as { data: Part[] }).data
     : [];
+  const progress = progressResponse?.ok
+    ? ((await progressResponse.json()) as { data: ContentProgress }).data
+    : null;
+  const completedPartIds = new Set(progress?.completedPartIds ?? []);
   return (
     <main className="dashboard-shell">
       <header className="dashboard-header">
@@ -74,6 +94,43 @@ export default async function ContentPage({ params }: Props) {
           </Link>
         </div>
       </section>
+      {progress ? (
+        <section className="content-progress dashboard-card">
+          <div>
+            <span className="eyebrow">Progresso automático</span>
+            <h2>{statusLabels[progress.status]}</h2>
+            <p>
+              {progress.totalParts
+                ? `${progress.completedParts} de ${progress.totalParts} partes concluídas`
+                : progress.status === "IN_PROGRESS"
+                  ? "Existe execução registrada. A conclusão depende da regra para conteúdos sem partes."
+                  : "Nenhuma execução registrada até agora."}
+            </p>
+          </div>
+          <div className="progress-summary">
+            <strong>
+              {progress.percentage == null
+                ? "—"
+                : `${Math.round(progress.percentage)}%`}
+            </strong>
+            {progress.percentage != null ? (
+              <div
+                className="progress-track"
+                aria-label={`${Math.round(progress.percentage)}% concluído`}
+              >
+                <span style={{ width: `${progress.percentage}%` }} />
+              </div>
+            ) : null}
+            <small>{progress.futureBlockCount} blocos futuros</small>
+          </div>
+          {progress.needsFuturePlanning ? (
+            <div className="planning-warning">
+              Ainda existe trabalho neste conteúdo, mas nenhum bloco futuro está
+              planejado.
+            </div>
+          ) : null}
+        </section>
+      ) : null}
       <section className="content-layout">
         <div className="resource-list">
           {parts.length === 0 ? (
@@ -83,12 +140,18 @@ export default async function ContentPage({ params }: Props) {
             </div>
           ) : (
             parts.map((part, index) => (
-              <article className="dashboard-card part-row" key={part.id}>
+              <article
+                className={`dashboard-card part-row ${completedPartIds.has(part.id) ? "part-completed" : ""}`}
+                key={part.id}
+              >
                 <span className="part-position">
                   {String(index + 1).padStart(2, "0")}
                 </span>
                 <div>
                   <h2>{part.name}</h2>
+                  {completedPartIds.has(part.id) ? (
+                    <small>Concluída</small>
+                  ) : null}
                   {part.description && <p>{part.description}</p>}
                 </div>
                 <div
