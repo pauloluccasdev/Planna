@@ -84,6 +84,7 @@ Este documento registra somente decisões confirmadas. As identificações devem
 - **RN-SES-013** — Se o estudo atual invadir o próximo bloco, o Planna alerta; o aluno decide continuar, pausar ou concluir.
 - **RN-SES-014** — O aluno define como organizar sua sequência de estudo, inclusive quantidade de pausas e alternância de conteúdos. Cada bloco continua pertencendo a um único conteúdo; uma sequência com matérias diferentes é representada por blocos consecutivos.
 - **RN-SES-015** — Durante a execução, o aluno pode mudar livremente o conteúdo ou as pausas. O Planna registra o que foi efetivamente realizado sem reescrever silenciosamente os blocos confirmados.
+- **RN-SES-016** — Ao escolher o próximo bloco em um alerta de conflito, o Planna pausa a sessão atual e inicia ou retoma a sessão do bloco escolhido atomicamente. Se a troca falhar, a sessão atual continua em execução.
 
 ## Estados e progresso
 

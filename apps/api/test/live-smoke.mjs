@@ -771,6 +771,43 @@ try {
   );
   if (!focusSession.ok) throw new Error('Resuming Pomodoro focus failed');
 
+  const switchedSession = await fetch(
+    `${apiUrl}/study-sessions/${sessionId}/switch-to-block/${recurringBody.data[0].id}`,
+    { method: 'POST', headers },
+  );
+  const switchedSessionBody = await switchedSession.json();
+  if (
+    !switchedSession.ok ||
+    switchedSessionBody.data.status !== 'RUNNING' ||
+    switchedSessionBody.data.studyBlockId !== recurringBody.data[0].id
+  ) {
+    throw new Error('Switching to the next study block failed');
+  }
+  const switchedBackSession = await fetch(
+    `${apiUrl}/study-sessions/${switchedSessionBody.data.id}/switch-to-block/${blockId}`,
+    { method: 'POST', headers },
+  );
+  const switchedBackBody = await switchedBackSession.json();
+  if (
+    !switchedBackSession.ok ||
+    switchedBackBody.data.id !== sessionId ||
+    switchedBackBody.data.status !== 'RUNNING'
+  ) {
+    throw new Error('Switching back did not resume the paused session');
+  }
+  const runningAfterSwitch = await withDatabase(async (database) => {
+    const result = await database.query(
+      `select count(*)::int as count
+         from study_sessions
+        where student_id = $1 and status = 'RUNNING'`,
+      [userId],
+    );
+    return result.rows[0].count;
+  });
+  if (runningAfterSwitch !== 1) {
+    throw new Error('Study block switch left multiple running timers');
+  }
+
   const pausedSession = await fetch(
     `${apiUrl}/study-sessions/${sessionId}/pause`,
     {
@@ -1052,6 +1089,8 @@ try {
       concurrentSessionRejected: true,
       pomodoroBreakRecorded: true,
       pomodoroFocusResumed: true,
+      studyBlockSwitchedAtomically: true,
+      pausedStudyBlockResumedBySwitch: true,
       sessionPaused: true,
       sessionResumed: true,
       sessionCompleted: true,

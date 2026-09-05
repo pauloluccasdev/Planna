@@ -55,7 +55,7 @@ Devem ser transacionais:
 
 - cadastro e login por nome de usuário;
 - confirmação de proposta;
-- início, retomada, conclusão e reconciliação de sessão;
+- início, retomada, troca entre blocos, conclusão e reconciliação de sessão;
 - recorrências;
 - alteração de disponibilidade com blocos futuros;
 - aceitação de replanejamento;

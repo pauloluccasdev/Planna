@@ -35,6 +35,11 @@
 7. O Planna salva tempos planejado, realizado, foco e pausa separadamente.
 8. Estados do bloco, partes e conteúdo são recalculados.
 
+Quando o estudo invade o próximo bloco, o aluno pode continuar, concluir ou
+trocar. Na troca, o Planna encerra o segmento em execução, mantém a sessão atual
+pausada e inicia ou retoma o próximo bloco em uma única transação. Uma falha não
+interrompe a sessão atual.
+
 ## Atraso e replanejamento
 
 1. O horário completo do bloco termina sem conclusão.

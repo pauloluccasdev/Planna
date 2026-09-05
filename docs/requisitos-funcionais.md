@@ -116,6 +116,7 @@
 - **RF-SES-016 — Classificar retroativo:** o aluno deve vincular o registro a um bloco ou classificá-lo como não planejado. Referência: RN-SES-004.
 - **RF-SES-017 — Organizar sequência:** o aluno deve poder definir pausas e alternar conteúdos por meio de blocos consecutivos, mantendo um conteúdo por bloco. Referência: RN-SES-014.
 - **RF-SES-018 — Mudar durante a execução:** o aluno deve poder mudar conteúdo ou pausas durante o estudo, preservando separadamente o planejamento confirmado e a execução real. Referência: RN-SES-015.
+- **RF-SES-019 — Trocar para o próximo bloco:** ao aceitar a troca indicada pelo alerta de conflito, o sistema deve pausar a sessão atual e iniciar ou retomar o próximo bloco atomicamente. Referência: RN-SES-016.
 
 ## Estados, atraso e cancelamento
 

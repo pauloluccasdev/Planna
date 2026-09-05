@@ -65,6 +65,15 @@ export async function resumeStudySession(sessionId: string) {
   return result.data;
 }
 
+export async function switchToStudyBlock(sessionId: string, blockId: string) {
+  const result = await mutate<{ id: string }>(
+    `study-sessions/${sessionId}/switch-to-block/${blockId}`,
+  );
+  revalidatePath("/app");
+  revalidatePath("/app/session");
+  return result.data;
+}
+
 export async function startPomodoroBreak(sessionId: string) {
   const result = await mutate<SessionMutation>(
     `study-sessions/${sessionId}/pomodoro-break`,

@@ -88,7 +88,7 @@ Cada caso apresenta ator, objetivo, pré-condições, fluxo principal, alternati
 - **Objetivo:** registrar estudo de um bloco.
 - **Pré-condições:** nenhuma outra sessão em execução.
 - **Fluxo principal:** inicia; usa ciclos de foco e pausa; conclui; confirma partes; adiciona observação opcional; o sistema registra tempos e recalcula progresso.
-- **Alternativas:** pausa e retoma; conclui antecipadamente; continua além do previsto; recebe alerta ao invadir o próximo bloco.
+- **Alternativas:** pausa e retoma; conclui antecipadamente; continua além do previsto; ao invadir o próximo bloco, pode continuar, concluir ou pausar o atual e iniciar o próximo atomicamente.
 - **Resultado:** sessão concluída e bloco atualizado.
 - **Requisitos:** RF-SES-003, RF-SES-005 a RF-SES-013.
 

@@ -77,6 +77,102 @@ describe('StudySessionsService', () => {
     expect(transaction.studySessionSegment.updateMany).not.toHaveBeenCalled();
   });
 
+  it('pauses the current session and starts the selected block atomically', async () => {
+    transaction.studySession.findFirst.mockResolvedValueOnce({
+      id: 'current-session',
+      studyBlockId: 'current-block',
+    });
+    transaction.studyBlock.findFirst.mockResolvedValue({
+      id: 'next-block',
+      contentId: 'next-content',
+      status: 'CONFIRMED',
+    });
+    transaction.studySession.create.mockResolvedValue({ id: 'next-session' });
+    transaction.studySession.findUniqueOrThrow.mockResolvedValue({
+      id: 'next-session',
+      status: 'RUNNING',
+    });
+
+    await expect(
+      service.switchToBlock('student-id', 'current-session', 'next-block'),
+    ).resolves.toEqual({ id: 'next-session', status: 'RUNNING' });
+    expect(transaction.studySessionSegment.updateMany).toHaveBeenCalledWith({
+      where: { studySessionId: 'current-session', endedAt: null },
+      data: { endedAt: expect.any(Date) },
+    });
+    expect(transaction.studySession.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'current-session' },
+        data: expect.objectContaining({ status: 'PAUSED' }),
+      }),
+    );
+    expect(transaction.studySession.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          contentId: 'next-content',
+          studyBlockId: 'next-block',
+          status: 'RUNNING',
+        }),
+      }),
+    );
+  });
+
+  it('does not pause the current session when the target block is invalid', async () => {
+    transaction.studySession.findFirst.mockResolvedValue({
+      id: 'current-session',
+      studyBlockId: 'current-block',
+    });
+    transaction.studyBlock.findFirst.mockResolvedValue(null);
+
+    await expect(
+      service.switchToBlock('student-id', 'current-session', 'foreign-block'),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(transaction.studySessionSegment.updateMany).not.toHaveBeenCalled();
+    expect(transaction.studySession.update).not.toHaveBeenCalled();
+  });
+
+  it('resumes the existing session when the selected block is paused', async () => {
+    transaction.studySession.findFirst
+      .mockResolvedValueOnce({
+        id: 'current-session',
+        studyBlockId: 'current-block',
+      })
+      .mockResolvedValueOnce({
+        id: 'paused-target-session',
+        _count: { segments: 3 },
+      });
+    transaction.studyBlock.findFirst.mockResolvedValue({
+      id: 'paused-block',
+      contentId: 'next-content',
+      status: 'PAUSED',
+    });
+    transaction.studySession.findUniqueOrThrow.mockResolvedValue({
+      id: 'paused-target-session',
+      status: 'RUNNING',
+    });
+
+    await service.switchToBlock(
+      'student-id',
+      'current-session',
+      'paused-block',
+    );
+
+    expect(transaction.studySession.create).not.toHaveBeenCalled();
+    expect(transaction.studySessionSegment.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        studySessionId: 'paused-target-session',
+        kind: 'FOCUS',
+        sequence: 4,
+      }),
+    });
+    expect(transaction.studySession.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'paused-target-session' },
+        data: expect.objectContaining({ status: 'RUNNING' }),
+      }),
+    );
+  });
+
   it('rejects a retroactive session in the future', async () => {
     expect(() =>
       service.createRetroactive('student-id', {

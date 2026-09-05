@@ -288,6 +288,7 @@ GET /study-sessions/{session_id}
 POST /study-blocks/{block_id}/sessions/start
 POST /study-sessions/unplanned/start
 POST /study-sessions/{session_id}/pause
+POST /study-sessions/{session_id}/switch-to-block/{block_id}
 POST /study-sessions/{session_id}/resume
 POST /study-sessions/{session_id}/complete
 POST /study-sessions/retroactive

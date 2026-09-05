@@ -75,6 +75,15 @@ export class StudySessionsController {
     return { data: await this.sessions.resume(user.id, id) };
   }
 
+  @Post('study-sessions/:id/switch-to-block/:blockId')
+  async switchToBlock(
+    @CurrentUser() user: AuthUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Param('blockId', new ParseUUIDPipe()) blockId: string,
+  ) {
+    return { data: await this.sessions.switchToBlock(user.id, id, blockId) };
+  }
+
   @Post('study-sessions/:id/pomodoro-break')
   async startPomodoroBreak(
     @CurrentUser() user: AuthUser,

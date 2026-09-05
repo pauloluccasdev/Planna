@@ -7,6 +7,7 @@ import {
   resumeFocus,
   resumeStudySession,
   startPomodoroBreak,
+  switchToStudyBlock,
 } from "./actions";
 
 type Segment = {
@@ -21,7 +22,7 @@ type Props = {
   segments: Segment[];
   serverNow: string;
   plannedEndsAt: string | null;
-  nextBlock: { startsAt: string; content: { name: string } } | null;
+  nextBlock: { id: string; startsAt: string; content: { name: string } } | null;
   focusSeconds: number;
   breakSeconds: number;
 };
@@ -105,15 +106,17 @@ export function SessionTimer({
       setNow(Date.now());
     });
   };
-  const pauseAndOpenAgenda = () => {
+  const pauseAndStartNext = () => {
     setActionError("");
     startTransition(async () => {
       try {
-        const updated = await pauseStudySession(sessionId);
-        setLiveSession(updated);
-        router.push("/app");
+        if (!nextBlock) return;
+        const nextSession = await switchToStudyBlock(sessionId, nextBlock.id);
+        router.replace(`/app/session?id=${nextSession.id}`);
       } catch {
-        setActionError("Não foi possível pausar a sessão.");
+        setActionError(
+          "Não foi possível iniciar o próximo bloco. Seu estudo atual continua em execução.",
+        );
       }
     });
   };
@@ -173,9 +176,9 @@ export function SessionTimer({
               <button
                 type="button"
                 disabled={isPending}
-                onClick={pauseAndOpenAgenda}
+                onClick={pauseAndStartNext}
               >
-                Pausar e ver próximo
+                {isPending ? "Mudando…" : "Pausar e iniciar próximo"}
               </button>
             ) : null}
             <a href="#session-completion">Concluir bloco</a>
