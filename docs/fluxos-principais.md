@@ -14,6 +14,14 @@
 10. O sistema valida disponibilidade e conflitos.
 11. O aluno confirma a proposta.
 
+## Consulta da agenda semanal
+
+1. O Planna apresenta os sete dias da semana selecionada em uma grade.
+2. Blocos e eventos aparecem no dia e horário de início, com diferenciação visual.
+3. Cada bloco informa seu estado por texto e cor, sem depender somente da cor.
+4. No celular, os mesmos sete dias são organizados verticalmente.
+5. O aluno navega entre semanas e abre os detalhes ou ações do bloco.
+
 ## Criação de bloco fora da disponibilidade
 
 1. O aluno preenche o bloco e tenta confirmá-lo.

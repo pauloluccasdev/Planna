@@ -734,6 +734,7 @@ h1 {
   background: white;
 }
 .agenda-placeholder {
+  grid-column: 1 / -1;
   min-height: 440px;
   padding: 28px;
 }
@@ -794,6 +795,7 @@ h1 {
   line-height: 1.55;
 }
 .next-actions {
+  grid-column: 1 / -1;
   padding: 28px;
   background: var(--ink);
   color: white;
@@ -1291,19 +1293,60 @@ a.resource-row:hover {
   background: #f5f7f2;
   font-size: 0.82rem;
 }
-.calendar-list {
+.calendar-week-grid {
   display: grid;
-  gap: 9px;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
   margin-top: 26px;
 }
-.calendar-item {
-  display: grid;
-  grid-template-columns: 125px minmax(0, 1fr) auto;
-  gap: 18px;
+.calendar-day {
+  min-width: 0;
+  padding: 10px;
+  border: 1px solid #dce2da;
+  border-radius: 14px;
+  background: #f8faf7;
+}
+.calendar-day > header {
+  display: flex;
   align-items: center;
-  min-height: 76px;
-  padding: 14px 18px;
-  border-radius: 12px;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 2px 3px 10px;
+}
+.calendar-day > header time {
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: capitalize;
+}
+.calendar-day > header span {
+  display: grid;
+  min-width: 24px;
+  min-height: 24px;
+  place-items: center;
+  border-radius: 999px;
+  background: #e5ece7;
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+.calendar-day-items {
+  display: grid;
+  gap: 8px;
+}
+.calendar-day-empty {
+  margin: 8px 3px;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+.calendar-item {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 9px;
+  padding: 12px;
+  border-left: 4px solid #5d8174;
+  border-radius: 10px;
   background: #eef3ee;
 }
 .calendar-start,
@@ -1358,6 +1401,11 @@ a.resource-row:hover {
   flex-wrap: wrap;
   gap: 8px;
 }
+.calendar-actions .calendar-start {
+  min-height: 32px;
+  padding-inline: 12px;
+  font-size: 0.72rem;
+}
 .calendar-cancel,
 .calendar-cancel-series {
   padding: 5px;
@@ -1389,6 +1437,20 @@ a.resource-row:hover {
   font-size: 0.76rem;
   font-weight: 750;
   text-underline-offset: 3px;
+}
+.calendar-status {
+  display: block;
+  margin-top: 7px;
+  color: #44685c !important;
+  font-size: 0.65rem !important;
+}
+.calendar-item.status-overdue {
+  border-left-color: #b55f45;
+  background: #fff1ea;
+}
+.calendar-item.status-completed {
+  border-left-color: #789837;
+  background: #f1f6e5;
 }
 .block-state {
   display: inline-flex;
@@ -2306,6 +2368,7 @@ a.resource-row:hover {
   font-weight: 750;
 }
 .calendar-item.academic_event {
+  border-left-color: #b76b4e;
   background: #f7ebe6;
 }
 .calendar-item time,
@@ -2481,6 +2544,12 @@ a.resource-row:hover {
   .calendar-item {
     grid-template-columns: 1fr;
     gap: 5px;
+  }
+  .calendar-week-grid {
+    grid-template-columns: 1fr;
+  }
+  .calendar-day {
+    padding: 12px;
   }
   .block-detail-grid,
   .block-detail-section {

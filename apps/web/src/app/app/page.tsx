@@ -47,13 +47,33 @@ type CalendarItem =
     };
 type ReplanningSuggestion = { status: string };
 
-const dateTime = new Intl.DateTimeFormat("pt-BR", {
+const timeOnly = new Intl.DateTimeFormat("pt-BR", {
   timeZone: "America/Sao_Paulo",
-  weekday: "short",
-  day: "2-digit",
   hour: "2-digit",
   minute: "2-digit",
 });
+const dayLabel = new Intl.DateTimeFormat("pt-BR", {
+  timeZone: "UTC",
+  weekday: "short",
+  day: "2-digit",
+  month: "2-digit",
+});
+const brazilDateKey = new Intl.DateTimeFormat("sv-SE", {
+  timeZone: "America/Sao_Paulo",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+const blockStatusLabels: Record<string, string> = {
+  CONFIRMED: "Confirmado",
+  IN_PROGRESS: "Em andamento",
+  PAUSED: "Pausado",
+  COMPLETED: "Concluído",
+  OVERDUE: "Atrasado",
+  CANCELLED: "Cancelado",
+  REPLANNED: "Replanejado",
+};
 
 function dateInBrazil() {
   return new Intl.DateTimeFormat("sv-SE", {
@@ -92,6 +112,14 @@ function weekRange(anchorText?: string) {
   };
 }
 
+function weekDays(firstDay: string) {
+  return Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(`${firstDay}T12:00:00Z`);
+    date.setUTCDate(date.getUTCDate() + index);
+    return { key: date.toISOString().slice(0, 10), date };
+  });
+}
+
 type Props = {
   searchParams: Promise<{ week?: string; cancellation?: string }>;
 };
@@ -99,6 +127,7 @@ type Props = {
 export default async function DashboardPage({ searchParams }: Props) {
   const { week, cancellation } = await searchParams;
   const range = weekRange(week);
+  const days = weekDays(range.current);
   const [
     meResponse,
     calendarResponse,
@@ -303,49 +332,84 @@ export default async function DashboardPage({ searchParams }: Props) {
               </p>
             </div>
           ) : (
-            <div className="calendar-list">
-              {calendar.map((item) => (
-                <article
-                  className={`calendar-item ${item.type}`}
-                  key={`${item.type}-${item.id}`}
-                >
-                  <time dateTime={item.startsAt}>
-                    {dateTime.format(new Date(item.startsAt))}
-                  </time>
-                  <div className="calendar-item-copy">
-                    <span>
-                      {item.type === "study_block"
-                        ? item.content.subject.name
-                        : item.eventType.name}
-                    </span>
-                    <h3>
-                      {item.type === "study_block"
-                        ? item.content.name
-                        : item.title}
-                    </h3>
-                    {item.type === "study_block" ? (
-                      <Link
-                        className="calendar-detail-link"
-                        href={`/app/blocks/${item.id}`}
-                      >
-                        Ver detalhes
-                      </Link>
-                    ) : null}
-                  </div>
-                  {item.type === "study_block" &&
-                  ["CONFIRMED", "OVERDUE"].includes(item.status) ? (
-                    <BlockActions
-                      blockId={item.id}
-                      recurrenceSeriesId={item.recurrenceSeriesId}
-                      canStart={!activeSession}
-                      canEdit={
-                        item.status === "CONFIRMED" &&
-                        new Date(item.startsAt) > new Date()
-                      }
-                    />
-                  ) : null}
-                </article>
-              ))}
+            <div className="calendar-week-grid">
+              {days.map((day) => {
+                const items = calendar.filter(
+                  (item) =>
+                    brazilDateKey.format(new Date(item.startsAt)) === day.key,
+                );
+                return (
+                  <section className="calendar-day" key={day.key}>
+                    <header>
+                      <time dateTime={day.key}>
+                        {dayLabel.format(day.date)}
+                      </time>
+                      <span>{items.length || "—"}</span>
+                    </header>
+                    {items.length ? (
+                      <div className="calendar-day-items">
+                        {items.map((item) => (
+                          <article
+                            className={`calendar-item ${item.type} ${
+                              item.type === "study_block"
+                                ? `status-${item.status.toLowerCase()}`
+                                : ""
+                            }`}
+                            key={`${item.type}-${item.id}`}
+                          >
+                            <time dateTime={item.startsAt}>
+                              {timeOnly.format(new Date(item.startsAt))}
+                              {item.endsAt
+                                ? `–${timeOnly.format(new Date(item.endsAt))}`
+                                : ""}
+                            </time>
+                            <div className="calendar-item-copy">
+                              <span>
+                                {item.type === "study_block"
+                                  ? item.content.subject.name
+                                  : item.eventType.name}
+                              </span>
+                              <h3>
+                                {item.type === "study_block"
+                                  ? item.content.name
+                                  : item.title}
+                              </h3>
+                              {item.type === "study_block" ? (
+                                <>
+                                  <span className="calendar-status">
+                                    {blockStatusLabels[item.status] ??
+                                      item.status}
+                                  </span>
+                                  <Link
+                                    className="calendar-detail-link"
+                                    href={`/app/blocks/${item.id}`}
+                                  >
+                                    Ver detalhes
+                                  </Link>
+                                </>
+                              ) : null}
+                            </div>
+                            {item.type === "study_block" &&
+                            ["CONFIRMED", "OVERDUE"].includes(item.status) ? (
+                              <BlockActions
+                                blockId={item.id}
+                                recurrenceSeriesId={item.recurrenceSeriesId}
+                                canStart={!activeSession}
+                                canEdit={
+                                  item.status === "CONFIRMED" &&
+                                  new Date(item.startsAt) > new Date()
+                                }
+                              />
+                            ) : null}
+                          </article>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="calendar-day-empty">Livre</p>
+                    )}
+                  </section>
+                );
+              })}
             </div>
           )}
         </article>
