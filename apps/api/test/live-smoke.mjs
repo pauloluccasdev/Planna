@@ -29,6 +29,7 @@ const admin = createClient(
 );
 let userId;
 let courseId;
+let fixtureSessionId;
 
 async function withDatabase(callback) {
   const database = new pg.Client({
@@ -188,7 +189,7 @@ try {
     method: 'PUT',
     headers,
     body: JSON.stringify({
-      intervals: [1, 2, 3, 4, 5].map((weekday) => ({
+      intervals: [0, 1, 2, 3, 4, 5, 6].map((weekday) => ({
         weekday,
         startLocalTime: '18:00',
         endLocalTime: '22:00',
@@ -484,6 +485,45 @@ try {
     throw new Error('Cancelled recurrence still appears in the calendar');
   }
 
+  if (keepTestUser) {
+    const today = new Intl.DateTimeFormat('sv-SE', {
+      timeZone: 'America/Sao_Paulo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(new Date());
+    const yesterdayValue = new Date(`${today}T12:00:00Z`);
+    yesterdayValue.setUTCDate(yesterdayValue.getUTCDate() - 1);
+    const yesterday = yesterdayValue.toISOString().slice(0, 10);
+    const createFixtureBlock = async (startsAt, endsAt) => {
+      const response = await fetch(`${apiUrl}/study-blocks`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ contentId, startsAt, endsAt }),
+      });
+      if (response.status !== 201) {
+        throw new Error(`Creating browser fixture block failed with ${response.status}`);
+      }
+      return (await response.json()).data;
+    };
+    const currentFixtureBlock = await createFixtureBlock(
+      `${yesterday}T18:00:00-03:00`,
+      `${yesterday}T19:00:00-03:00`,
+    );
+    await createFixtureBlock(
+      `${yesterday}T19:00:00-03:00`,
+      `${yesterday}T20:00:00-03:00`,
+    );
+    const fixtureSession = await fetch(
+      `${apiUrl}/study-blocks/${currentFixtureBlock.id}/sessions/start`,
+      { method: 'POST', headers },
+    );
+    if (fixtureSession.status !== 201) {
+      throw new Error(`Starting browser fixture session failed with ${fixtureSession.status}`);
+    }
+    fixtureSessionId = (await fixtureSession.json()).data.id;
+  }
+
   console.log(
     JSON.stringify({
       authenticated: true,
@@ -513,7 +553,9 @@ try {
       recurrenceCancelled: true,
       cancelledRecurrenceHiddenFromCalendar: true,
       cleanupScheduled: true,
-      ...(keepTestUser ? { fixture: { username, password, userId } } : {}),
+      ...(keepTestUser
+        ? { fixture: { username, password, userId, sessionId: fixtureSessionId } }
+        : {}),
     }),
   );
 } finally {

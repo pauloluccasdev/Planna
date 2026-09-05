@@ -1143,13 +1143,25 @@ a.resource-row:hover {
   color: var(--muted);
   font-size: 0.8rem;
 }
-.session-warning button {
-  justify-self: start;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: #8b482f;
+.session-warning-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 5px;
+}
+.session-warning-actions a,
+.session-warning-actions button {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid rgba(128, 65, 47, 0.28);
+  border-radius: 999px;
+  background: #fff;
+  color: #80412f;
+  font-size: 0.78rem;
   font-weight: 750;
+  text-decoration: none;
   cursor: pointer;
 }
 .completion-card h2 {

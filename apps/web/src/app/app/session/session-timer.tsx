@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import {
   pauseStudySession,
@@ -20,6 +21,7 @@ type Props = {
   segments: Segment[];
   serverNow: string;
   plannedEndsAt: string | null;
+  nextBlock: { startsAt: string; content: { name: string } } | null;
   focusSeconds: number;
   breakSeconds: number;
 };
@@ -39,14 +41,19 @@ export function SessionTimer({
   segments,
   serverNow,
   plannedEndsAt,
+  nextBlock,
   focusSeconds,
   breakSeconds,
 }: Props) {
+  const router = useRouter();
   const [liveSession, setLiveSession] = useState({ status, segments });
   const [isPending, startTransition] = useTransition();
   const initialNow = new Date(serverNow).getTime();
   const [now, setNow] = useState(initialNow);
-  const [overdueDismissed, setOverdueDismissed] = useState(false);
+  const [plannedWarningDismissed, setPlannedWarningDismissed] = useState(false);
+  const [conflictWarningDismissed, setConflictWarningDismissed] =
+    useState(false);
+  const [actionError, setActionError] = useState("");
   const current =
     liveSession.segments.find((segment) => !segment.endedAt) ?? null;
 
@@ -83,6 +90,12 @@ export function SessionTimer({
   const plannedTimePassed = Boolean(
     plannedEndsAt && now >= new Date(plannedEndsAt).getTime(),
   );
+  const nextBlockConflict = Boolean(
+    nextBlock && now >= new Date(nextBlock.startsAt).getTime(),
+  );
+  const warningDismissed = nextBlockConflict
+    ? conflictWarningDismissed
+    : plannedWarningDismissed;
   const updateSession = (
     action: (id: string) => Promise<{ status: string; segments: Segment[] }>,
   ) => {
@@ -90,6 +103,18 @@ export function SessionTimer({
       const updated = await action(sessionId);
       setLiveSession(updated);
       setNow(Date.now());
+    });
+  };
+  const pauseAndOpenAgenda = () => {
+    setActionError("");
+    startTransition(async () => {
+      try {
+        const updated = await pauseStudySession(sessionId);
+        setLiveSession(updated);
+        router.push("/app");
+      } catch {
+        setActionError("Não foi possível pausar a sessão.");
+      }
     });
   };
 
@@ -118,15 +143,50 @@ export function SessionTimer({
       ) : null}
 
       {plannedTimePassed &&
-      !overdueDismissed &&
+      !warningDismissed &&
       liveSession.status === "RUNNING" ? (
         <div className="session-warning">
-          <b>O horário planejado deste bloco terminou.</b>
-          <span>Continue estudando ou escolha pausar/concluir abaixo.</span>
-          <button type="button" onClick={() => setOverdueDismissed(true)}>
-            Continuar estudando
-          </button>
+          <b>
+            {nextBlockConflict
+              ? `O bloco “${nextBlock?.content.name}” já deveria começar.`
+              : "O horário planejado deste bloco terminou."}
+          </b>
+          <span>
+            {nextBlockConflict
+              ? "Escolha se deseja continuar aqui ou liberar o próximo bloco."
+              : nextBlock
+                ? `Seu próximo bloco é “${nextBlock.content.name}”.`
+                : "Continue estudando ou escolha pausar/concluir."}
+          </span>
+          <div className="session-warning-actions">
+            <button
+              type="button"
+              onClick={() =>
+                nextBlockConflict
+                  ? setConflictWarningDismissed(true)
+                  : setPlannedWarningDismissed(true)
+              }
+            >
+              Continuar estudando
+            </button>
+            {nextBlockConflict ? (
+              <button
+                type="button"
+                disabled={isPending}
+                onClick={pauseAndOpenAgenda}
+              >
+                Pausar e ver próximo
+              </button>
+            ) : null}
+            <a href="#session-completion">Concluir bloco</a>
+          </div>
         </div>
+      ) : null}
+
+      {actionError ? (
+        <p className="form-error" role="alert">
+          {actionError}
+        </p>
       ) : null}
 
       <div className="session-controls">

@@ -23,6 +23,7 @@ type Session = {
   }>;
   completedParts: Array<{ contentPart: { id: string; name: string } }>;
   studyBlock: {
+    id: string;
     endsAt: string;
     focusSeconds: number;
     breakSeconds: number;
@@ -33,6 +34,13 @@ type Session = {
 };
 
 type Props = { searchParams: Promise<{ id?: string }> };
+
+type NextBlock = {
+  id: string;
+  status: string;
+  startsAt: string;
+  content: { name: string };
+};
 
 export default async function StudySessionPage({ searchParams }: Props) {
   const { id } = await searchParams;
@@ -73,6 +81,26 @@ export default async function StudySessionPage({ searchParams }: Props) {
   const alreadyCompleted = new Set(
     session.completedParts.map((item) => item.contentPart.id),
   );
+  let nextBlock: NextBlock | null = null;
+  const currentBlock = session.studyBlock;
+  if (currentBlock) {
+    const nextBlocksResponse = await authenticatedApi(
+      `study-blocks?from=${encodeURIComponent(currentBlock.endsAt)}`,
+    );
+    if (nextBlocksResponse?.status === 401) redirect("/login");
+    if (nextBlocksResponse?.ok) {
+      const blocks = (
+        (await nextBlocksResponse.json()) as { data: NextBlock[] }
+      ).data;
+      nextBlock =
+        blocks.find(
+          (block) =>
+            block.id !== currentBlock.id &&
+            new Date(block.startsAt) >= new Date(currentBlock.endsAt) &&
+            ["CONFIRMED", "OVERDUE", "PAUSED"].includes(block.status),
+        ) ?? null;
+    }
+  }
 
   return (
     <main className="dashboard-shell narrow-shell session-page">
@@ -97,11 +125,15 @@ export default async function StudySessionPage({ searchParams }: Props) {
             segments={session.segments}
             serverNow={new Date().toISOString()}
             plannedEndsAt={session.studyBlock?.endsAt ?? null}
+            nextBlock={nextBlock}
             focusSeconds={session.studyBlock?.focusSeconds ?? 1500}
             breakSeconds={session.studyBlock?.breakSeconds ?? 300}
           />
         </article>
-        <article className="dashboard-card completion-card">
+        <article
+          className="dashboard-card completion-card"
+          id="session-completion"
+        >
           <span className="eyebrow">Finalizar estudo</span>
           <h2>O que você concluiu?</h2>
           <p>
