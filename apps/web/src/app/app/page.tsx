@@ -148,6 +148,11 @@ export default async function DashboardPage({ searchParams }: Props) {
           <p>Seus blocos e compromissos acadêmicos aparecerão aqui.</p>
         </div>
         <div className="dashboard-intro-actions">
+          {user.role === "ADMIN" ? (
+            <Link className="secondary-button" href="/app/admin">
+              Administrar contas
+            </Link>
+          ) : null}
           <Link className="secondary-button" href="/app/metrics">
             Ver indicadores
           </Link>

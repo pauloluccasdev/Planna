@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { AdminModule } from './admin/admin.module.js';
 import { AcademicPeriodsModule } from './academic-periods/academic-periods.module.js';
 import { AcademicEventTypesModule } from './academic-event-types/academic-event-types.module.js';
 import { AcademicEventsModule } from './academic-events/academic-events.module.js';
@@ -20,6 +21,7 @@ import { StudySessionsModule } from './study-sessions/study-sessions.module.js';
 
 @Module({
   imports: [
+    AdminModule,
     PrismaModule,
     AcademicPeriodsModule,
     AcademicEventTypesModule,
