@@ -16,13 +16,14 @@ describe('StudyBlocksService', () => {
     studyBlock: { findFirst: vi.fn(), update: vi.fn() },
     $transaction: vi.fn(),
   };
-  const availability = { coversInterval: vi.fn() };
+  const availability = { coversInterval: vi.fn(), coversIntervals: vi.fn() };
   let service: StudyBlocksService;
 
   beforeEach(() => {
     vi.clearAllMocks();
     prisma.content.findFirst.mockResolvedValue({ id: 'content-id' });
     availability.coversInterval.mockResolvedValue(true);
+    availability.coversIntervals.mockResolvedValue([true]);
     service = new StudyBlocksService(
       prisma as unknown as PrismaService,
       availability as unknown as AvailabilityService,
@@ -77,5 +78,34 @@ describe('StudyBlocksService', () => {
         focusSeconds: 1500,
       }),
     ).rejects.toBeInstanceOf(UnprocessableEntityException);
+  });
+
+  it('rejects a daily recurrence ending before its first occurrence', async () => {
+    await expect(
+      service.createDailyRecurrence('student-id', {
+        contentId: 'content-id',
+        startsAt: '2026-09-20T20:00:00-03:00',
+        endsAt: '2026-09-20T21:00:00-03:00',
+        repeatUntil: '2026-09-19',
+        focusSeconds: 1500,
+        breakSeconds: 300,
+      }),
+    ).rejects.toBeInstanceOf(UnprocessableEntityException);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('rejects the whole recurrence when one day is unavailable', async () => {
+    availability.coversIntervals.mockResolvedValue([true, false]);
+    await expect(
+      service.createDailyRecurrence('student-id', {
+        contentId: 'content-id',
+        startsAt: '2026-09-20T20:00:00-03:00',
+        endsAt: '2026-09-20T21:00:00-03:00',
+        repeatUntil: '2026-09-21',
+        focusSeconds: 1500,
+        breakSeconds: 300,
+      }),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 });

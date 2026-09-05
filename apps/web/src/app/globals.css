@@ -854,6 +854,24 @@ a.resource-row:hover {
   border: 0;
   cursor: pointer;
 }
+.recurrence-picker {
+  display: grid;
+  gap: 13px;
+  margin: 0;
+  padding: 18px;
+  border: 1px solid #dce2da;
+  border-radius: 12px;
+}
+.recurrence-picker > label:first-child {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-weight: 750;
+}
+.recurrence-picker small {
+  color: var(--muted);
+  line-height: 1.45;
+}
 .parts-picker {
   margin: 0;
   padding: 22px;

@@ -12,6 +12,7 @@ import type { AuthUser } from '../auth/auth-user.js';
 import { CurrentUser } from '../auth/auth-user.decorator.js';
 import { SupabaseAuthGuard } from '../auth/supabase-auth.guard.js';
 import { CreateStudyBlockDto } from './dto/create-study-block.dto.js';
+import { CreateRecurringStudyBlockDto } from './dto/create-recurring-study-block.dto.js';
 import { ListStudyBlocksQueryDto } from './dto/list-study-blocks-query.dto.js';
 import { StudyBlocksService } from './study-blocks.service.js';
 
@@ -34,6 +35,16 @@ export class StudyBlocksController {
     @Body() input: CreateStudyBlockDto,
   ) {
     return { data: await this.blocks.create(user.id, input) };
+  }
+
+  @Post('recurring/daily')
+  async createDailyRecurrence(
+    @CurrentUser() user: AuthUser,
+    @Body() input: CreateRecurringStudyBlockDto,
+  ) {
+    return {
+      data: await this.blocks.createDailyRecurrence(user.id, input),
+    };
   }
 
   @Get(':id')

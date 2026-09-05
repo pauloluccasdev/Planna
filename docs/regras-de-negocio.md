@@ -53,6 +53,7 @@ Este documento registra somente decisões confirmadas. As identificações devem
 - **RN-PLN-008** — Na proposta automática, o Planna define horários e conteúdos; o aluno associa as partes durante a revisão.
 - **RN-PLN-009** — O Planna determina a duração dos blocos automáticos.
 - **RN-PLN-010** — Blocos manuais podem repetir diariamente até uma data escolhida.
+- **RN-PLN-010A** — A criação recorrente é atômica: qualquer ocorrência fora da disponibilidade ou em conflito impede a série inteira.
 - **RN-PLN-011** — A edição ou exclusão de recorrência pode afetar apenas uma ocorrência ou a série completa.
 - **RN-PLN-012** — Alterar a prioridade ou estimativa não altera blocos já confirmados.
 - **RN-PLN-013** — Um plano manual abaixo da estimativa é permitido, com alerta de déficit.

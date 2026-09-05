@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { createStudyBlock, type BlockFormState } from "./actions";
 
 type Part = { id: string; name: string };
@@ -21,6 +21,7 @@ export function BlockForm({
   defaultStartsAt: string;
   defaultEndsAt: string;
 }) {
+  const [repeatDaily, setRepeatDaily] = useState(false);
   const boundAction = createStudyBlock.bind(null, contentId);
   const [state, action, pending] = useActionState(boundAction, initialState);
   return (
@@ -53,6 +54,33 @@ export function BlockForm({
           )}
         </div>
       </div>
+      <fieldset className="recurrence-picker">
+        <label>
+          <input
+            type="checkbox"
+            name="repeatDaily"
+            checked={repeatDaily}
+            onChange={(event) => setRepeatDaily(event.target.checked)}
+          />
+          <span>Repetir este bloco diariamente</span>
+        </label>
+        {repeatDaily ? (
+          <label className="field">
+            <span>Repetir até</span>
+            <input
+              type="date"
+              name="repeatUntil"
+              min={defaultStartsAt.slice(0, 10)}
+              defaultValue={defaultStartsAt.slice(0, 10)}
+              required
+            />
+          </label>
+        ) : null}
+        <small>
+          Todas as ocorrências precisam caber na disponibilidade e estar livres
+          de conflitos.
+        </small>
+      </fieldset>
       {parts.length > 0 && (
         <fieldset className="parts-picker">
           <legend>Partes deste bloco</legend>

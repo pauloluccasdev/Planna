@@ -224,12 +224,12 @@ GET   /study-blocks/{block_id}/history
 ### Recorrência diária
 
 ```text
-POST   /study-block-series
+POST   /study-blocks/recurring/daily
 PATCH  /study-block-series/{series_id}
 DELETE /study-block-series/{series_id}
 ```
 
-Ocorrência individual usa rota do bloco. Operação em série usa escopo explícito. A política quando alguma ocorrência é inválida permanece pendente.
+Na criação, o payload do bloco recebe `repeatUntil` no formato `YYYY-MM-DD`. A operação é atômica: todas as ocorrências precisam estar dentro da disponibilidade e sem conflito, ou nenhuma é criada. Uma série diária aceita no máximo 366 blocos. Ocorrência individual usa rota do bloco; futuras operações sobre a série usarão escopo explícito.
 
 ## Sessões de estudo
 
@@ -343,7 +343,6 @@ Cada execução registra janela, resultado, quantidade processada e falhas recup
 - limites de campos;
 - localização definitiva da API;
 - evento com intervalo criado sobre bloco confirmado;
-- criação parcial ou atômica de recorrência;
 - sessão retroativa sobreposta;
 - conclusão de conteúdo sem partes;
 - paginação e limites máximos;

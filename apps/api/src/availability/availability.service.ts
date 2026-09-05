@@ -92,20 +92,38 @@ export class AvailabilityService {
     startsAt: Date,
     endsAt: Date,
   ): Promise<boolean> {
-    const start = instantToLocalPoint(startsAt);
-    const end = instantToLocalPoint(endsAt);
-    if (start.weekday !== end.weekday || startsAt >= endsAt) return false;
+    const [result] = await this.coversIntervals(studentId, [
+      { startsAt, endsAt },
+    ]);
+    return result;
+  }
+
+  async coversIntervals(
+    studentId: string,
+    ranges: Array<{ startsAt: Date; endsAt: Date }>,
+  ): Promise<boolean[]> {
+    if (ranges.length === 0) return [];
     const intervals = await this.prisma.availabilityInterval.findMany({
-      where: { studentId, weekday: start.weekday, active: true },
-      select: { startLocalTime: true, endLocalTime: true },
+      where: { studentId, active: true },
+      select: {
+        weekday: true,
+        startLocalTime: true,
+        endLocalTime: true,
+      },
     });
-    return intervals.some(
-      (interval) =>
-        timeToSeconds(databaseTimeToString(interval.startLocalTime)) <=
-          start.seconds &&
-        timeToSeconds(databaseTimeToString(interval.endLocalTime)) >=
-          end.seconds,
-    );
+    return ranges.map(({ startsAt, endsAt }) => {
+      const start = instantToLocalPoint(startsAt);
+      const end = instantToLocalPoint(endsAt);
+      if (start.weekday !== end.weekday || startsAt >= endsAt) return false;
+      return intervals.some(
+        (interval) =>
+          interval.weekday === start.weekday &&
+          timeToSeconds(databaseTimeToString(interval.startLocalTime)) <=
+            start.seconds &&
+          timeToSeconds(databaseTimeToString(interval.endLocalTime)) >=
+            end.seconds,
+      );
+    });
   }
 
   async replace(studentId: string, intervals: AvailabilityIntervalDto[]) {
