@@ -43,7 +43,7 @@ type CalendarItem =
       startsAt: string;
       endsAt: string | null;
       eventType: { name: string };
-      subject: { name: string; course: { name: string } };
+      subject: { id: string; name: string; course: { name: string } };
     };
 type ReplanningSuggestion = { status: string };
 
@@ -387,7 +387,14 @@ export default async function DashboardPage({ searchParams }: Props) {
                                     Ver detalhes
                                   </Link>
                                 </>
-                              ) : null}
+                              ) : (
+                                <Link
+                                  className="calendar-detail-link"
+                                  href={`/app/subjects/${item.subject.id}/events?eventId=${item.id}#event-${item.id}`}
+                                >
+                                  Ver evento
+                                </Link>
+                              )}
                             </div>
                             {item.type === "study_block" &&
                             ["CONFIRMED", "OVERDUE"].includes(item.status) ? (

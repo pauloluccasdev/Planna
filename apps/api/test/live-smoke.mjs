@@ -35,6 +35,7 @@ let fixtureAlternateContentId;
 let fixtureAlternatePartId;
 let fixturePlanningProposalId;
 let fixtureCancellationBlockId;
+let fixtureCalendarEventId;
 
 async function withDatabase(callback) {
   const database = new pg.Client({
@@ -1277,6 +1278,22 @@ try {
       throw new Error('Creating cancellation browser block failed');
     }
     fixtureCancellationBlockId = (await cancellationBlock.json()).data.id;
+    const calendarEvent = await fetch(`${apiUrl}/academic-events`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        subjectId,
+        eventTypeId,
+        title: 'Avaliação visível na agenda',
+        description: 'Descrição para validar a navegação da grade semanal.',
+        startsAt: `${tomorrow}T16:00:00-03:00`,
+        contentsStatus: 'NOT_INFORMED_YET',
+      }),
+    });
+    if (calendarEvent.status !== 201) {
+      throw new Error('Creating calendar event browser fixture failed');
+    }
+    fixtureCalendarEventId = (await calendarEvent.json()).data.id;
     const fixtureSession = await fetch(
       `${apiUrl}/study-blocks/${currentFixtureBlock.id}/sessions/start`,
       { method: 'POST', headers },
@@ -1383,6 +1400,7 @@ try {
               alternatePartId: fixtureAlternatePartId,
               planningProposalId: fixturePlanningProposalId,
               cancellationBlockId: fixtureCancellationBlockId,
+              calendarEventId: fixtureCalendarEventId,
             },
           }
         : {}),

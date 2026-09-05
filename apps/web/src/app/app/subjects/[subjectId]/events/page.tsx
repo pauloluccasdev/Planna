@@ -9,7 +9,10 @@ import { EventTypeForm } from "./event-type-form";
 
 export const metadata: Metadata = { title: "Compromissos acadêmicos" };
 
-type Props = { params: Promise<{ subjectId: string }> };
+type Props = {
+  params: Promise<{ subjectId: string }>;
+  searchParams: Promise<{ eventId?: string }>;
+};
 type Subject = { id: string; name: string; courseId: string };
 type EventType = { id: string; name: string; isSystem: boolean };
 type Content = { id: string; name: string };
@@ -31,8 +34,9 @@ const dateTime = new Intl.DateTimeFormat("pt-BR", {
   timeStyle: "short",
 });
 
-export default async function EventsPage({ params }: Props) {
+export default async function EventsPage({ params, searchParams }: Props) {
   const { subjectId } = await params;
+  const { eventId } = await searchParams;
   const [subjectResponse, typesResponse, contentsResponse, eventsResponse] =
     await Promise.all([
       authenticatedApi(`subjects/${subjectId}`),
@@ -79,7 +83,11 @@ export default async function EventsPage({ params }: Props) {
         <div className="resource-list">
           {events.length ? (
             events.map((event) => (
-              <article className="dashboard-card event-row" key={event.id}>
+              <article
+                className={`dashboard-card event-row ${event.id === eventId ? "is-targeted" : ""}`}
+                id={`event-${event.id}`}
+                key={event.id}
+              >
                 <div className="event-row-heading">
                   <div>
                     <span className="resource-status">
@@ -110,6 +118,7 @@ export default async function EventsPage({ params }: Props) {
                   event={event}
                   eventTypes={eventTypes}
                   contents={contents}
+                  initiallyOpen={event.id === eventId}
                 />
               </article>
             ))

@@ -36,11 +36,13 @@ export function EventEditor({
   event,
   eventTypes,
   contents,
+  initiallyOpen = false,
 }: {
   subjectId: string;
   event: Event;
   eventTypes: Option[];
   contents: Option[];
+  initiallyOpen?: boolean;
 }) {
   const [contentsKnown, setContentsKnown] = useState(
     event.contentsStatus === "INFORMED",
@@ -55,7 +57,7 @@ export function EventEditor({
   );
 
   return (
-    <details className="event-editor">
+    <details className="event-editor" open={initiallyOpen}>
       <summary>Editar evento</summary>
       <form action={formAction} className="event-form">
         <label className="field">

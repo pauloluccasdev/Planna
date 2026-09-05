@@ -2093,7 +2093,12 @@ a.resource-row:hover {
   font-size: 0.82rem;
 }
 .event-row {
+  scroll-margin-top: 20px;
   padding: 24px;
+}
+.event-row.is-targeted {
+  border-color: #b76b4e;
+  box-shadow: 0 0 0 3px rgb(183 107 78 / 12%);
 }
 .event-row-heading {
   display: flex;

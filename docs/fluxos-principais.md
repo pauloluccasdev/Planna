@@ -21,6 +21,7 @@
 3. Cada bloco informa seu estado por texto e cor, sem depender somente da cor.
 4. No celular, os mesmos sete dias são organizados verticalmente.
 5. O aluno navega entre semanas e abre os detalhes ou ações do bloco.
+6. Ao abrir um evento, o Planna direciona para o compromisso correspondente com a edição expandida.
 
 ## Criação de bloco fora da disponibilidade
 
