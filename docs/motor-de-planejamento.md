@@ -139,6 +139,8 @@ score =
 
 Os coeficientes técnicos devem ser versionados e calibrados com cenários reais. Eles não podem introduzir fatores de negócio além de prioridade e proximidade do evento sem nova decisão do produto.
 
+Na versão inicial `mvp-v1`, a prioridade normalizada recebe coeficiente `0,35` e a proximidade recebe `0,65`, decaindo linearmente ao longo de 180 dias. Esses valores são parâmetros técnicos versionados: podem ser calibrados sem incluir novos fatores de negócio e sempre aparecem na fotografia da proposta.
+
 ### Urgência de prazo candidata
 
 Para conteúdo relacionado a eventos, a urgência cresce conforme diminuem os dias úteis de estudo até o evento. Não deve haver divisão direta apenas por dias corridos, pois a capacidade real depende da grade do aluno.
@@ -321,7 +323,7 @@ Com as mesmas entradas e parâmetros, a geração deve produzir o mesmo resultad
 
 ## Decisões pendentes específicas
 
-- coeficientes técnicos entre prioridade e proximidade do evento;
+- calibração futura dos coeficientes técnicos versionados com cenários reais;
 - desempates definitivos;
 - política de carga cumprida por conclusão antecipada ou excedente;
 - efeito de sessões não planejadas na carga restante;

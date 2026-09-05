@@ -6,7 +6,7 @@ Estes pontos não bloqueiam a consolidação inicial, mas devem ser decididos an
 
 - Campos obrigatórios e limites de tamanho para cursos, disciplinas, conteúdos, partes e observações.
 - Estados completos e transições permitidas para blocos, sessões, propostas, conteúdos e partes.
-- Calibração dos coeficientes técnicos entre prioridade e proximidade de provas ou trabalhos.
+- Validar com uso real os coeficientes técnicos versionados da versão `mvp-v1`: prioridade `0,35`, proximidade `0,65` e horizonte linear de 180 dias.
 - Comportamento de uma parte associada a vários blocos.
 - Validação de sobreposição em registros retroativos.
 - Limites para séries recorrentes e geração de planejamento semestral.

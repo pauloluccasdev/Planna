@@ -13,6 +13,7 @@ import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { PrismaModule } from './database/prisma.module.js';
 import { PomodoroModule } from './pomodoro/pomodoro.module.js';
+import { PlanningModule } from './planning/planning.module.js';
 import { MetricsModule } from './metrics/metrics.module.js';
 import { OverdueModule } from './overdue/overdue.module.js';
 import { SubjectsModule } from './subjects/subjects.module.js';
@@ -34,6 +35,7 @@ import { StudySessionsModule } from './study-sessions/study-sessions.module.js';
     ContentsModule,
     ContentPartsModule,
     PomodoroModule,
+    PlanningModule,
     MetricsModule,
     OverdueModule,
     StudyBlocksModule,

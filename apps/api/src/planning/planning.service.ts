@@ -1,0 +1,784 @@
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
+import { createHash } from 'node:crypto';
+import { PrismaService } from '../database/prisma.service.js';
+import {
+  BlockStatus,
+  BlockSource,
+  DiagnosticKind,
+  EventContentsStatus,
+  ProposalStatus,
+  RecordStatus,
+  SessionStatus,
+} from '../generated/prisma/enums.js';
+import type { CreatePlanningProposalDto } from './dto/create-planning-proposal.dto.js';
+import {
+  generatePlanningProposal,
+  PLANNING_ALGORITHM_VERSION,
+  PLANNING_PARAMETERS,
+  subtractOccupiedIntervals,
+  type PlanningCandidate,
+  type TimeInterval,
+} from './planning-engine.js';
+
+const timeZone = 'America/Sao_Paulo';
+const localDate = new Intl.DateTimeFormat('sv-SE', {
+  timeZone,
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+});
+const activeBlockStatuses = [
+  BlockStatus.CONFIRMED,
+  BlockStatus.IN_PROGRESS,
+  BlockStatus.PAUSED,
+  BlockStatus.OVERDUE,
+];
+
+function unique(values: string[]) {
+  return [...new Set(values)];
+}
+
+function timeText(value: Date) {
+  return value.toISOString().slice(11, 19);
+}
+
+function materializeAvailability(
+  periodStart: Date,
+  periodEnd: Date,
+  weekly: Array<{ weekday: number; startLocalTime: Date; endLocalTime: Date }>,
+): TimeInterval[] {
+  const firstDate = localDate.format(periodStart);
+  const lastDate = localDate.format(new Date(periodEnd.getTime() - 1));
+  const cursor = new Date(`${firstDate}T12:00:00Z`);
+  const last = new Date(`${lastDate}T12:00:00Z`);
+  const result: TimeInterval[] = [];
+  while (cursor <= last) {
+    const civilDate = cursor.toISOString().slice(0, 10);
+    const weekday = cursor.getUTCDay();
+    for (const interval of weekly) {
+      if (interval.weekday !== weekday) continue;
+      result.push({
+        startsAt: new Date(
+          `${civilDate}T${timeText(interval.startLocalTime)}-03:00`,
+        ),
+        endsAt: new Date(
+          `${civilDate}T${timeText(interval.endLocalTime)}-03:00`,
+        ),
+      });
+    }
+    cursor.setUTCDate(cursor.getUTCDate() + 1);
+  }
+  return result;
+}
+
+@Injectable()
+export class PlanningService {
+  constructor(private readonly prisma: PrismaService) {}
+
+  async create(studentId: string, input: CreatePlanningProposalDto) {
+    const periodStart = new Date(input.periodStart);
+    const periodEnd = new Date(input.periodEnd);
+    const now = new Date();
+    if (periodStart >= periodEnd || periodEnd <= now) this.throwInvalidRange();
+    const courseIds = unique(input.courseIds);
+    const subjectIds = unique(input.subjectIds);
+    if (courseIds.length === 0 && subjectIds.length === 0) {
+      throw new UnprocessableEntityException({
+        error: {
+          code: 'PLANNING_SCOPE_REQUIRED',
+          message: 'Selecione ao menos um curso ou uma disciplina.',
+        },
+      });
+    }
+
+    const [courses, subjects] = await Promise.all([
+      this.prisma.course.findMany({
+        where: {
+          id: { in: courseIds },
+          studentId,
+          status: RecordStatus.ACTIVE,
+        },
+        select: { id: true },
+      }),
+      this.prisma.subject.findMany({
+        where: {
+          id: { in: subjectIds },
+          studentId,
+          status: RecordStatus.ACTIVE,
+        },
+        select: { id: true },
+      }),
+    ]);
+    if (
+      courses.length !== courseIds.length ||
+      subjects.length !== subjectIds.length
+    )
+      this.throwScopeNotFound();
+
+    const contents = await this.prisma.content.findMany({
+      where: {
+        studentId,
+        archivedAt: null,
+        subject: {
+          status: RecordStatus.ACTIVE,
+          course: { status: RecordStatus.ACTIVE },
+        },
+        OR: [
+          ...(courseIds.length
+            ? [{ subject: { courseId: { in: courseIds } } }]
+            : []),
+          ...(subjectIds.length ? [{ subjectId: { in: subjectIds } }] : []),
+          { studyBlocks: { some: { status: BlockStatus.OVERDUE } } },
+        ],
+      },
+      select: {
+        id: true,
+        subjectId: true,
+        priority: true,
+        estimatedDurationSeconds: true,
+        manuallyCompletedAt: true,
+        updatedAt: true,
+        subject: { select: { courseId: true } },
+        parts: {
+          where: { archivedAt: null },
+          select: {
+            id: true,
+            sessionCompletions: {
+              where: {
+                studySession: { studentId, status: SessionStatus.COMPLETED },
+              },
+              select: { contentPartId: true },
+              take: 1,
+            },
+          },
+        },
+        studyBlocks: {
+          where: { status: BlockStatus.OVERDUE },
+          select: { id: true, startsAt: true },
+          orderBy: { startsAt: 'asc' },
+        },
+      },
+      orderBy: { id: 'asc' },
+    });
+    const contentIds = contents.map(({ id }) => id);
+    const contentSubjectIds = unique(
+      contents.map(({ subjectId }) => subjectId),
+    );
+    const [blocks, events, availability, pomodoro] = await Promise.all([
+      this.prisma.studyBlock.findMany({
+        where: {
+          studentId,
+          contentId: { in: contentIds },
+          OR: [
+            { status: BlockStatus.COMPLETED },
+            {
+              status: { in: activeBlockStatuses },
+            },
+          ],
+        },
+        select: {
+          id: true,
+          contentId: true,
+          status: true,
+          startsAt: true,
+          endsAt: true,
+          plannedDurationSeconds: true,
+          revision: true,
+          sessions: {
+            where: { status: SessionStatus.COMPLETED },
+            select: { realizedDurationSeconds: true },
+          },
+        },
+      }),
+      this.prisma.academicEvent.findMany({
+        where: {
+          studentId,
+          deletedAt: null,
+          startsAt: { gte: periodStart, lte: periodEnd },
+          subjectId: { in: contentSubjectIds },
+        },
+        select: {
+          id: true,
+          subjectId: true,
+          startsAt: true,
+          endsAt: true,
+          contentsStatus: true,
+          contentLinks: { select: { contentId: true } },
+          updatedAt: true,
+        },
+        orderBy: [{ startsAt: 'asc' }, { id: 'asc' }],
+      }),
+      this.prisma.availabilityInterval.findMany({
+        where: { studentId, active: true },
+        select: { weekday: true, startLocalTime: true, endLocalTime: true },
+        orderBy: [{ weekday: 'asc' }, { startLocalTime: 'asc' }],
+      }),
+      this.prisma.pomodoroPreference.findUnique({ where: { studentId } }),
+    ]);
+
+    const occupiedBlocks = await this.prisma.studyBlock.findMany({
+      where: {
+        studentId,
+        status: { in: activeBlockStatuses },
+        startsAt: { lt: periodEnd },
+        endsAt: { gt: periodStart },
+      },
+      select: { id: true, startsAt: true, endsAt: true, revision: true },
+    });
+    const available = materializeAvailability(
+      periodStart,
+      periodEnd,
+      availability,
+    );
+    const freeIntervals = subtractOccupiedIntervals(available, [
+      ...occupiedBlocks.map(({ startsAt, endsAt }) => ({ startsAt, endsAt })),
+      ...events.flatMap(({ startsAt, endsAt }) =>
+        endsAt ? [{ startsAt, endsAt }] : [],
+      ),
+    ]);
+
+    const nearestEventByContent = new Map<
+      string,
+      { id: string; startsAt: Date }
+    >();
+    for (const event of events) {
+      for (const { contentId } of event.contentLinks) {
+        if (!nearestEventByContent.has(contentId))
+          nearestEventByContent.set(contentId, {
+            id: event.id,
+            startsAt: event.startsAt,
+          });
+      }
+    }
+    const completedSeconds = new Map<string, number>();
+    const partiallyRealizedSeconds = new Map<string, number>();
+    const futureSeconds = new Map<string, number>();
+    for (const block of blocks) {
+      if (block.status === BlockStatus.COMPLETED) {
+        completedSeconds.set(
+          block.contentId,
+          (completedSeconds.get(block.contentId) ?? 0) +
+            block.plannedDurationSeconds,
+        );
+        continue;
+      }
+      const realizedSeconds = block.sessions.reduce(
+        (total, session) => total + (session.realizedDurationSeconds ?? 0),
+        0,
+      );
+      if (realizedSeconds > 0) {
+        partiallyRealizedSeconds.set(
+          block.contentId,
+          (partiallyRealizedSeconds.get(block.contentId) ?? 0) +
+            realizedSeconds,
+        );
+      }
+      if (block.endsAt > now && block.status !== BlockStatus.OVERDUE) {
+        futureSeconds.set(
+          block.contentId,
+          (futureSeconds.get(block.contentId) ?? 0) +
+            block.plannedDurationSeconds,
+        );
+      }
+    }
+
+    const completedContentIds = new Set(
+      contents
+        .filter((content) =>
+          content.parts.length > 0
+            ? content.parts.every((part) => part.sessionCompletions.length > 0)
+            : content.manuallyCompletedAt !== null,
+        )
+        .map(({ id }) => id),
+    );
+    const ignoredWithoutEstimate = contents.filter(
+      (content) =>
+        !completedContentIds.has(content.id) &&
+        content.estimatedDurationSeconds === null,
+    );
+    const candidates: PlanningCandidate[] = contents.flatMap((content) => {
+      if (
+        completedContentIds.has(content.id) ||
+        content.estimatedDurationSeconds === null
+      )
+        return [];
+      const requiredSeconds = Math.max(
+        0,
+        content.estimatedDurationSeconds -
+          (completedSeconds.get(content.id) ?? 0) -
+          (partiallyRealizedSeconds.get(content.id) ?? 0) -
+          (futureSeconds.get(content.id) ?? 0),
+      );
+      if (requiredSeconds === 0) return [];
+      const event = nearestEventByContent.get(content.id);
+      const overdueBlock = content.studyBlocks[0];
+      return [
+        {
+          contentId: content.id,
+          courseId: content.subject.courseId,
+          subjectId: content.subjectId,
+          priority: content.priority,
+          requiredSeconds,
+          ...(event
+            ? { deadline: event.startsAt, academicEventId: event.id }
+            : {}),
+          ...(overdueBlock ? { sourceOverdueBlockId: overdueBlock.id } : {}),
+        },
+      ];
+    });
+    const result = generatePlanningProposal({
+      periodStart: new Date(Math.max(periodStart.getTime(), now.getTime())),
+      periodEnd,
+      freeIntervals,
+      candidates,
+    });
+    const focusSeconds = pomodoro?.focusSeconds ?? 1500;
+    const breakSeconds = pomodoro?.breakSeconds ?? 300;
+    const inputVersion = createHash('sha256')
+      .update(
+        JSON.stringify({
+          courseIds,
+          subjectIds,
+          contents: contents.map(({ id, updatedAt }) => [id, updatedAt]),
+          events: events.map(({ id, updatedAt }) => [id, updatedAt]),
+          occupiedBlocks: occupiedBlocks.map(({ id, revision }) => [
+            id,
+            revision,
+          ]),
+          availability,
+          pomodoro: pomodoro
+            ? [pomodoro.focusSeconds, pomodoro.breakSeconds, pomodoro.updatedAt]
+            : null,
+        }),
+      )
+      .digest('hex');
+
+    return this.prisma.$transaction((transaction) =>
+      transaction.planningProposal.create({
+        data: {
+          studentId,
+          periodStart,
+          periodEnd,
+          status: ProposalStatus.READY,
+          algorithmVersion: PLANNING_ALGORITHM_VERSION,
+          parametersSnapshot: {
+            ...PLANNING_PARAMETERS,
+            focusSeconds,
+            breakSeconds,
+            requestedSeconds: result.requestedSeconds,
+            allocatedSeconds: result.allocatedSeconds,
+            unallocatedSeconds: result.unallocatedSeconds,
+          },
+          inputVersion,
+          completedAt: new Date(),
+          courseScopes: {
+            create: courseIds.map((courseId) => ({ courseId })),
+          },
+          subjectScopes: {
+            create: subjectIds.map((subjectId) => ({ subjectId })),
+          },
+          blocks: {
+            create: result.blocks.map((block) => ({
+              studentId,
+              contentId: block.contentId,
+              startsAt: block.startsAt,
+              endsAt: block.endsAt,
+              plannedDurationSeconds: block.plannedDurationSeconds,
+              focusSeconds,
+              breakSeconds,
+              explanationFactors: block.explanationFactors,
+              sourceOverdueBlockId: block.sourceOverdueBlockId,
+            })),
+          },
+          diagnostics: {
+            create: [
+              ...ignoredWithoutEstimate.map((content) => ({
+                kind: DiagnosticKind.MISSING_ESTIMATE,
+                courseId: content.subject.courseId,
+                subjectId: content.subjectId,
+                contentId: content.id,
+                details: { reason: 'MISSING_ESTIMATE' },
+              })),
+              ...events.flatMap((event) =>
+                event.contentsStatus === EventContentsStatus.NOT_INFORMED_YET
+                  ? [
+                      {
+                        kind: DiagnosticKind.UNKNOWN_EVENT_CONTENTS,
+                        subjectId: event.subjectId,
+                        academicEventId: event.id,
+                        details: { reason: 'UNKNOWN_EVENT_CONTENTS' },
+                      },
+                    ]
+                  : [],
+              ),
+              ...result.diagnostics.map((diagnostic) => ({
+                kind: DiagnosticKind.CAPACITY_DEFICIT,
+                courseId: diagnostic.courseId,
+                subjectId: diagnostic.subjectId,
+                contentId: diagnostic.contentId,
+                academicEventId: diagnostic.academicEventId,
+                requiredSeconds: diagnostic.requiredSeconds,
+                availableSeconds: diagnostic.allocatedSeconds,
+                deficitSeconds: diagnostic.deficitSeconds,
+                details: { reason: 'CAPACITY_DEFICIT' },
+              })),
+            ],
+          },
+        },
+        include: {
+          courseScopes: { select: { courseId: true } },
+          subjectScopes: { select: { subjectId: true } },
+          blocks: {
+            where: { removedAt: null },
+            include: {
+              content: {
+                select: {
+                  id: true,
+                  name: true,
+                  subject: {
+                    select: {
+                      id: true,
+                      name: true,
+                      course: { select: { id: true, name: true } },
+                    },
+                  },
+                },
+              },
+              parts: { include: { contentPart: true } },
+            },
+            orderBy: { startsAt: 'asc' },
+          },
+          diagnostics: true,
+        },
+      }),
+    );
+  }
+
+  async get(studentId: string, id: string) {
+    const proposal = await this.prisma.planningProposal.findFirst({
+      where: { id, studentId },
+      include: {
+        courseScopes: {
+          include: { course: { select: { id: true, name: true } } },
+        },
+        subjectScopes: {
+          include: { subject: { select: { id: true, name: true } } },
+        },
+        blocks: {
+          where: { removedAt: null },
+          include: {
+            content: {
+              select: {
+                id: true,
+                name: true,
+                subject: {
+                  select: {
+                    id: true,
+                    name: true,
+                    course: { select: { id: true, name: true } },
+                  },
+                },
+              },
+            },
+            parts: { include: { contentPart: true } },
+          },
+          orderBy: { startsAt: 'asc' },
+        },
+        diagnostics: true,
+      },
+    });
+    if (!proposal) {
+      throw new NotFoundException({
+        error: {
+          code: 'PLANNING_PROPOSAL_NOT_FOUND',
+          message: 'Proposta de planejamento não encontrada.',
+        },
+      });
+    }
+    return proposal;
+  }
+
+  async confirm(studentId: string, id: string) {
+    return this.prisma.$transaction(async (transaction) => {
+      await transaction.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${studentId}, 0))`;
+      const proposal = await transaction.planningProposal.findFirst({
+        where: { id, studentId },
+        include: {
+          courseScopes: { select: { courseId: true } },
+          subjectScopes: { select: { subjectId: true } },
+          blocks: {
+            where: { removedAt: null },
+            include: { parts: { select: { contentPartId: true } } },
+            orderBy: { startsAt: 'asc' },
+          },
+        },
+      });
+      if (!proposal) this.throwProposalNotFound();
+      if (proposal.status === ProposalStatus.CONFIRMED) return proposal;
+      if (
+        proposal.status !== ProposalStatus.READY &&
+        proposal.status !== ProposalStatus.REVIEWING
+      ) {
+        throw new ConflictException({
+          error: {
+            code: 'PLANNING_PROPOSAL_NOT_CONFIRMABLE',
+            message: 'Esta proposta não pode mais ser confirmada.',
+          },
+        });
+      }
+
+      const firstBlock = proposal.blocks[0];
+      const lastBlock = proposal.blocks.at(-1);
+      if (firstBlock && lastBlock) {
+        const proposalCourseIds = proposal.courseScopes.map(
+          ({ courseId }) => courseId,
+        );
+        const proposalSubjectIds = proposal.subjectScopes.map(
+          ({ subjectId }) => subjectId,
+        );
+        const contentScope = [
+          ...(proposalCourseIds.length
+            ? [{ subject: { courseId: { in: proposalCourseIds } } }]
+            : []),
+          ...(proposalSubjectIds.length
+            ? [{ subjectId: { in: proposalSubjectIds } }]
+            : []),
+          { id: { in: proposal.blocks.map(({ contentId }) => contentId) } },
+        ];
+        const [
+          blockConflict,
+          eventConflict,
+          changedContent,
+          changedEvent,
+          changedAvailability,
+          changedPomodoro,
+          availability,
+        ] = await Promise.all([
+          transaction.studyBlock.findFirst({
+            where: {
+              studentId,
+              status: { in: activeBlockStatuses },
+              OR: proposal.blocks.map((block) => ({
+                startsAt: { lt: block.endsAt },
+                endsAt: { gt: block.startsAt },
+              })),
+            },
+            select: { id: true },
+          }),
+          transaction.academicEvent.findFirst({
+            where: {
+              studentId,
+              deletedAt: null,
+              endsAt: { not: null },
+              OR: proposal.blocks.map((block) => ({
+                startsAt: { lt: block.endsAt },
+                endsAt: { gt: block.startsAt },
+              })),
+            },
+            select: { id: true },
+          }),
+          transaction.content.findFirst({
+            where: {
+              studentId,
+              archivedAt: null,
+              updatedAt: { gt: proposal.requestedAt },
+              OR: contentScope,
+            },
+            select: { id: true },
+          }),
+          transaction.academicEvent.findFirst({
+            where: {
+              studentId,
+              deletedAt: null,
+              updatedAt: { gt: proposal.requestedAt },
+              startsAt: { gte: proposal.periodStart, lte: proposal.periodEnd },
+              OR: [
+                ...(proposalCourseIds.length
+                  ? [{ subject: { courseId: { in: proposalCourseIds } } }]
+                  : []),
+                ...(proposalSubjectIds.length
+                  ? [{ subjectId: { in: proposalSubjectIds } }]
+                  : []),
+              ],
+            },
+            select: { id: true },
+          }),
+          transaction.availabilityInterval.findFirst({
+            where: { studentId, updatedAt: { gt: proposal.requestedAt } },
+            select: { id: true },
+          }),
+          transaction.pomodoroPreference.findFirst({
+            where: { studentId, updatedAt: { gt: proposal.requestedAt } },
+            select: { studentId: true },
+          }),
+          transaction.availabilityInterval.findMany({
+            where: { studentId, active: true },
+            select: {
+              weekday: true,
+              startLocalTime: true,
+              endLocalTime: true,
+            },
+          }),
+        ]);
+        const availableIntervals = materializeAvailability(
+          proposal.periodStart,
+          proposal.periodEnd,
+          availability,
+        );
+        const allBlocksRemainAvailable = proposal.blocks.every((block) =>
+          availableIntervals.some(
+            (interval) =>
+              interval.startsAt <= block.startsAt &&
+              interval.endsAt >= block.endsAt,
+          ),
+        );
+        if (
+          blockConflict ||
+          eventConflict ||
+          changedContent ||
+          changedEvent ||
+          changedAvailability ||
+          changedPomodoro ||
+          !allBlocksRemainAvailable
+        )
+          this.throwProposalStale();
+      }
+
+      const confirmedAt = new Date();
+      const changed = await transaction.planningProposal.updateMany({
+        where: {
+          id,
+          studentId,
+          status: { in: [ProposalStatus.READY, ProposalStatus.REVIEWING] },
+          revision: proposal.revision,
+        },
+        data: {
+          status: ProposalStatus.CONFIRMED,
+          confirmedAt,
+          revision: { increment: 1 },
+        },
+      });
+      if (changed.count !== 1) this.throwProposalStale();
+
+      if (proposal.blocks.length > 0) {
+        await transaction.studyBlock.createMany({
+          data: proposal.blocks.map((block) => ({
+            studentId,
+            contentId: block.contentId,
+            proposalId: proposal.id,
+            proposedBlockId: block.id,
+            source: BlockSource.AUTOMATIC,
+            status: BlockStatus.CONFIRMED,
+            startsAt: block.startsAt,
+            endsAt: block.endsAt,
+            plannedDurationSeconds: block.plannedDurationSeconds,
+            focusSeconds: block.focusSeconds,
+            breakSeconds: block.breakSeconds,
+          })),
+        });
+        if (proposal.blocks.some((block) => block.parts.length > 0)) {
+          const createdBlocks = await transaction.studyBlock.findMany({
+            where: {
+              proposedBlockId: { in: proposal.blocks.map(({ id }) => id) },
+            },
+            select: { id: true, proposedBlockId: true },
+          });
+          const confirmedIdByProposed = new Map(
+            createdBlocks.map((block) => [block.proposedBlockId, block.id]),
+          );
+          await transaction.studyBlockPart.createMany({
+            data: proposal.blocks.flatMap((block) =>
+              block.parts.map(({ contentPartId }) => ({
+                studyBlockId: confirmedIdByProposed.get(block.id)!,
+                contentPartId,
+              })),
+            ),
+          });
+        }
+      }
+      return transaction.planningProposal.findUniqueOrThrow({
+        where: { id },
+        include: {
+          blocks: { where: { removedAt: null }, orderBy: { startsAt: 'asc' } },
+          confirmedBlocks: { orderBy: { startsAt: 'asc' } },
+          diagnostics: true,
+        },
+      });
+    });
+  }
+
+  async discard(studentId: string, id: string) {
+    const proposal = await this.prisma.planningProposal.findFirst({
+      where: { id, studentId },
+      select: { id: true, status: true, revision: true },
+    });
+    if (!proposal) this.throwProposalNotFound();
+    if (proposal.status === ProposalStatus.DISCARDED) return proposal;
+    if (
+      proposal.status !== ProposalStatus.READY &&
+      proposal.status !== ProposalStatus.REVIEWING
+    ) {
+      throw new ConflictException({
+        error: {
+          code: 'PLANNING_PROPOSAL_NOT_DISCARDABLE',
+          message: 'Esta proposta não pode mais ser descartada.',
+        },
+      });
+    }
+    const changed = await this.prisma.planningProposal.updateMany({
+      where: {
+        id,
+        studentId,
+        revision: proposal.revision,
+        status: { in: [ProposalStatus.READY, ProposalStatus.REVIEWING] },
+      },
+      data: {
+        status: ProposalStatus.DISCARDED,
+        revision: { increment: 1 },
+      },
+    });
+    if (changed.count !== 1) this.throwProposalStale();
+    return this.prisma.planningProposal.findUniqueOrThrow({ where: { id } });
+  }
+
+  private throwInvalidRange(): never {
+    throw new UnprocessableEntityException({
+      error: {
+        code: 'INVALID_PLANNING_PERIOD',
+        message: 'O fim do período deve ser futuro e posterior ao início.',
+      },
+    });
+  }
+
+  private throwScopeNotFound(): never {
+    throw new NotFoundException({
+      error: {
+        code: 'PLANNING_SCOPE_NOT_FOUND',
+        message: 'Um curso ou disciplina selecionado não foi encontrado.',
+      },
+    });
+  }
+
+  private throwProposalNotFound(): never {
+    throw new NotFoundException({
+      error: {
+        code: 'PLANNING_PROPOSAL_NOT_FOUND',
+        message: 'Proposta de planejamento não encontrada.',
+      },
+    });
+  }
+
+  private throwProposalStale(): never {
+    throw new ConflictException({
+      error: {
+        code: 'PLANNING_PROPOSAL_STALE',
+        message: 'A proposta ficou desatualizada. Gere uma nova proposta.',
+      },
+    });
+  }
+}
