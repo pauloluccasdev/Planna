@@ -1433,16 +1433,36 @@ a.resource-row:hover {
   flex-wrap: wrap;
   gap: 8px;
 }
-.period-list > span {
+.period-list > article {
   display: grid;
   gap: 2px;
   padding: 9px 12px;
   border-radius: 9px;
   background: #eef4ef;
 }
+.period-summary {
+  display: grid;
+  gap: 2px;
+}
 .period-list small,
 .resource-row small {
   color: var(--muted);
+}
+.period-editor > summary {
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding-top: 0.4rem;
+}
+.period-edit-form {
+  display: grid;
+  gap: 0.75rem;
+  min-width: min(26rem, 75vw);
+  padding-top: 0.75rem;
+}
+.period-edit-form > .secondary-button {
+  justify-self: start;
 }
 .period-create-form,
 .subject-create-form {

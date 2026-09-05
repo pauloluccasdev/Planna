@@ -191,6 +191,24 @@ try {
     );
   }
   const periodId = (await createdPeriod.json()).data.id;
+  const updatedPeriod = await fetch(`${apiUrl}/periods/${periodId}`, {
+    method: 'PATCH',
+    headers,
+    body: JSON.stringify({
+      name: 'Segundo semestre',
+      startsOn: '2026-08-03',
+      endsOn: '2026-12-18',
+    }),
+  });
+  const updatedPeriodBody = await updatedPeriod.json();
+  if (
+    !updatedPeriod.ok ||
+    updatedPeriodBody.data.name !== 'Segundo semestre' ||
+    !updatedPeriodBody.data.startsOn.startsWith('2026-08-03') ||
+    !updatedPeriodBody.data.endsOn.startsWith('2026-12-18')
+  ) {
+    throw new Error('Academic period was not updated');
+  }
   const updatedSubject = await fetch(`${apiUrl}/subjects/${subjectId}`, {
     method: 'PATCH',
     headers,
@@ -673,6 +691,7 @@ try {
       courseCreated: true,
       courseListed: true,
       subjectCreated: true,
+      academicPeriodUpdated: true,
       subjectUpdatedWithAcademicPeriod: true,
       contentCreated: true,
       academicEventUpdatedAtomically: true,

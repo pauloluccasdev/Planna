@@ -2,9 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { authenticatedApi } from "../../../_lib/api";
-import { SubjectForm } from "./subject-form";
+import { PeriodEditor } from "./period-editor";
 import { PeriodForm } from "./period-form";
 import { SubjectEditor } from "./subject-editor";
+import { SubjectForm } from "./subject-form";
 
 type Props = { params: Promise<{ courseId: string }> };
 type Course = { id: string; name: string; description: string | null };
@@ -20,6 +21,7 @@ type Period = {
   name: string;
   startsOn: string | null;
   endsOn: string | null;
+  updatedAt: string;
 };
 
 export const metadata: Metadata = { title: "Disciplinas" };
@@ -71,15 +73,22 @@ export default async function CoursePage({ params }: Props) {
           {periods.length ? (
             <div className="period-list">
               {periods.map((period) => (
-                <span key={period.id}>
-                  <b>{period.name}</b>
-                  {period.startsOn || period.endsOn ? (
-                    <small>
-                      {period.startsOn?.slice(0, 10) ?? "…"} —{" "}
-                      {period.endsOn?.slice(0, 10) ?? "…"}
-                    </small>
-                  ) : null}
-                </span>
+                <article key={period.id}>
+                  <div className="period-summary">
+                    <b>{period.name}</b>
+                    {period.startsOn || period.endsOn ? (
+                      <small>
+                        {period.startsOn?.slice(0, 10) ?? "…"} —{" "}
+                        {period.endsOn?.slice(0, 10) ?? "…"}
+                      </small>
+                    ) : null}
+                  </div>
+                  <PeriodEditor
+                    key={`${period.id}:${period.updatedAt}`}
+                    courseId={courseId}
+                    period={period}
+                  />
+                </article>
               ))}
             </div>
           ) : (

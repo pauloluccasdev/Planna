@@ -63,6 +63,44 @@ export async function createAcademicPeriod(
   return { success: "Período letivo criado." };
 }
 
+export async function updateAcademicPeriod(
+  courseId: string,
+  periodId: string,
+  _state: PeriodFormState,
+  formData: FormData,
+): Promise<PeriodFormState> {
+  const name = String(formData.get("name") ?? "").trim();
+  const startsOn = String(formData.get("startsOn") ?? "");
+  const endsOn = String(formData.get("endsOn") ?? "");
+  if (name.length < 2) return { message: "Informe o nome do período." };
+  if (name.length > 120) return { message: "Use no máximo 120 caracteres." };
+  if (startsOn && endsOn && startsOn > endsOn)
+    return { message: "A data final deve ser igual ou posterior à inicial." };
+
+  const response = await authenticatedApi(`periods/${periodId}`, {
+    method: "PATCH",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      name,
+      startsOn: startsOn || null,
+      endsOn: endsOn || null,
+    }),
+  });
+  if (!response || response.status === 401) redirect("/login");
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as {
+      error?: { message?: string };
+    } | null;
+    return {
+      message:
+        payload?.error?.message ??
+        "Não foi possível atualizar o período letivo.",
+    };
+  }
+  revalidatePath(`/app/courses/${courseId}`);
+  return { success: "Período letivo atualizado." };
+}
+
 export async function updateSubject(
   courseId: string,
   subjectId: string,
