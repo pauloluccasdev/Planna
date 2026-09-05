@@ -261,6 +261,13 @@ Após rejeição, outra sugestão só pode ser produzida por solicitação do al
 
 Foco e pausas Pomodoro registrados compõem a duração realizada. Tempo em que a sessão permaneceu pausada aguardando retomada não compõe essa duração.
 
+Quando vários atrasos ainda não possuem a primeira sugestão, a ocupação dos
+horários é ordenada pelo mesmo critério confirmado do planejamento: prioridade
+manual e proximidade da prova ou trabalho relacionado. Cada sugestão precisa
+acomodar todo o saldo de seu bloco em um único intervalo da grade semanal. A
+busca percorre as ocupações futuras existentes e mais um ciclo semanal livre,
+sem criar um limite de produto ainda não aprovado.
+
 ## Validação antes da confirmação
 
 Como a agenda pode mudar enquanto uma proposta está aberta, a confirmação deve revalidar:

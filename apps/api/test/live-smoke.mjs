@@ -64,6 +64,10 @@ async function cleanupUserData(database, id) {
     id,
   ]);
   await database.query(
+    'delete from replanning_suggestions where student_id = $1',
+    [id],
+  );
+  await database.query(
     'delete from study_block_parts where study_block_id in (select id from study_blocks where student_id = $1)',
     [id],
   );
@@ -576,6 +580,54 @@ try {
     throw new Error('Expired block was not automatically marked overdue');
   }
 
+  const automaticSuggestions = await fetch(`${apiUrl}/replanning-suggestions`, {
+    headers,
+  });
+  const automaticSuggestionsBody = await automaticSuggestions.json();
+  const automaticSuggestion = automaticSuggestionsBody.data?.find(
+    (suggestion) => suggestion.overdueBlock.id === expiredBlockId,
+  );
+  if (
+    !automaticSuggestions.ok ||
+    !automaticSuggestion ||
+    automaticSuggestion.suggestedDurationSeconds !== 3600
+  ) {
+    throw new Error('Automatic replanning suggestion was not generated');
+  }
+  const rejectedSuggestion = await fetch(
+    `${apiUrl}/replanning-suggestions/${automaticSuggestion.id}/reject`,
+    { method: 'POST', headers },
+  );
+  if (!rejectedSuggestion.ok) {
+    throw new Error('Rejecting replanning suggestion failed');
+  }
+  const requestedSuggestion = await fetch(
+    `${apiUrl}/study-blocks/${expiredBlockId}/replanning-suggestions`,
+    { method: 'POST', headers },
+  );
+  const requestedSuggestionBody = await requestedSuggestion.json();
+  if (
+    !requestedSuggestion.ok ||
+    requestedSuggestionBody.data.generationKind !== 'STUDENT_REQUESTED'
+  ) {
+    throw new Error('Requesting another replanning suggestion failed');
+  }
+  const acceptedSuggestion = await fetch(
+    `${apiUrl}/replanning-suggestions/${requestedSuggestionBody.data.id}/accept`,
+    { method: 'POST', headers },
+  );
+  const acceptedSuggestionBody = await acceptedSuggestion.json();
+  if (
+    !acceptedSuggestion.ok ||
+    acceptedSuggestionBody.data.originalBlock.status !== 'REPLANNED' ||
+    acceptedSuggestionBody.data.replacement.status !== 'CONFIRMED' ||
+    acceptedSuggestionBody.data.replacement.replacesBlockId !==
+      expiredBlockId ||
+    acceptedSuggestionBody.data.replacement.plannedDurationSeconds !== 3600
+  ) {
+    throw new Error('Accepting replanning did not replace the overdue block');
+  }
+
   const startedSession = await fetch(
     `${apiUrl}/study-blocks/${blockId}/sessions/start`,
     { method: 'POST', headers },
@@ -693,7 +745,8 @@ try {
     metricsBody.data.compliance.completedBlocks !== 1 ||
     metricsBody.data.time.plannedCompletedSeconds !== 3600 ||
     metricsBody.data.time.additionalUnplanned.realizedSeconds !== 3600 ||
-    metricsBody.data.adaptation.currentOverdueBlocks !== 1
+    metricsBody.data.adaptation.currentOverdueBlocks !== 0 ||
+    metricsBody.data.adaptation.replannedBlocks !== 1
   ) {
     throw new Error('Planned versus realized metrics are inconsistent');
   }
@@ -887,6 +940,10 @@ try {
       recurrenceSeriesPersisted: true,
       conflictingRecurrenceRejectedAtomically: true,
       expiredBlockMarkedOverdue: true,
+      automaticReplanningSuggested: true,
+      replanningRejectedWithoutChangingPlan: true,
+      replanningRequestedAgain: true,
+      replanningAcceptedAtomically: true,
       plannedSessionStarted: true,
       concurrentSessionRejected: true,
       pomodoroBreakRecorded: true,

@@ -1441,6 +1441,124 @@ a.resource-row:hover {
 .metrics-strip .metric-alert {
   background: #fff0e7;
 }
+.metrics-strip article > a {
+  width: fit-content;
+  color: #87442f;
+  font-size: 0.75rem;
+  font-weight: 750;
+}
+.replanning-shell {
+  padding-bottom: 64px;
+}
+.replanning-section {
+  margin-top: 24px;
+  padding: 24px;
+  border: 1px solid #dce2da;
+  border-radius: 18px;
+  background: #fff;
+}
+.replanning-section > .card-heading > span {
+  display: grid;
+  place-items: center;
+  min-width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background: #e5eee8;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+.replanning-list {
+  display: grid;
+  gap: 16px;
+  margin-top: 18px;
+}
+.replanning-list.history {
+  opacity: 0.82;
+}
+.replanning-card {
+  padding: 20px;
+  border: 1px solid #dce2da;
+  border-radius: 14px;
+  background: #f7f8f5;
+}
+.replanning-card.is-open {
+  border-color: #e6c2ac;
+  background: #fffaf5;
+}
+.replanning-card-heading,
+.replanning-comparison,
+.replanning-decisions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+.replanning-card-heading h2 {
+  margin: 5px 0 3px;
+  font-size: 1.2rem;
+}
+.replanning-card-heading p,
+.replanning-request-form p {
+  margin: 0;
+  color: var(--muted);
+}
+.replanning-card-heading > strong {
+  flex: 0 0 auto;
+  font-size: 1.4rem;
+}
+.replanning-comparison {
+  justify-content: flex-start;
+  margin-top: 18px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: #fff;
+}
+.replanning-comparison div {
+  display: grid;
+  gap: 4px;
+}
+.replanning-comparison span {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 750;
+  text-transform: uppercase;
+}
+.replanning-comparison > span {
+  font-size: 1rem;
+}
+.replanning-editor {
+  margin-top: 16px;
+}
+.replanning-editor summary {
+  cursor: pointer;
+  color: var(--green-800);
+  font-weight: 750;
+}
+.replanning-editor form {
+  margin-top: 14px;
+}
+.replanning-decisions {
+  align-items: flex-end;
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid #eadfd5;
+}
+.replanning-decisions > form:first-child {
+  display: grid;
+  gap: 10px;
+}
+.replanning-request-form {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 18px;
+}
+.replanning-history-note {
+  margin: 16px 0 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
 .metrics-page {
   padding-bottom: 64px;
 }
@@ -2068,6 +2186,13 @@ a.resource-row:hover {
   .content-progress {
     grid-template-columns: 1fr;
   }
+  .replanning-card-heading,
+  .replanning-comparison,
+  .replanning-decisions,
+  .replanning-request-form {
+    align-items: flex-start;
+    flex-direction: column;
+  }
   .planning-warning {
     grid-column: auto;
   }
@@ -2110,6 +2235,11 @@ a.resource-row:hover {
     align-items: flex-start;
     flex-direction: column;
     padding-top: 48px;
+  }
+  .replanning-shell .resource-heading h1 {
+    overflow-wrap: normal;
+    font-size: 2.25rem;
+    letter-spacing: -0.05em;
   }
   .user-menu > span {
     display: none;

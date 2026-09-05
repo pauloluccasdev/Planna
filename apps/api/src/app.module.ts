@@ -19,6 +19,7 @@ import { OverdueModule } from './overdue/overdue.module.js';
 import { SubjectsModule } from './subjects/subjects.module.js';
 import { StudyBlocksModule } from './study-blocks/study-blocks.module.js';
 import { StudySessionsModule } from './study-sessions/study-sessions.module.js';
+import { ReplanningModule } from './replanning/replanning.module.js';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { StudySessionsModule } from './study-sessions/study-sessions.module.js';
     OverdueModule,
     StudyBlocksModule,
     StudySessionsModule,
+    ReplanningModule,
   ],
   controllers: [AppController],
   providers: [AppService],

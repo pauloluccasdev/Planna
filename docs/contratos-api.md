@@ -304,7 +304,13 @@ POST  /replanning-suggestions/{suggestion_id}/reject
 POST  /study-blocks/{overdue_block_id}/replanning-suggestions
 ```
 
-Aceitação revalida disponibilidade e conflito. Em sucesso, retorna bloco original atualizado e substituto. Após rejeição, a última rota representa solicitação explícita do aluno.
+Ao consultar a lista, o servidor reconcilia atrasos e cria somente a primeira
+sugestão automática de cada bloco elegível. A sugestão preserva a duração ainda
+não realizada e pode ser editada sem reservar o horário. Aceitação revalida
+disponibilidade e conflitos dentro da operação transacional; em sucesso, retorna
+o bloco original como replanejado e o substituto confirmado. Após rejeição, a
+última rota representa a solicitação explícita necessária para gerar outra
+sugestão.
 
 ## Indicadores e riscos
 

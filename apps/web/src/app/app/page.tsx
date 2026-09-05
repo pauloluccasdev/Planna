@@ -45,6 +45,7 @@ type CalendarItem =
       eventType: { name: string };
       subject: { name: string; course: { name: string } };
     };
+type ReplanningSuggestion = { status: string };
 
 const dateTime = new Intl.DateTimeFormat("pt-BR", {
   timeZone: "America/Sao_Paulo",
@@ -96,17 +97,23 @@ type Props = { searchParams: Promise<{ week?: string }> };
 export default async function DashboardPage({ searchParams }: Props) {
   const { week } = await searchParams;
   const range = weekRange(week);
-  const [meResponse, calendarResponse, activeSessionResponse, metricsResponse] =
-    await Promise.all([
-      authenticatedApi("me"),
-      authenticatedApi(
-        `calendar?from=${encodeURIComponent(range.from)}&to=${encodeURIComponent(range.to)}`,
-      ),
-      authenticatedApi("study-sessions/active"),
-      authenticatedApi(
-        `metrics/summary?from=${encodeURIComponent(range.from)}&to=${encodeURIComponent(range.to)}`,
-      ),
-    ]);
+  const [
+    meResponse,
+    calendarResponse,
+    activeSessionResponse,
+    metricsResponse,
+    replanningResponse,
+  ] = await Promise.all([
+    authenticatedApi("me"),
+    authenticatedApi(
+      `calendar?from=${encodeURIComponent(range.from)}&to=${encodeURIComponent(range.to)}`,
+    ),
+    authenticatedApi("study-sessions/active"),
+    authenticatedApi(
+      `metrics/summary?from=${encodeURIComponent(range.from)}&to=${encodeURIComponent(range.to)}`,
+    ),
+    authenticatedApi("replanning-suggestions"),
+  ]);
   if (!meResponse?.ok) redirect("/login");
   const { data: user } = (await meResponse.json()) as MeResponse;
   const calendar = calendarResponse?.ok
@@ -126,6 +133,16 @@ export default async function DashboardPage({ searchParams }: Props) {
   const metrics = metricsResponse?.ok
     ? ((await metricsResponse.json()) as { data: MetricsSummary }).data
     : null;
+  const replanningSuggestions = replanningResponse?.ok
+    ? (
+        (await replanningResponse.json()) as {
+          data: ReplanningSuggestion[];
+        }
+      ).data
+    : [];
+  const openReplanningCount = replanningSuggestions.filter((suggestion) =>
+    ["GENERATED", "EDITING"].includes(suggestion.status),
+  ).length;
 
   return (
     <main className="dashboard-shell">
@@ -155,6 +172,9 @@ export default async function DashboardPage({ searchParams }: Props) {
           ) : null}
           <Link className="secondary-button" href="/app/metrics">
             Ver indicadores
+          </Link>
+          <Link className="secondary-button" href="/app/replanning">
+            Replanejar{openReplanningCount ? ` (${openReplanningCount})` : ""}
           </Link>
           <Link className="secondary-button" href="/app/study/new">
             Registrar estudo
@@ -217,6 +237,9 @@ export default async function DashboardPage({ searchParams }: Props) {
           <span>Atrasos identificados</span>
           <strong>{metrics?.adaptation.currentOverdueBlocks ?? 0}</strong>
           <small>blocos que precisam de atenção</small>
+          {(metrics?.adaptation.currentOverdueBlocks ?? 0) > 0 ? (
+            <Link href="/app/replanning">Ver sugestões →</Link>
+          ) : null}
         </article>
         <article>
           <span>Estudo extra</span>
