@@ -1179,6 +1179,36 @@ a.resource-row:hover {
   border: 0;
   cursor: pointer;
 }
+.resource-heading-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.resource-heading-actions .secondary-button {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+.content-edit-card {
+  padding: clamp(24px, 5vw, 44px);
+}
+.content-edit-form {
+  display: grid;
+  gap: 22px;
+}
+.content-edit-form > .button {
+  border: 0;
+  cursor: pointer;
+}
+.edit-assurance {
+  margin: 0;
+  padding: 14px;
+  border-radius: 10px;
+  background: #eef4ef;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
 .calendar-item.academic_event {
   background: #f7ebe6;
 }

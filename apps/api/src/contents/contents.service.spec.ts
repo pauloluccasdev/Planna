@@ -66,6 +66,24 @@ describe('ContentsService', () => {
     );
   });
 
+  it('updates content data without mutating confirmed study blocks', async () => {
+    prisma.content.findFirst.mockResolvedValue({ id: 'content-id' });
+    prisma.content.update.mockResolvedValue({ id: 'content-id' });
+    await service.update('student-id', 'content-id', {
+      priority: 4,
+      estimatedDurationSeconds: 5400,
+    });
+    expect(prisma.content.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'content-id' },
+        data: expect.objectContaining({
+          priority: 4,
+          estimatedDurationSeconds: 5400,
+        }),
+      }),
+    );
+  });
+
   it('blocks hard deletion when execution history exists', async () => {
     prisma.content.findFirst.mockResolvedValue({ id: 'content-id' });
     prisma.content.count.mockResolvedValue(1);
