@@ -513,6 +513,92 @@ try {
   if (!pomodoro.ok)
     throw new Error(`PUT /pomodoro-preference failed with ${pomodoro.status}`);
 
+  const shortPlanningInput = {
+    periodStart: '2099-08-01T00:00:00-03:00',
+    periodEnd: '2099-08-02T00:00:00-03:00',
+    courseIds: [courseId],
+    subjectIds: [],
+  };
+  const firstPlanningProposal = await fetch(`${apiUrl}/planning-proposals`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(shortPlanningInput),
+  });
+  const firstPlanningBody = await firstPlanningProposal.json();
+  if (
+    firstPlanningProposal.status !== 201 ||
+    firstPlanningBody.data.blocks.length !== 1 ||
+    firstPlanningBody.data.blocks[0].explanationFactors.academicEventId !==
+      eventId
+  ) {
+    throw new Error(
+      'A future event outside the short plan did not affect priority',
+    );
+  }
+  const eventChangedAfterProposal = await fetch(
+    `${apiUrl}/academic-events/${eventId}`,
+    {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify({
+        description: 'Alterado depois da primeira proposta',
+      }),
+    },
+  );
+  if (!eventChangedAfterProposal.ok) {
+    throw new Error('Could not change the future event for stale-plan test');
+  }
+  const stalePlanningConfirmation = await fetch(
+    `${apiUrl}/planning-proposals/${firstPlanningBody.data.id}/confirm`,
+    { method: 'POST', headers },
+  );
+  if (stalePlanningConfirmation.status !== 409) {
+    throw new Error('A changed future event should make the proposal stale');
+  }
+  const blocksAfterStaleProposal = await withDatabase(async (database) => {
+    const result = await database.query(
+      'select count(*)::int as count from study_blocks where proposal_id = $1',
+      [firstPlanningBody.data.id],
+    );
+    return result.rows[0].count;
+  });
+  if (blocksAfterStaleProposal !== 0) {
+    throw new Error('Stale planning confirmation created a partial plan');
+  }
+
+  const planningProposal = await fetch(`${apiUrl}/planning-proposals`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(shortPlanningInput),
+  });
+  const planningBody = await planningProposal.json();
+  if (
+    planningProposal.status !== 201 ||
+    planningBody.data.blocks[0]?.explanationFactors.academicEventId !== eventId
+  ) {
+    throw new Error('Regenerated planning proposal lost future-event urgency');
+  }
+  const confirmedPlanning = await fetch(
+    `${apiUrl}/planning-proposals/${planningBody.data.id}/confirm`,
+    { method: 'POST', headers },
+  );
+  const confirmedPlanningBody = await confirmedPlanning.json();
+  if (
+    !confirmedPlanning.ok ||
+    confirmedPlanningBody.data.status !== 'CONFIRMED' ||
+    confirmedPlanningBody.data.confirmedBlocks.length !== 1 ||
+    confirmedPlanningBody.data.confirmedBlocks[0].source !== 'AUTOMATIC'
+  ) {
+    throw new Error('Confirming the regenerated automatic plan failed');
+  }
+  const cancelledAutomaticBlock = await fetch(
+    `${apiUrl}/study-blocks/${confirmedPlanningBody.data.confirmedBlocks[0].id}/cancel`,
+    { method: 'POST', headers },
+  );
+  if (!cancelledAutomaticBlock.ok) {
+    throw new Error('Cleaning up the confirmed automatic block failed');
+  }
+
   const createdBlock = await fetch(`${apiUrl}/study-blocks`, {
     method: 'POST',
     headers,
@@ -1073,6 +1159,9 @@ try {
       availabilityExpandedIdempotently: true,
       availabilitySaved: true,
       pomodoroSaved: true,
+      futureEventAppliedToShortPlanning: true,
+      futureEventChangeInvalidatedProposal: true,
+      automaticPlanningConfirmedAtomically: true,
       studyBlockCreated: true,
       studyBlockUpdatedWithHistory: true,
       staleStudyBlockUpdateRejected: true,

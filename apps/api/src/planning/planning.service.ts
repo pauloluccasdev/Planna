@@ -48,6 +48,19 @@ function timeText(value: Date) {
   return value.toISOString().slice(11, 19);
 }
 
+export function planningEventLookupEnd(
+  periodStart: Date,
+  periodEnd: Date,
+): Date {
+  return new Date(
+    Math.max(
+      periodEnd.getTime(),
+      periodStart.getTime() +
+        PLANNING_PARAMETERS.deadlineHorizonDays * 86_400_000,
+    ),
+  );
+}
+
 function materializeAvailability(
   periodStart: Date,
   periodEnd: Date,
@@ -170,6 +183,7 @@ export class PlanningService {
     const contentSubjectIds = unique(
       contents.map(({ subjectId }) => subjectId),
     );
+    const eventLookupEnd = planningEventLookupEnd(periodStart, periodEnd);
     const [blocks, events, availability, pomodoro] = await Promise.all([
       this.prisma.studyBlock.findMany({
         where: {
@@ -200,8 +214,14 @@ export class PlanningService {
         where: {
           studentId,
           deletedAt: null,
-          startsAt: { gte: periodStart, lte: periodEnd },
           subjectId: { in: contentSubjectIds },
+          OR: [
+            { startsAt: { gte: periodStart, lte: eventLookupEnd } },
+            {
+              startsAt: { lt: periodEnd },
+              endsAt: { not: null, gt: periodStart },
+            },
+          ],
         },
         select: {
           id: true,
@@ -247,7 +267,11 @@ export class PlanningService {
       string,
       { id: string; startsAt: Date }
     >();
-    for (const event of events) {
+    const priorityEvents = events.filter(
+      (event) =>
+        event.startsAt >= periodStart && event.startsAt <= eventLookupEnd,
+    );
+    for (const event of priorityEvents) {
       for (const { contentId } of event.contentLinks) {
         if (!nearestEventByContent.has(contentId))
           nearestEventByContent.set(contentId, {
@@ -405,7 +429,7 @@ export class PlanningService {
                 contentId: content.id,
                 details: { reason: 'MISSING_ESTIMATE' },
               })),
-              ...events.flatMap((event) =>
+              ...priorityEvents.flatMap((event) =>
                 event.contentsStatus === EventContentsStatus.NOT_INFORMED_YET
                   ? [
                       {
@@ -824,14 +848,34 @@ export class PlanningService {
             studentId,
             deletedAt: null,
             updatedAt: { gt: proposal.requestedAt },
-            startsAt: { gte: proposal.periodStart, lte: proposal.periodEnd },
-            OR: [
-              ...(proposalCourseIds.length
-                ? [{ subject: { courseId: { in: proposalCourseIds } } }]
-                : []),
-              ...(proposalSubjectIds.length
-                ? [{ subjectId: { in: proposalSubjectIds } }]
-                : []),
+            AND: [
+              {
+                OR: [
+                  ...(proposalCourseIds.length
+                    ? [{ subject: { courseId: { in: proposalCourseIds } } }]
+                    : []),
+                  ...(proposalSubjectIds.length
+                    ? [{ subjectId: { in: proposalSubjectIds } }]
+                    : []),
+                ],
+              },
+              {
+                OR: [
+                  {
+                    startsAt: {
+                      gte: proposal.periodStart,
+                      lte: planningEventLookupEnd(
+                        proposal.periodStart,
+                        proposal.periodEnd,
+                      ),
+                    },
+                  },
+                  {
+                    startsAt: { lt: proposal.periodEnd },
+                    endsAt: { not: null, gt: proposal.periodStart },
+                  },
+                ],
+              },
             ],
           },
           select: { id: true },

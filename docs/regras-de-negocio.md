@@ -66,6 +66,7 @@ Este documento registra somente decisões confirmadas. As identificações devem
 - **RN-RSC-002** — A proximidade de um evento pode fazer conteúdo de baixa prioridade anteceder conteúdo de prioridade alta sem evento próximo.
 - **RN-RSC-003** — No MVP, a ordem de priorização automática considera a prioridade definida pelo aluno e a proximidade de provas ou trabalhos relacionados. Carga restante e disponibilidade determinam quanto pode ser alocado, mas não acrescentam peso à prioridade.
 - **RN-RSC-004** — O Planna alerta preventivamente quando a disponibilidade é insuficiente para cumprir a carga antes de um evento.
+- **RN-RSC-005** — Ao gerar um período curto, o Planna também considera provas e trabalhos futuros dentro do horizonte versionado de urgência, mesmo que ocorram depois do fim do plano solicitado.
 
 ## Sessões, blocos e Pomodoro
 

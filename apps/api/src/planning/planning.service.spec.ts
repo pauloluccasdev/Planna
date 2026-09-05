@@ -6,7 +6,7 @@ import {
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PrismaService } from '../database/prisma.service.js';
 import { ProposalStatus } from '../generated/prisma/enums.js';
-import { PlanningService } from './planning.service.js';
+import { PlanningService, planningEventLookupEnd } from './planning.service.js';
 
 describe('PlanningService', () => {
   const prisma = {
@@ -129,6 +129,24 @@ describe('PlanningService', () => {
       }),
     ).rejects.toBeInstanceOf(UnprocessableEntityException);
     expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('looks beyond a short plan for events inside the urgency horizon', () => {
+    expect(
+      planningEventLookupEnd(
+        new Date('2026-09-07T03:00:00.000Z'),
+        new Date('2026-09-14T03:00:00.000Z'),
+      ),
+    ).toEqual(new Date('2027-03-06T03:00:00.000Z'));
+  });
+
+  it('keeps the full selected period when it exceeds the urgency horizon', () => {
+    expect(
+      planningEventLookupEnd(
+        new Date('2026-01-01T03:00:00.000Z'),
+        new Date('2027-01-01T03:00:00.000Z'),
+      ),
+    ).toEqual(new Date('2027-01-01T03:00:00.000Z'));
   });
 
   it('does not expose another student proposed block', async () => {

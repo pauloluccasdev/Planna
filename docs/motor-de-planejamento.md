@@ -141,6 +141,11 @@ Os coeficientes técnicos devem ser versionados e calibrados com cenários reais
 
 Na versão inicial `mvp-v1`, a prioridade normalizada recebe coeficiente `0,35` e a proximidade recebe `0,65`, decaindo linearmente ao longo de 180 dias. Esses valores são parâmetros técnicos versionados: podem ser calibrados sem incluir novos fatores de negócio e sempre aparecem na fotografia da proposta.
 
+A consulta de eventos usa ao menos esse mesmo horizonte de 180 dias a partir do
+início solicitado. Portanto, uma prova posterior ao fim de um plano semanal
+ainda influencia a ordem dos conteúdos daquela semana. Eventos além do período
+selecionado influenciam a urgência, mas não ocupam horários fora da grade gerada.
+
 ### Urgência de prazo candidata
 
 Para conteúdo relacionado a eventos, a urgência cresce conforme diminuem os dias úteis de estudo até o evento. Não deve haver divisão direta apenas por dias corridos, pois a capacidade real depende da grade do aluno.
