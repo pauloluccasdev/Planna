@@ -62,3 +62,41 @@ export async function createAcademicPeriod(
   revalidatePath(`/app/courses/${courseId}`);
   return { success: "Período letivo criado." };
 }
+
+export async function updateSubject(
+  courseId: string,
+  subjectId: string,
+  _state: SubjectFormState,
+  formData: FormData,
+): Promise<SubjectFormState> {
+  const name = String(formData.get("name") ?? "").trim();
+  const description = String(formData.get("description") ?? "").trim();
+  const academicPeriodId = String(formData.get("academicPeriodId") ?? "");
+  if (name.length < 2) return { nameError: "Informe o nome da disciplina." };
+  if (name.length > 160) return { nameError: "Use no máximo 160 caracteres." };
+  if (description.length > 2000)
+    return { message: "Use no máximo 2.000 caracteres na descrição." };
+
+  const response = await authenticatedApi(`subjects/${subjectId}`, {
+    method: "PATCH",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      name,
+      description,
+      academicPeriodId: academicPeriodId || null,
+    }),
+  });
+  if (!response || response.status === 401) redirect("/login");
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as {
+      error?: { message?: string };
+    } | null;
+    return {
+      message:
+        payload?.error?.message ?? "Não foi possível atualizar a disciplina.",
+    };
+  }
+  revalidatePath(`/app/courses/${courseId}`);
+  revalidatePath(`/app/subjects/${subjectId}`);
+  return { success: "Disciplina atualizada." };
+}

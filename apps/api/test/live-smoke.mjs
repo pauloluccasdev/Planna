@@ -176,6 +176,39 @@ try {
   }
   const subjectId = (await createdSubject.json()).data.id;
 
+  const createdPeriod = await fetch(`${apiUrl}/courses/${courseId}/periods`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      name: '2026.2',
+      startsOn: '2026-08-01',
+      endsOn: '2026-12-20',
+    }),
+  });
+  if (createdPeriod.status !== 201) {
+    throw new Error(
+      `POST /periods failed with ${createdPeriod.status}: ${await createdPeriod.text()}`,
+    );
+  }
+  const periodId = (await createdPeriod.json()).data.id;
+  const updatedSubject = await fetch(`${apiUrl}/subjects/${subjectId}`, {
+    method: 'PATCH',
+    headers,
+    body: JSON.stringify({
+      name: 'Disciplina de integração atualizada',
+      description: 'Descrição da disciplina de integração',
+      academicPeriodId: periodId,
+    }),
+  });
+  const updatedSubjectBody = await updatedSubject.json();
+  if (
+    !updatedSubject.ok ||
+    updatedSubjectBody.data.name !== 'Disciplina de integração atualizada' ||
+    updatedSubjectBody.data.academicPeriodId !== periodId
+  ) {
+    throw new Error('Subject was not updated with its academic period');
+  }
+
   const createdContent = await fetch(
     `${apiUrl}/subjects/${subjectId}/contents`,
     {
@@ -640,6 +673,7 @@ try {
       courseCreated: true,
       courseListed: true,
       subjectCreated: true,
+      subjectUpdatedWithAcademicPeriod: true,
       contentCreated: true,
       academicEventUpdatedAtomically: true,
       availabilitySaved: true,
@@ -669,6 +703,8 @@ try {
               username,
               password,
               userId,
+              courseId,
+              periodId,
               subjectId,
               sessionId: fixtureSessionId,
               earlyBlockId: fixtureEarlyBlockId,

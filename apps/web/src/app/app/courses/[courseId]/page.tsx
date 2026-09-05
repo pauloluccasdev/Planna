@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { authenticatedApi } from "../../../_lib/api";
 import { SubjectForm } from "./subject-form";
 import { PeriodForm } from "./period-form";
+import { SubjectEditor } from "./subject-editor";
 
 type Props = { params: Promise<{ courseId: string }> };
 type Course = { id: string; name: string; description: string | null };
@@ -12,6 +13,7 @@ type Subject = {
   name: string;
   description: string | null;
   academicPeriodId: string | null;
+  updatedAt: string;
 };
 type Period = {
   id: string;
@@ -95,20 +97,27 @@ export default async function CoursePage({ params }: Props) {
             </div>
           ) : (
             subjects.map((subject) => (
-              <Link
-                className="dashboard-card resource-row"
-                href={`/app/subjects/${subject.id}`}
-                key={subject.id}
-              >
-                <div>
-                  <span className="resource-status">Disciplina</span>
-                  <h2>{subject.name}</h2>
-                  {subject.academicPeriodId ? (
-                    <small>{periodNames.get(subject.academicPeriodId)}</small>
-                  ) : null}
-                </div>
-                <span>Ver conteúdos →</span>
-              </Link>
+              <article className="dashboard-card subject-row" key={subject.id}>
+                <Link
+                  className="resource-row subject-row-link"
+                  href={`/app/subjects/${subject.id}`}
+                >
+                  <div>
+                    <span className="resource-status">Disciplina</span>
+                    <h2>{subject.name}</h2>
+                    {subject.academicPeriodId ? (
+                      <small>{periodNames.get(subject.academicPeriodId)}</small>
+                    ) : null}
+                  </div>
+                  <span>Ver conteúdos →</span>
+                </Link>
+                <SubjectEditor
+                  key={`${subject.id}:${subject.updatedAt}`}
+                  courseId={courseId}
+                  subject={subject}
+                  periods={periods}
+                />
+              </article>
             ))
           )}
         </div>

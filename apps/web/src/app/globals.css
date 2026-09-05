@@ -1461,6 +1461,32 @@ a.resource-row:hover {
   border: 0;
   cursor: pointer;
 }
+.subject-row {
+  padding: 0;
+  overflow: hidden;
+}
+.subject-row-link {
+  padding: 1.25rem;
+}
+.subject-editor {
+  border-top: 1px solid var(--line);
+  padding: 0 1.25rem;
+}
+.subject-editor > summary {
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 700;
+  padding: 0.9rem 0;
+}
+.subject-edit-form {
+  display: grid;
+  gap: 0.9rem;
+  padding: 0 0 1.25rem;
+}
+.subject-edit-form > .secondary-button {
+  justify-self: start;
+}
 .content-progress {
   display: grid;
   grid-template-columns: 1fr minmax(180px, 0.45fr);
