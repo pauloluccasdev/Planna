@@ -1,9 +1,11 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseUUIDPipe,
+  Patch,
   Post,
   UseGuards,
 } from '@nestjs/common';
@@ -11,6 +13,7 @@ import type { AuthUser } from '../auth/auth-user.js';
 import { CurrentUser } from '../auth/auth-user.decorator.js';
 import { SupabaseAuthGuard } from '../auth/supabase-auth.guard.js';
 import { CreatePlanningProposalDto } from './dto/create-planning-proposal.dto.js';
+import { UpdateProposedBlockDto } from './dto/update-proposed-block.dto.js';
 import { PlanningService } from './planning.service.js';
 
 @Controller('planning-proposals')
@@ -32,6 +35,27 @@ export class PlanningController {
     @Param('id', new ParseUUIDPipe()) id: string,
   ) {
     return { data: await this.planning.get(user.id, id) };
+  }
+
+  @Patch(':id/blocks/:blockId')
+  async updateBlock(
+    @CurrentUser() user: AuthUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Param('blockId', new ParseUUIDPipe()) blockId: string,
+    @Body() input: UpdateProposedBlockDto,
+  ) {
+    return {
+      data: await this.planning.updateBlock(user.id, id, blockId, input),
+    };
+  }
+
+  @Delete(':id/blocks/:blockId')
+  async removeBlock(
+    @CurrentUser() user: AuthUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Param('blockId', new ParseUUIDPipe()) blockId: string,
+  ) {
+    return { data: await this.planning.removeBlock(user.id, id, blockId) };
   }
 
   @Post(':id/confirm')

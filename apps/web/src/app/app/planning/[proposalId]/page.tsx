@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { authenticatedApi } from "../../../_lib/api";
 import { ProposalActions } from "./proposal-actions";
+import { ProposalBlockEditor } from "./proposal-block-editor";
 
 export const metadata: Metadata = { title: "Revisar planejamento" };
 
@@ -18,16 +19,25 @@ type Proposal = {
   };
   blocks: Array<{
     id: string;
+    contentId: string;
+    revision: number;
     startsAt: string;
     endsAt: string;
     plannedDurationSeconds: number;
     focusSeconds: number;
     breakSeconds: number;
-    explanationFactors: { priority?: number; proximityScore?: number };
+    explanationFactors: {
+      priority?: number;
+      proximityScore?: number;
+      reason?: string;
+    };
     content: {
+      id: string;
       name: string;
       subject: { name: string; course: { name: string } };
+      parts: Array<{ id: string; name: string }>;
     };
+    parts: Array<{ contentPart: { id: string } }>;
   }>;
   diagnostics: Array<{
     id: string;
@@ -35,15 +45,6 @@ type Proposal = {
     deficitSeconds: number | null;
   }>;
 };
-
-const dateTime = new Intl.DateTimeFormat("pt-BR", {
-  timeZone: "America/Sao_Paulo",
-  weekday: "short",
-  day: "2-digit",
-  month: "short",
-  hour: "2-digit",
-  minute: "2-digit",
-});
 
 function duration(seconds = 0) {
   const hours = Math.floor(seconds / 3600);
@@ -62,15 +63,31 @@ const diagnosticText = {
 };
 
 type Props = { params: Promise<{ proposalId: string }> };
+type ContentOption = Proposal["blocks"][number]["content"];
 
 export default async function PlanningReviewPage({ params }: Props) {
   const { proposalId } = await params;
-  const response = await authenticatedApi(`planning-proposals/${proposalId}`);
+  const [response, contentsResponse] = await Promise.all([
+    authenticatedApi(`planning-proposals/${proposalId}`),
+    authenticatedApi("contents?status=ACTIVE"),
+  ]);
   if (!response || response.status === 401) redirect("/login");
   if (response.status === 404) notFound();
   if (!response.ok) redirect("/app/planning");
   const proposal = ((await response.json()) as { data: Proposal }).data;
+  const contents = contentsResponse?.ok
+    ? ((await contentsResponse.json()) as { data: ContentOption[] }).data
+    : [];
   const actionable = ["READY", "REVIEWING"].includes(proposal.status);
+  const currentAllocatedSeconds = proposal.blocks.reduce(
+    (total, block) => total + block.plannedDurationSeconds,
+    0,
+  );
+  const currentUnallocatedSeconds = Math.max(
+    0,
+    (proposal.parametersSnapshot.requestedSeconds ?? 0) -
+      currentAllocatedSeconds,
+  );
 
   return (
     <main className="dashboard-shell">
@@ -102,15 +119,11 @@ export default async function PlanningReviewPage({ params }: Props) {
         </article>
         <article>
           <span>Carga distribuída</span>
-          <strong>
-            {duration(proposal.parametersSnapshot.allocatedSeconds)}
-          </strong>
+          <strong>{duration(currentAllocatedSeconds)}</strong>
         </article>
         <article className="metric-alert">
           <span>Não alocada</span>
-          <strong>
-            {duration(proposal.parametersSnapshot.unallocatedSeconds)}
-          </strong>
+          <strong>{duration(currentUnallocatedSeconds)}</strong>
         </article>
       </section>
 
@@ -150,39 +163,22 @@ export default async function PlanningReviewPage({ params }: Props) {
         ) : (
           <div className="proposal-block-list">
             {proposal.blocks.map((block) => (
-              <article className="proposal-block" key={block.id}>
-                <time dateTime={block.startsAt}>
-                  {dateTime.format(new Date(block.startsAt))}
-                </time>
-                <div>
-                  <span>
-                    {block.content.subject.course.name} ·{" "}
-                    {block.content.subject.name}
-                  </span>
-                  <h3>{block.content.name}</h3>
-                  <small>
-                    {duration(block.plannedDurationSeconds)} · foco de{" "}
-                    {duration(block.focusSeconds)} · pausa de{" "}
-                    {duration(block.breakSeconds)}
-                  </small>
-                </div>
-                <div className="proposal-reason">
-                  <span>Por que agora?</span>
-                  <small>
-                    Prioridade {block.explanationFactors.priority ?? "—"}
-                    {(block.explanationFactors.proximityScore ?? 0) > 0
-                      ? " e evento acadêmico próximo"
-                      : ""}
-                  </small>
-                </div>
-              </article>
+              <ProposalBlockEditor
+                block={block}
+                contents={contents}
+                key={`${block.id}:${block.revision}`}
+                proposalId={proposal.id}
+              />
             ))}
           </div>
         )}
       </section>
 
-      {actionable && proposal.blocks.length > 0 ? (
-        <ProposalActions proposalId={proposal.id} />
+      {actionable ? (
+        <ProposalActions
+          canConfirm={proposal.blocks.length > 0}
+          proposalId={proposal.id}
+        />
       ) : (
         <section className="dashboard-card proposal-finished">
           Esta proposta está{" "}

@@ -115,4 +115,31 @@ describe('PlanningService', () => {
       }),
     });
   });
+
+  it('rejects an invalid proposed block range before writing', async () => {
+    await expect(
+      service.updateBlock('student-id', 'proposal-id', 'block-id', {
+        revision: 1,
+        contentId: '9ecb881f-e831-43e8-8212-2d28545cbf45',
+        startsAt: '2099-09-07T20:00:00-03:00',
+        endsAt: '2099-09-07T19:00:00-03:00',
+        focusSeconds: 1500,
+        breakSeconds: 300,
+        partIds: [],
+      }),
+    ).rejects.toBeInstanceOf(UnprocessableEntityException);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('does not expose another student proposed block', async () => {
+    const transaction = {
+      $executeRaw: vi.fn().mockResolvedValue(1),
+      proposedStudyBlock: { findFirst: vi.fn().mockResolvedValue(null) },
+    };
+    prisma.$transaction.mockImplementation((callback) => callback(transaction));
+
+    await expect(
+      service.removeBlock('student-id', 'proposal-id', 'block-id'),
+    ).rejects.toBeInstanceOf(NotFoundException);
+  });
 });

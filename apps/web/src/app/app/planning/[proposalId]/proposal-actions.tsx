@@ -9,7 +9,13 @@ import {
 
 const initialState: PlanningFormState = {};
 
-export function ProposalActions({ proposalId }: { proposalId: string }) {
+export function ProposalActions({
+  proposalId,
+  canConfirm = true,
+}: {
+  proposalId: string;
+  canConfirm?: boolean;
+}) {
   const [confirmState, confirmAction, confirming] = useActionState(
     confirmPlanningProposal.bind(null, proposalId),
     initialState,
@@ -20,22 +26,26 @@ export function ProposalActions({ proposalId }: { proposalId: string }) {
   );
   return (
     <div className="proposal-decision">
-      <form action={confirmAction} className="proposal-confirm-form">
-        <label className="check-row confirmation-check">
-          <input name="confirmation" type="checkbox" value="confirmed" />
-          <span>
-            Revisei a proposta e quero adicionar estes blocos à minha agenda.
-          </span>
-        </label>
-        {confirmState.message ? (
-          <p className="form-message" role="alert">
-            {confirmState.message}
-          </p>
-        ) : null}
-        <button className="button" disabled={confirming || discarding}>
-          {confirming ? "Confirmando…" : "Confirmar planejamento"}
-        </button>
-      </form>
+      {canConfirm ? (
+        <form action={confirmAction} className="proposal-confirm-form">
+          <label className="check-row confirmation-check">
+            <input name="confirmation" type="checkbox" value="confirmed" />
+            <span>
+              Revisei a proposta e quero adicionar estes blocos à minha agenda.
+            </span>
+          </label>
+          {confirmState.message ? (
+            <p className="form-message" role="alert">
+              {confirmState.message}
+            </p>
+          ) : null}
+          <button className="button" disabled={confirming || discarding}>
+            {confirming ? "Confirmando…" : "Confirmar planejamento"}
+          </button>
+        </form>
+      ) : (
+        <p>Você removeu todos os blocos desta proposta.</p>
+      )}
       <form action={discardAction}>
         {discardState.message ? (
           <p className="form-message" role="alert">

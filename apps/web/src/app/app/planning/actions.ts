@@ -100,3 +100,77 @@ export async function discardPlanningProposal(
     };
   redirect("/app");
 }
+
+function brazilInstant(value: string) {
+  return /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)
+    ? `${value}:00-03:00`
+    : null;
+}
+
+export async function updateProposedBlock(
+  proposalId: string,
+  blockId: string,
+  revision: number,
+  _state: PlanningFormState,
+  formData: FormData,
+): Promise<PlanningFormState> {
+  const contentId = String(formData.get("contentId") ?? "");
+  const startsAt = brazilInstant(String(formData.get("startsAt") ?? ""));
+  const endsAt = brazilInstant(String(formData.get("endsAt") ?? ""));
+  const focusMinutes = Number(formData.get("focusMinutes"));
+  const breakMinutes = Number(formData.get("breakMinutes"));
+  if (!contentId || !startsAt || !endsAt)
+    return { message: "Preencha conteúdo, início e término." };
+  if (new Date(startsAt) >= new Date(endsAt))
+    return { message: "O término deve ser posterior ao início." };
+  if (
+    !Number.isInteger(focusMinutes) ||
+    focusMinutes < 1 ||
+    !Number.isInteger(breakMinutes) ||
+    breakMinutes < 1
+  )
+    return { message: "Informe tempos inteiros e positivos para o ciclo." };
+
+  const response = await authenticatedApi(
+    `planning-proposals/${proposalId}/blocks/${blockId}`,
+    {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        revision,
+        contentId,
+        startsAt,
+        endsAt,
+        focusSeconds: focusMinutes * 60,
+        breakSeconds: breakMinutes * 60,
+        partIds: formData.getAll("partIds").map(String),
+      }),
+    },
+  );
+  if (!response || response.status === 401) redirect("/login");
+  if (!response.ok)
+    return {
+      message: await apiError(response, "Não foi possível alterar o bloco."),
+    };
+  revalidatePath(`/app/planning/${proposalId}`);
+  return {};
+}
+
+export async function removeProposedBlock(
+  proposalId: string,
+  blockId: string,
+  _state: PlanningFormState,
+): Promise<PlanningFormState> {
+  void _state;
+  const response = await authenticatedApi(
+    `planning-proposals/${proposalId}/blocks/${blockId}`,
+    { method: "DELETE" },
+  );
+  if (!response || response.status === 401) redirect("/login");
+  if (!response.ok)
+    return {
+      message: await apiError(response, "Não foi possível remover o bloco."),
+    };
+  revalidatePath(`/app/planning/${proposalId}`);
+  return {};
+}

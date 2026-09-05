@@ -16,6 +16,7 @@ import {
   SessionStatus,
 } from '../generated/prisma/enums.js';
 import type { CreatePlanningProposalDto } from './dto/create-planning-proposal.dto.js';
+import type { UpdateProposedBlockDto } from './dto/update-proposed-block.dto.js';
 import {
   generatePlanningProposal,
   PLANNING_ALGORITHM_VERSION,
@@ -476,6 +477,11 @@ export class PlanningService {
               select: {
                 id: true,
                 name: true,
+                parts: {
+                  where: { archivedAt: null },
+                  select: { id: true, name: true },
+                  orderBy: { position: 'asc' },
+                },
                 subject: {
                   select: {
                     id: true,
@@ -501,6 +507,237 @@ export class PlanningService {
       });
     }
     return proposal;
+  }
+
+  async updateBlock(
+    studentId: string,
+    proposalId: string,
+    blockId: string,
+    input: UpdateProposedBlockDto,
+  ) {
+    const startsAt = new Date(input.startsAt);
+    const endsAt = new Date(input.endsAt);
+    const durationSeconds = (endsAt.getTime() - startsAt.getTime()) / 1000;
+    if (startsAt >= endsAt || !Number.isSafeInteger(durationSeconds)) {
+      throw new UnprocessableEntityException({
+        error: {
+          code: 'INVALID_PROPOSED_BLOCK_RANGE',
+          message: 'O término do bloco deve ser posterior ao início.',
+        },
+      });
+    }
+    return this.prisma.$transaction(async (transaction) => {
+      await transaction.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${studentId}, 0))`;
+      const block = await transaction.proposedStudyBlock.findFirst({
+        where: { id: blockId, proposalId, studentId, removedAt: null },
+        include: {
+          proposal: {
+            select: { status: true, periodStart: true, periodEnd: true },
+          },
+        },
+      });
+      if (!block) this.throwProposedBlockNotFound();
+      this.ensureProposalReviewable(block.proposal.status);
+      if (
+        startsAt < block.proposal.periodStart ||
+        endsAt > block.proposal.periodEnd
+      ) {
+        throw new ConflictException({
+          error: {
+            code: 'PROPOSED_BLOCK_OUTSIDE_PERIOD',
+            message: 'O bloco deve permanecer dentro do período da proposta.',
+          },
+        });
+      }
+
+      const content = await transaction.content.findFirst({
+        where: { id: input.contentId, studentId, archivedAt: null },
+        select: { id: true },
+      });
+      const partCount = await transaction.contentPart.count({
+        where: {
+          id: { in: input.partIds },
+          contentId: input.contentId,
+          studentId,
+          archivedAt: null,
+        },
+      });
+      const availability = await transaction.availabilityInterval.findMany({
+        where: { studentId, active: true },
+        select: {
+          weekday: true,
+          startLocalTime: true,
+          endLocalTime: true,
+        },
+      });
+      const blockConflict = await transaction.studyBlock.findFirst({
+        where: {
+          studentId,
+          status: { in: activeBlockStatuses },
+          startsAt: { lt: endsAt },
+          endsAt: { gt: startsAt },
+        },
+        select: { id: true },
+      });
+      const eventConflict = await transaction.academicEvent.findFirst({
+        where: {
+          studentId,
+          deletedAt: null,
+          endsAt: { not: null, gt: startsAt },
+          startsAt: { lt: endsAt },
+        },
+        select: { id: true },
+      });
+      if (!content) {
+        throw new NotFoundException({
+          error: {
+            code: 'CONTENT_NOT_FOUND',
+            message: 'Conteúdo não encontrado.',
+          },
+        });
+      }
+      if (partCount !== input.partIds.length) {
+        throw new UnprocessableEntityException({
+          error: {
+            code: 'INVALID_CONTENT_PARTS',
+            message: 'Uma parte selecionada não pertence ao conteúdo.',
+          },
+        });
+      }
+      const available = materializeAvailability(startsAt, endsAt, availability);
+      if (
+        !available.some(
+          (interval) =>
+            interval.startsAt <= startsAt && interval.endsAt >= endsAt,
+        )
+      ) {
+        throw new ConflictException({
+          error: {
+            code: 'PROPOSED_BLOCK_OUTSIDE_AVAILABILITY',
+            message: 'O bloco está fora da disponibilidade semanal.',
+          },
+        });
+      }
+      const proposalConflict = await transaction.proposedStudyBlock.findFirst({
+        where: {
+          proposalId,
+          id: { not: blockId },
+          removedAt: null,
+          startsAt: { lt: endsAt },
+          endsAt: { gt: startsAt },
+        },
+        select: { id: true },
+      });
+      if (blockConflict || eventConflict || proposalConflict) {
+        throw new ConflictException({
+          error: {
+            code: 'PROPOSED_BLOCK_CONFLICT',
+            message: 'O horário escolhido possui outro compromisso.',
+          },
+        });
+      }
+
+      const changed = await transaction.proposedStudyBlock.updateMany({
+        where: {
+          id: blockId,
+          proposalId,
+          studentId,
+          removedAt: null,
+          revision: input.revision,
+        },
+        data: {
+          contentId: input.contentId,
+          startsAt,
+          endsAt,
+          plannedDurationSeconds: durationSeconds,
+          focusSeconds: input.focusSeconds,
+          breakSeconds: input.breakSeconds,
+          explanationFactors: { reason: 'STUDENT_EDITED' },
+          ...(input.contentId !== block.contentId
+            ? { sourceOverdueBlockId: null }
+            : {}),
+          revision: { increment: 1 },
+        },
+      });
+      if (changed.count !== 1) this.throwProposalStale();
+      await transaction.proposedBlockPart.deleteMany({
+        where: { proposedBlockId: blockId },
+      });
+      if (input.partIds.length > 0) {
+        await transaction.proposedBlockPart.createMany({
+          data: input.partIds.map((contentPartId) => ({
+            proposedBlockId: blockId,
+            contentPartId,
+          })),
+        });
+      }
+      await transaction.planningProposal.update({
+        where: { id: proposalId },
+        data: { status: ProposalStatus.REVIEWING, revision: { increment: 1 } },
+      });
+      await transaction.auditEvent.create({
+        data: {
+          actorUserId: studentId,
+          studentScopeId: studentId,
+          action: 'PROPOSED_STUDY_BLOCK_UPDATED',
+          entityType: 'PROPOSED_STUDY_BLOCK',
+          entityId: blockId,
+          metadata: { previousRevision: block.revision },
+        },
+      });
+      return transaction.proposedStudyBlock.findUniqueOrThrow({
+        where: { id: blockId },
+        include: {
+          content: {
+            select: {
+              id: true,
+              name: true,
+              subject: { select: { id: true, name: true } },
+            },
+          },
+          parts: { include: { contentPart: true } },
+        },
+      });
+    });
+  }
+
+  async removeBlock(studentId: string, proposalId: string, blockId: string) {
+    return this.prisma.$transaction(async (transaction) => {
+      await transaction.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${studentId}, 0))`;
+      const block = await transaction.proposedStudyBlock.findFirst({
+        where: { id: blockId, proposalId, studentId, removedAt: null },
+        include: { proposal: { select: { status: true } } },
+      });
+      if (!block) this.throwProposedBlockNotFound();
+      this.ensureProposalReviewable(block.proposal.status);
+      const removedAt = new Date();
+      const changed = await transaction.proposedStudyBlock.updateMany({
+        where: {
+          id: blockId,
+          proposalId,
+          studentId,
+          removedAt: null,
+          revision: block.revision,
+        },
+        data: { removedAt, revision: { increment: 1 } },
+      });
+      if (changed.count !== 1) this.throwProposalStale();
+      await transaction.planningProposal.update({
+        where: { id: proposalId },
+        data: { status: ProposalStatus.REVIEWING, revision: { increment: 1 } },
+      });
+      await transaction.auditEvent.create({
+        data: {
+          actorUserId: studentId,
+          studentScopeId: studentId,
+          action: 'PROPOSED_STUDY_BLOCK_REMOVED',
+          entityType: 'PROPOSED_STUDY_BLOCK',
+          entityId: blockId,
+          metadata: { removedAt: removedAt.toISOString() },
+        },
+      });
+      return { id: blockId, removedAt };
+    });
   }
 
   async confirm(studentId: string, id: string) {
@@ -550,81 +787,72 @@ export class PlanningService {
             : []),
           { id: { in: proposal.blocks.map(({ contentId }) => contentId) } },
         ];
-        const [
-          blockConflict,
-          eventConflict,
-          changedContent,
-          changedEvent,
-          changedAvailability,
-          changedPomodoro,
-          availability,
-        ] = await Promise.all([
-          transaction.studyBlock.findFirst({
-            where: {
-              studentId,
-              status: { in: activeBlockStatuses },
-              OR: proposal.blocks.map((block) => ({
-                startsAt: { lt: block.endsAt },
-                endsAt: { gt: block.startsAt },
-              })),
-            },
-            select: { id: true },
-          }),
-          transaction.academicEvent.findFirst({
-            where: {
-              studentId,
-              deletedAt: null,
-              endsAt: { not: null },
-              OR: proposal.blocks.map((block) => ({
-                startsAt: { lt: block.endsAt },
-                endsAt: { gt: block.startsAt },
-              })),
-            },
-            select: { id: true },
-          }),
-          transaction.content.findFirst({
-            where: {
-              studentId,
-              archivedAt: null,
-              updatedAt: { gt: proposal.requestedAt },
-              OR: contentScope,
-            },
-            select: { id: true },
-          }),
-          transaction.academicEvent.findFirst({
-            where: {
-              studentId,
-              deletedAt: null,
-              updatedAt: { gt: proposal.requestedAt },
-              startsAt: { gte: proposal.periodStart, lte: proposal.periodEnd },
-              OR: [
-                ...(proposalCourseIds.length
-                  ? [{ subject: { courseId: { in: proposalCourseIds } } }]
-                  : []),
-                ...(proposalSubjectIds.length
-                  ? [{ subjectId: { in: proposalSubjectIds } }]
-                  : []),
-              ],
-            },
-            select: { id: true },
-          }),
-          transaction.availabilityInterval.findFirst({
+        const blockConflict = await transaction.studyBlock.findFirst({
+          where: {
+            studentId,
+            status: { in: activeBlockStatuses },
+            OR: proposal.blocks.map((block) => ({
+              startsAt: { lt: block.endsAt },
+              endsAt: { gt: block.startsAt },
+            })),
+          },
+          select: { id: true },
+        });
+        const eventConflict = await transaction.academicEvent.findFirst({
+          where: {
+            studentId,
+            deletedAt: null,
+            endsAt: { not: null },
+            OR: proposal.blocks.map((block) => ({
+              startsAt: { lt: block.endsAt },
+              endsAt: { gt: block.startsAt },
+            })),
+          },
+          select: { id: true },
+        });
+        const changedContent = await transaction.content.findFirst({
+          where: {
+            studentId,
+            archivedAt: null,
+            updatedAt: { gt: proposal.requestedAt },
+            OR: contentScope,
+          },
+          select: { id: true },
+        });
+        const changedEvent = await transaction.academicEvent.findFirst({
+          where: {
+            studentId,
+            deletedAt: null,
+            updatedAt: { gt: proposal.requestedAt },
+            startsAt: { gte: proposal.periodStart, lte: proposal.periodEnd },
+            OR: [
+              ...(proposalCourseIds.length
+                ? [{ subject: { courseId: { in: proposalCourseIds } } }]
+                : []),
+              ...(proposalSubjectIds.length
+                ? [{ subjectId: { in: proposalSubjectIds } }]
+                : []),
+            ],
+          },
+          select: { id: true },
+        });
+        const changedAvailability =
+          await transaction.availabilityInterval.findFirst({
             where: { studentId, updatedAt: { gt: proposal.requestedAt } },
             select: { id: true },
-          }),
-          transaction.pomodoroPreference.findFirst({
-            where: { studentId, updatedAt: { gt: proposal.requestedAt } },
-            select: { studentId: true },
-          }),
-          transaction.availabilityInterval.findMany({
-            where: { studentId, active: true },
-            select: {
-              weekday: true,
-              startLocalTime: true,
-              endLocalTime: true,
-            },
-          }),
-        ]);
+          });
+        const changedPomodoro = await transaction.pomodoroPreference.findFirst({
+          where: { studentId, updatedAt: { gt: proposal.requestedAt } },
+          select: { studentId: true },
+        });
+        const availability = await transaction.availabilityInterval.findMany({
+          where: { studentId, active: true },
+          select: {
+            weekday: true,
+            startLocalTime: true,
+            endLocalTime: true,
+          },
+        });
         const availableIntervals = materializeAvailability(
           proposal.periodStart,
           proposal.periodEnd,
@@ -801,9 +1029,32 @@ export class PlanningService {
   private throwProposalStale(): never {
     throw new ConflictException({
       error: {
-        code: 'PLANNING_PROPOSAL_STALE',
+        code: 'PROPOSAL_STALE',
         message: 'A proposta ficou desatualizada. Gere uma nova proposta.',
       },
     });
+  }
+
+  private throwProposedBlockNotFound(): never {
+    throw new NotFoundException({
+      error: {
+        code: 'PROPOSED_BLOCK_NOT_FOUND',
+        message: 'Bloco sugerido não encontrado.',
+      },
+    });
+  }
+
+  private ensureProposalReviewable(status: ProposalStatus) {
+    if (
+      status !== ProposalStatus.READY &&
+      status !== ProposalStatus.REVIEWING
+    ) {
+      throw new ConflictException({
+        error: {
+          code: 'PLANNING_PROPOSAL_NOT_REVIEWABLE',
+          message: 'Esta proposta não pode mais ser alterada.',
+        },
+      });
+    }
   }
 }

@@ -149,6 +149,32 @@
   padding-left: 18px;
   border-left: 1px solid #e2e7df;
 }
+.proposal-editor {
+  margin-top: 14px;
+}
+.proposal-editor summary {
+  width: fit-content;
+  color: var(--ink);
+  font-size: 0.82rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+.proposal-editor > form:first-of-type {
+  display: grid;
+  gap: 14px;
+  margin-top: 16px;
+  padding: 18px;
+  border: 1px solid #dce2da;
+  border-radius: 14px;
+  background: #f8faf5;
+}
+.proposal-remove-form {
+  margin-top: 10px;
+}
+.proposal-remove-form .danger-button {
+  min-height: 38px;
+  padding: 0 14px;
+}
 .proposal-decision {
   display: flex;
   gap: 16px;

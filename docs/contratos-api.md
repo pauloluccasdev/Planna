@@ -207,6 +207,12 @@ POST   /planning-proposals/{proposal_id}/confirm
 POST   /planning-proposals/{proposal_id}/discard
 ```
 
+No MVP, o `PATCH` recebe a fotografia completa editável do bloco (`revision`,
+`contentId`, `startsAt`, `endsAt`, `focusSeconds`, `breakSeconds` e `partIds`) e
+substitui as associações de partes na mesma transação. O `DELETE` remove somente
+o bloco da proposta em revisão; nenhum dos dois comandos altera a agenda
+confirmada.
+
 Confirmação exige idempotência e revisão atual. É tudo ou nada. Proposta obsoleta retorna `409 PROPOSAL_STALE` sem criar blocos parciais.
 
 ## Agenda e blocos
