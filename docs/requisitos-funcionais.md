@@ -85,7 +85,7 @@
 - **RF-PLA-007 — Informar capacidade insuficiente:** a proposta deve informar horas não alocadas e itens em risco. Referências: RN-PLN-015, RN-RSC-004.
 - **RF-PLA-008 — Manter como proposta:** a geração não deve alterar o planejamento vigente. Referência: RN-PLN-002.
 - **RF-PLA-009 — Revisar proposta:** o aluno deve poder alterar dia, horário, duração e conteúdo, remover blocos e associar partes. Referências: RN-PLN-003, RN-PLN-008.
-- **RF-PLA-010 — Validar proposta:** o sistema deve validar disponibilidade, conflitos, vínculos e carga antes da confirmação.
+- **RF-PLA-010 — Validar proposta:** o sistema deve validar disponibilidade, conflitos, vínculos, carga e a associação obrigatória de partes antes da confirmação. Referência: RN-PLN-008A.
 - **RF-PLA-011 — Confirmar proposta:** somente uma ação explícita do aluno deve transformar a proposta válida em planejamento vigente. Referência: RN-PLN-002.
 - **RF-PLA-012 — Descartar proposta:** o aluno deve poder rejeitar a proposta sem afetar o planejamento atual.
 

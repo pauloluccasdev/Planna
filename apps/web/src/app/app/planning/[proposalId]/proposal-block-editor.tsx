@@ -80,6 +80,9 @@ export function ProposalBlockEditor({
     () => new Set(block.parts.map(({ contentPart }) => contentPart.id)),
   );
   const selectedContent = contents.find((content) => content.id === contentId);
+  const needsPartAssignment = Boolean(
+    selectedContent?.parts.length && partIds.size === 0,
+  );
   const [editState, editAction, editing] = useActionState(
     updateProposedBlock.bind(null, proposalId, block.id, block.revision),
     initialState,
@@ -109,6 +112,11 @@ export function ProposalBlockEditor({
           {duration(block.focusSeconds)} · pausa de{" "}
           {duration(block.breakSeconds)}
         </small>
+        {needsPartAssignment ? (
+          <strong className="proposal-parts-required">
+            Selecione ao menos uma parte em “Personalizar bloco”.
+          </strong>
+        ) : null}
         <details className="proposal-editor">
           <summary>Personalizar bloco</summary>
           <form action={editAction}>

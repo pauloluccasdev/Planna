@@ -143,6 +143,17 @@
 .proposal-block h3 {
   margin: 4px 0;
 }
+.proposal-block .proposal-parts-required {
+  display: block;
+  margin-top: 8px;
+  color: #9a3f25;
+  font-size: 0.78rem;
+}
+.proposal-alerts p {
+  margin-bottom: 0;
+  color: #685828;
+  line-height: 1.55;
+}
 .proposal-reason {
   display: grid;
   gap: 5px;

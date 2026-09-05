@@ -44,6 +44,40 @@ function unique(values: string[]) {
   return [...new Set(values)];
 }
 
+type ProposalPartAssignment = {
+  id: string;
+  content: {
+    archivedAt: Date | null;
+    parts: Array<{ id: string }>;
+  };
+  parts: Array<{ contentPartId: string }>;
+};
+
+export function inspectProposalPartAssignments(
+  blocks: ProposalPartAssignment[],
+) {
+  const missingBlockIds: string[] = [];
+  const invalidBlockIds: string[] = [];
+  for (const block of blocks) {
+    if (block.content.archivedAt) {
+      invalidBlockIds.push(block.id);
+      continue;
+    }
+    const activePartIds = new Set(block.content.parts.map(({ id }) => id));
+    const selectedPartIds = block.parts.map(
+      ({ contentPartId }) => contentPartId,
+    );
+    if (selectedPartIds.some((id) => !activePartIds.has(id))) {
+      invalidBlockIds.push(block.id);
+      continue;
+    }
+    if (activePartIds.size > 0 && selectedPartIds.length === 0) {
+      missingBlockIds.push(block.id);
+    }
+  }
+  return { missingBlockIds, invalidBlockIds };
+}
+
 function timeText(value: Date) {
   return value.toISOString().slice(11, 19);
 }
@@ -774,7 +808,18 @@ export class PlanningService {
           subjectScopes: { select: { subjectId: true } },
           blocks: {
             where: { removedAt: null },
-            include: { parts: { select: { contentPartId: true } } },
+            include: {
+              parts: { select: { contentPartId: true } },
+              content: {
+                select: {
+                  archivedAt: true,
+                  parts: {
+                    where: { archivedAt: null },
+                    select: { id: true },
+                  },
+                },
+              },
+            },
             orderBy: { startsAt: 'asc' },
           },
         },
@@ -789,6 +834,21 @@ export class PlanningService {
           error: {
             code: 'PLANNING_PROPOSAL_NOT_CONFIRMABLE',
             message: 'Esta proposta não pode mais ser confirmada.',
+          },
+        });
+      }
+
+      const partAssignments = inspectProposalPartAssignments(proposal.blocks);
+      if (partAssignments.invalidBlockIds.length > 0) {
+        this.throwProposalStale();
+      }
+      if (partAssignments.missingBlockIds.length > 0) {
+        throw new UnprocessableEntityException({
+          error: {
+            code: 'PROPOSAL_PARTS_REQUIRED',
+            message:
+              'Selecione ao menos uma parte para cada bloco que possui partes.',
+            details: { blockIds: partAssignments.missingBlockIds },
           },
         });
       }

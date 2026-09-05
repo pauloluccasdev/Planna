@@ -12,9 +12,11 @@ const initialState: PlanningFormState = {};
 export function ProposalActions({
   proposalId,
   canConfirm = true,
+  blockedReason,
 }: {
   proposalId: string;
   canConfirm?: boolean;
+  blockedReason?: string;
 }) {
   const [confirmState, confirmAction, confirming] = useActionState(
     confirmPlanningProposal.bind(null, proposalId),
@@ -44,7 +46,7 @@ export function ProposalActions({
           </button>
         </form>
       ) : (
-        <p>Você removeu todos os blocos desta proposta.</p>
+        <p>{blockedReason ?? "Você removeu todos os blocos desta proposta."}</p>
       )}
       <form action={discardAction}>
         {discardState.message ? (

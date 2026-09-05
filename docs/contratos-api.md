@@ -246,7 +246,10 @@ substitui as associações de partes na mesma transação. O `DELETE` remove som
 o bloco da proposta em revisão; nenhum dos dois comandos altera a agenda
 confirmada.
 
-Confirmação exige idempotência e revisão atual. É tudo ou nada. Proposta obsoleta retorna `409 PROPOSAL_STALE` sem criar blocos parciais.
+Confirmação exige idempotência e revisão atual. É tudo ou nada. Proposta obsoleta
+retorna `409 PROPOSAL_STALE` sem criar blocos parciais. Quando um conteúdo possui
+partes ativas, cada bloco precisa ter ao menos uma associação salva; caso
+contrário, retorna `422 PROPOSAL_PARTS_REQUIRED` com os blocos pendentes.
 
 ## Agenda e blocos
 
@@ -381,6 +384,7 @@ Respostas não incluem identificadores ou resumos acadêmicos.
 |  409 | `PROPOSAL_STALE`              | Entradas mudaram.                      |
 |  422 | `CONTENT_MISSING_ESTIMATE`    | Inelegível à geração.                  |
 |  422 | `CONTENT_PART_MISMATCH`       | Parte não pertence ao conteúdo.        |
+|  422 | `PROPOSAL_PARTS_REQUIRED`     | Bloco proposto ainda sem partes.        |
 |  429 | `RATE_LIMITED`                | Limite excedido.                       |
 |  500 | `INTERNAL_ERROR`              | Falha inesperada com `request_id`.     |
 

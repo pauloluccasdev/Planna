@@ -88,6 +88,13 @@ export default async function PlanningReviewPage({ params }: Props) {
     (proposal.parametersSnapshot.requestedSeconds ?? 0) -
       currentAllocatedSeconds,
   );
+  const blocksMissingParts = proposal.blocks.filter((block) => {
+    const activePartIds = new Set(block.content.parts.map(({ id }) => id));
+    return (
+      activePartIds.size > 0 &&
+      !block.parts.some(({ contentPart }) => activePartIds.has(contentPart.id))
+    );
+  });
 
   return (
     <main className="dashboard-shell">
@@ -143,6 +150,18 @@ export default async function PlanningReviewPage({ params }: Props) {
         </section>
       ) : null}
 
+      {blocksMissingParts.length > 0 ? (
+        <section className="proposal-alerts" aria-labelledby="parts-alert">
+          <h2 id="parts-alert">Partes ainda não selecionadas</h2>
+          <p>
+            Personalize{" "}
+            {blocksMissingParts.length === 1 ? "o bloco" : "os blocos"} indicado
+            {blocksMissingParts.length === 1 ? "" : "s"} e selecione ao menos
+            uma parte antes de confirmar o planejamento.
+          </p>
+        </section>
+      ) : null}
+
       <section className="dashboard-card proposal-blocks">
         <div className="card-heading">
           <div>
@@ -176,7 +195,14 @@ export default async function PlanningReviewPage({ params }: Props) {
 
       {actionable ? (
         <ProposalActions
-          canConfirm={proposal.blocks.length > 0}
+          blockedReason={
+            blocksMissingParts.length > 0
+              ? "Selecione e salve as partes pendentes antes de confirmar."
+              : undefined
+          }
+          canConfirm={
+            proposal.blocks.length > 0 && blocksMissingParts.length === 0
+          }
           proposalId={proposal.id}
         />
       ) : (

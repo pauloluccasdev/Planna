@@ -51,6 +51,7 @@ Este documento registra somente decisões confirmadas. As identificações devem
 - **RN-PLN-006** — Conteúdos com atraso entram automaticamente na proposta, mesmo fora da seleção inicial, mas podem ser removidos durante a revisão.
 - **RN-PLN-007** — Um bloco pertence a exatamente um conteúdo e pode estar associado a várias partes desse conteúdo.
 - **RN-PLN-008** — Na proposta automática, o Planna define horários e conteúdos; o aluno associa as partes durante a revisão.
+- **RN-PLN-008A** — Quando o conteúdo possui partes ativas, cada bloco da proposta deve ter ao menos uma parte associada antes da confirmação.
 - **RN-PLN-009** — O Planna determina a duração dos blocos automáticos.
 - **RN-PLN-010** — Blocos manuais podem repetir diariamente até uma data escolhida.
 - **RN-PLN-010A** — A criação recorrente é atômica: qualquer ocorrência fora da disponibilidade ou em conflito impede a série inteira.

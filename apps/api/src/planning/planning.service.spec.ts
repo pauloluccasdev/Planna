@@ -6,7 +6,11 @@ import {
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PrismaService } from '../database/prisma.service.js';
 import { ProposalStatus } from '../generated/prisma/enums.js';
-import { PlanningService, planningEventLookupEnd } from './planning.service.js';
+import {
+  inspectProposalPartAssignments,
+  PlanningService,
+  planningEventLookupEnd,
+} from './planning.service.js';
 
 describe('PlanningService', () => {
   const prisma = {
@@ -147,6 +151,48 @@ describe('PlanningService', () => {
         new Date('2027-01-01T03:00:00.000Z'),
       ),
     ).toEqual(new Date('2027-01-01T03:00:00.000Z'));
+  });
+
+  it('requires a saved part assignment when the content has active parts', () => {
+    expect(
+      inspectProposalPartAssignments([
+        {
+          id: 'missing-block',
+          content: { archivedAt: null, parts: [{ id: 'part-id' }] },
+          parts: [],
+        },
+        {
+          id: 'valid-block',
+          content: { archivedAt: null, parts: [{ id: 'part-id' }] },
+          parts: [{ contentPartId: 'part-id' }],
+        },
+        {
+          id: 'whole-content-block',
+          content: { archivedAt: null, parts: [] },
+          parts: [],
+        },
+      ]),
+    ).toEqual({ missingBlockIds: ['missing-block'], invalidBlockIds: [] });
+  });
+
+  it('invalidates archived content or inactive part assignments', () => {
+    expect(
+      inspectProposalPartAssignments([
+        {
+          id: 'archived-content-block',
+          content: { archivedAt: new Date(), parts: [] },
+          parts: [],
+        },
+        {
+          id: 'archived-part-block',
+          content: { archivedAt: null, parts: [{ id: 'active-part' }] },
+          parts: [{ contentPartId: 'archived-part' }],
+        },
+      ]),
+    ).toEqual({
+      missingBlockIds: [],
+      invalidBlockIds: ['archived-content-block', 'archived-part-block'],
+    });
   });
 
   it('does not expose another student proposed block', async () => {

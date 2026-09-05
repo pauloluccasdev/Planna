@@ -33,6 +33,7 @@ let fixtureSessionId;
 let fixtureEarlyBlockId;
 let fixtureAlternateContentId;
 let fixtureAlternatePartId;
+let fixturePlanningProposalId;
 
 async function withDatabase(callback) {
   const database = new pg.Client({
@@ -368,6 +369,35 @@ try {
   }
   const contentId = (await createdContent.json()).data.id;
 
+  const createdPlanningContent = await fetch(
+    `${apiUrl}/subjects/${subjectId}/contents`,
+    {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        name: 'Conteúdo com partes para planejamento',
+        priority: 1,
+        estimatedDurationSeconds: 1800,
+      }),
+    },
+  );
+  if (createdPlanningContent.status !== 201) {
+    throw new Error('Creating planning content with parts failed');
+  }
+  const planningContentId = (await createdPlanningContent.json()).data.id;
+  const createdPlanningPart = await fetch(
+    `${apiUrl}/contents/${planningContentId}/parts`,
+    {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ name: 'Parte obrigatória da proposta' }),
+    },
+  );
+  if (createdPlanningPart.status !== 201) {
+    throw new Error('Creating required planning part failed');
+  }
+  const planningPartId = (await createdPlanningPart.json()).data.id;
+
   const eventTypes = await fetch(`${apiUrl}/academic-event-types`, { headers });
   const eventTypesBody = await eventTypes.json();
   if (!eventTypes.ok || eventTypesBody.data.length === 0) {
@@ -525,15 +555,47 @@ try {
     body: JSON.stringify(shortPlanningInput),
   });
   const firstPlanningBody = await firstPlanningProposal.json();
+  const firstPriorityBlock = firstPlanningBody.data?.blocks.find(
+    (block) => block.contentId === contentId,
+  );
+  const firstPartBlock = firstPlanningBody.data?.blocks.find(
+    (block) => block.contentId === planningContentId,
+  );
   if (
     firstPlanningProposal.status !== 201 ||
-    firstPlanningBody.data.blocks.length !== 1 ||
-    firstPlanningBody.data.blocks[0].explanationFactors.academicEventId !==
-      eventId
+    firstPlanningBody.data.blocks.length !== 2 ||
+    firstPriorityBlock?.explanationFactors.academicEventId !== eventId ||
+    !firstPartBlock
   ) {
     throw new Error(
       'A future event outside the short plan did not affect priority',
     );
+  }
+  const missingPartsConfirmation = await fetch(
+    `${apiUrl}/planning-proposals/${firstPlanningBody.data.id}/confirm`,
+    { method: 'POST', headers },
+  );
+  if (missingPartsConfirmation.status !== 422) {
+    throw new Error('Planning confirmation should require part assignments');
+  }
+  const assignedFirstPart = await fetch(
+    `${apiUrl}/planning-proposals/${firstPlanningBody.data.id}/blocks/${firstPartBlock.id}`,
+    {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify({
+        revision: firstPartBlock.revision,
+        contentId: firstPartBlock.contentId,
+        startsAt: firstPartBlock.startsAt,
+        endsAt: firstPartBlock.endsAt,
+        focusSeconds: firstPartBlock.focusSeconds,
+        breakSeconds: firstPartBlock.breakSeconds,
+        partIds: [planningPartId],
+      }),
+    },
+  );
+  if (!assignedFirstPart.ok) {
+    throw new Error('Assigning a required part to the proposal failed');
   }
   const eventChangedAfterProposal = await fetch(
     `${apiUrl}/academic-events/${eventId}`,
@@ -572,11 +634,37 @@ try {
     body: JSON.stringify(shortPlanningInput),
   });
   const planningBody = await planningProposal.json();
+  const regeneratedPriorityBlock = planningBody.data?.blocks.find(
+    (block) => block.contentId === contentId,
+  );
+  const regeneratedPartBlock = planningBody.data?.blocks.find(
+    (block) => block.contentId === planningContentId,
+  );
   if (
     planningProposal.status !== 201 ||
-    planningBody.data.blocks[0]?.explanationFactors.academicEventId !== eventId
+    regeneratedPriorityBlock?.explanationFactors.academicEventId !== eventId ||
+    !regeneratedPartBlock
   ) {
     throw new Error('Regenerated planning proposal lost future-event urgency');
+  }
+  const assignedRegeneratedPart = await fetch(
+    `${apiUrl}/planning-proposals/${planningBody.data.id}/blocks/${regeneratedPartBlock.id}`,
+    {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify({
+        revision: regeneratedPartBlock.revision,
+        contentId: regeneratedPartBlock.contentId,
+        startsAt: regeneratedPartBlock.startsAt,
+        endsAt: regeneratedPartBlock.endsAt,
+        focusSeconds: regeneratedPartBlock.focusSeconds,
+        breakSeconds: regeneratedPartBlock.breakSeconds,
+        partIds: [planningPartId],
+      }),
+    },
+  );
+  if (!assignedRegeneratedPart.ok) {
+    throw new Error('Assigning parts to the regenerated proposal failed');
   }
   const confirmedPlanning = await fetch(
     `${apiUrl}/planning-proposals/${planningBody.data.id}/confirm`,
@@ -586,17 +674,21 @@ try {
   if (
     !confirmedPlanning.ok ||
     confirmedPlanningBody.data.status !== 'CONFIRMED' ||
-    confirmedPlanningBody.data.confirmedBlocks.length !== 1 ||
-    confirmedPlanningBody.data.confirmedBlocks[0].source !== 'AUTOMATIC'
+    confirmedPlanningBody.data.confirmedBlocks.length !== 2 ||
+    confirmedPlanningBody.data.confirmedBlocks.some(
+      (block) => block.source !== 'AUTOMATIC',
+    )
   ) {
     throw new Error('Confirming the regenerated automatic plan failed');
   }
-  const cancelledAutomaticBlock = await fetch(
-    `${apiUrl}/study-blocks/${confirmedPlanningBody.data.confirmedBlocks[0].id}/cancel`,
-    { method: 'POST', headers },
-  );
-  if (!cancelledAutomaticBlock.ok) {
-    throw new Error('Cleaning up the confirmed automatic block failed');
+  for (const automaticBlock of confirmedPlanningBody.data.confirmedBlocks) {
+    const cancelledAutomaticBlock = await fetch(
+      `${apiUrl}/study-blocks/${automaticBlock.id}/cancel`,
+      { method: 'POST', headers },
+    );
+    if (!cancelledAutomaticBlock.ok) {
+      throw new Error('Cleaning up a confirmed automatic block failed');
+    }
   }
 
   const createdBlock = await fetch(`${apiUrl}/study-blocks`, {
@@ -1137,6 +1229,30 @@ try {
       );
     }
     fixtureSessionId = (await fixtureSession.json()).data.id;
+
+    const fixturePlanningProposal = await fetch(
+      `${apiUrl}/planning-proposals`,
+      {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          periodStart: '2099-08-04T00:00:00-03:00',
+          periodEnd: '2099-08-05T00:00:00-03:00',
+          courseIds: [courseId],
+          subjectIds: [],
+        }),
+      },
+    );
+    const fixturePlanningBody = await fixturePlanningProposal.json();
+    if (
+      fixturePlanningProposal.status !== 201 ||
+      !fixturePlanningBody.data?.blocks.some(
+        (block) => block.contentId === fixtureAlternateContentId,
+      )
+    ) {
+      throw new Error('Creating browser planning proposal fixture failed');
+    }
+    fixturePlanningProposalId = fixturePlanningBody.data.id;
   }
 
   console.log(
@@ -1161,6 +1277,7 @@ try {
       pomodoroSaved: true,
       futureEventAppliedToShortPlanning: true,
       futureEventChangeInvalidatedProposal: true,
+      proposalPartsRequiredBeforeConfirmation: true,
       automaticPlanningConfirmedAtomically: true,
       studyBlockCreated: true,
       studyBlockUpdatedWithHistory: true,
@@ -1203,6 +1320,7 @@ try {
               earlyBlockId: fixtureEarlyBlockId,
               alternateContentId: fixtureAlternateContentId,
               alternatePartId: fixtureAlternatePartId,
+              planningProposalId: fixturePlanningProposalId,
             },
           }
         : {}),
