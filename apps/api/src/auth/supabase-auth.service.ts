@@ -1,14 +1,24 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  ConflictException,
+  HttpException,
+  HttpStatus,
+  Injectable,
+  InternalServerErrorException,
+  UnauthorizedException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { getRequiredEnvironment } from '../config/environment.js';
 import { PrismaService } from '../database/prisma.service.js';
 import { AccountStatus } from '../generated/prisma/enums.js';
 import type { AuthUser } from './auth-user.js';
 import type { LoginDto } from './dto/login.dto.js';
+import type { RegisterDto } from './dto/register.dto.js';
 
 @Injectable()
 export class SupabaseAuthService {
   private readonly client: SupabaseClient;
+  private readonly adminClient: SupabaseClient;
   private readonly supabaseUrl = getRequiredEnvironment('SUPABASE_URL');
   private readonly publishableKey = getRequiredEnvironment(
     'SUPABASE_PUBLISHABLE_KEY',
@@ -18,13 +28,116 @@ export class SupabaseAuthService {
     this.client = createClient(this.supabaseUrl, this.publishableKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     });
+    this.adminClient = createClient(
+      this.supabaseUrl,
+      getRequiredEnvironment('SUPABASE_SECRET_KEY'),
+      { auth: { autoRefreshToken: false, persistSession: false } },
+    );
+  }
+
+  async register(input: RegisterDto) {
+    const username = input.username.trim().normalize('NFKC');
+    const usernameNormalized = this.normalize(username);
+    const email = input.email.trim().normalize('NFKC');
+    const emailNormalized = this.normalize(email);
+    const existing = await this.prisma.userAccount.findFirst({
+      where: { OR: [{ usernameNormalized }, { emailNormalized }] },
+      select: { id: true },
+    });
+    if (existing) this.throwAccountConflict();
+
+    const { data, error } = await this.client.auth.signUp({
+      email,
+      password: input.password,
+    });
+    const authUser = data.user;
+    if (error) {
+      if (error.code === 'over_email_send_rate_limit') {
+        throw new HttpException(
+          {
+            error: {
+              code: 'EMAIL_RATE_LIMITED',
+              message:
+                'Muitas confirmações foram solicitadas. Aguarde e tente novamente.',
+            },
+          },
+          HttpStatus.TOO_MANY_REQUESTS,
+        );
+      }
+      if (error.code === 'email_address_invalid') {
+        throw new UnprocessableEntityException({
+          error: {
+            code: 'INVALID_EMAIL',
+            message: 'O provedor não aceitou o endereço de e-mail informado.',
+          },
+        });
+      }
+      throw new InternalServerErrorException({
+        error: {
+          code: 'ACCOUNT_REGISTRATION_FAILED',
+          message: 'Não foi possível criar a conta. Tente novamente.',
+        },
+      });
+    }
+    if (!authUser || authUser.identities?.length === 0) {
+      this.throwAccountConflict();
+    }
+
+    try {
+      const account = await this.prisma.$transaction(async (transaction) => {
+        const created = await transaction.userAccount.create({
+          data: {
+            id: authUser.id,
+            username,
+            usernameNormalized,
+            email,
+            emailNormalized,
+            emailVerifiedAt: authUser.email_confirmed_at
+              ? new Date(authUser.email_confirmed_at)
+              : null,
+          },
+          select: {
+            id: true,
+            username: true,
+            email: true,
+            role: true,
+            emailVerifiedAt: true,
+            createdAt: true,
+          },
+        });
+        await transaction.auditEvent.create({
+          data: {
+            actorUserId: created.id,
+            studentScopeId: created.id,
+            action: 'ACCOUNT_REGISTERED',
+            entityType: 'USER_ACCOUNT',
+            entityId: created.id,
+          },
+        });
+        return created;
+      });
+      return {
+        user: account,
+        emailVerificationRequired: account.emailVerifiedAt === null,
+      };
+    } catch {
+      await this.adminClient.auth.admin.deleteUser(authUser.id).catch(() => {});
+      const collided = await this.prisma.userAccount.findFirst({
+        where: { OR: [{ usernameNormalized }, { emailNormalized }] },
+        select: { id: true },
+      });
+      if (collided) this.throwAccountConflict();
+      throw new InternalServerErrorException({
+        error: {
+          code: 'ACCOUNT_REGISTRATION_FAILED',
+          message: 'Não foi possível criar a conta. Tente novamente.',
+        },
+      });
+    }
   }
 
   async login(input: LoginDto) {
-    const usernameNormalized = input.username
-      .trim()
-      .normalize('NFKC')
-      .toLocaleLowerCase('pt-BR');
+    const usernameNormalized = this.normalize(input.username);
     const account = await this.prisma.userAccount.findUnique({
       where: { usernameNormalized },
       select: {
@@ -103,6 +216,19 @@ export class SupabaseAuthService {
       error: {
         code: 'INVALID_CREDENTIALS',
         message: 'Nome de usuário ou senha inválidos.',
+      },
+    });
+  }
+
+  private normalize(value: string) {
+    return value.trim().normalize('NFKC').toLocaleLowerCase('pt-BR');
+  }
+
+  private throwAccountConflict(): never {
+    throw new ConflictException({
+      error: {
+        code: 'ACCOUNT_ALREADY_EXISTS',
+        message: 'O nome de usuário ou e-mail informado não está disponível.',
       },
     });
   }

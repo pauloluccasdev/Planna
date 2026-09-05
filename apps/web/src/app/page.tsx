@@ -50,7 +50,7 @@ export default function Home() {
             mudam.
           </p>
           <div className="hero-actions" id="acesso">
-            <a className="button" href="/login">
+            <a className="button" href="/register">
               Começar a planejar
             </a>
             <span>MVP em desenvolvimento</span>

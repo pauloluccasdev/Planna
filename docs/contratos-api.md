@@ -65,7 +65,12 @@ Mesma chave e payload retornam o resultado anterior; payload diferente retorna c
 
 ### `POST /auth/register`
 
-Cria conta com `username`, `email` e `password`. Retorna perfil público e instrução de verificação conforme política pendente.
+Cria conta com `username`, `email` e `password`. Retorna o perfil público e
+`emailVerificationRequired`, conforme a configuração de confirmação do provedor.
+
+Erros específicos: `ACCOUNT_ALREADY_EXISTS` (`409`), `INVALID_EMAIL` (`422`),
+`EMAIL_RATE_LIMITED` (`429`) e `ACCOUNT_REGISTRATION_FAILED` (`500`). A resposta
+de conflito não revela se o nome de usuário, o e-mail ou ambos já existem.
 
 ### `POST /auth/login`
 

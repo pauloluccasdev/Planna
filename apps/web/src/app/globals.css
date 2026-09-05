@@ -544,6 +544,60 @@ h1 {
   cursor: wait;
   opacity: 0.7;
 }
+.auth-switch {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+  text-align: center;
+}
+.auth-switch a {
+  color: var(--ink);
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.registration-panel {
+  padding-bottom: 44px;
+}
+.registration-copy {
+  margin-top: clamp(42px, 8vh, 80px);
+}
+.registration-form {
+  max-width: 520px;
+}
+.registration-form .field small {
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+.registration-success {
+  display: grid;
+  justify-items: start;
+  gap: 14px;
+  max-width: 480px;
+  padding: 28px;
+  border: 1px solid #cddbb4;
+  border-radius: 18px;
+  background: #f3f9df;
+}
+.registration-success > span {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--ink);
+  color: var(--lime);
+  font-size: 1.2rem;
+  font-weight: 800;
+}
+.registration-success h2,
+.registration-success p {
+  margin: 0;
+}
+.registration-success p {
+  color: var(--muted);
+  line-height: 1.55;
+}
 .auth-aside {
   display: flex;
   align-items: flex-end;
