@@ -49,3 +49,12 @@
 3. Se houver impacto, impede a mudança e identifica os blocos.
 4. O aluno move, replaneja ou cancela os blocos.
 5. Após eliminar conflitos, confirma a nova disponibilidade.
+
+## Recuperação de senha
+
+1. O aluno informa o e-mail utilizado no cadastro.
+2. O Planna responde de forma neutra, exista ou não uma conta para o endereço.
+3. Quando aplicável, o Supabase envia um link temporário para o e-mail.
+4. O aluno abre o link e informa e confirma uma nova senha.
+5. A API valida o token, altera a credencial e registra a conclusão sem guardar o token.
+6. O token anterior não pode concluir outra redefinição e as sessões existentes são revogadas.

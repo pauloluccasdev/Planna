@@ -22,7 +22,7 @@ Campos marcados como **a validar** dependem de decisão de negócio pendente e n
 ```text
 users
 ├── auth_sessions
-├── password_reset_tokens
+├── recuperação de senha gerenciada pelo Supabase Auth
 ├── courses
 │   ├── academic_periods
 │   └── subjects
@@ -52,18 +52,18 @@ users
 
 ### `users`
 
-| Campo                | Obrigatório | Descrição                                                                |
-| -------------------- | ----------: | ------------------------------------------------------------------------ |
-| `id`                 |         Sim | Identificador do usuário.                                                |
-| `username`           |         Sim | Nome usado no login; deve ser único conforme normalização a definir.     |
-| `email`              |         Sim | E-mail para recuperação; deve ser único conforme normalização a definir. |
-| `password_hash`      |         Sim | Hash da senha, nunca a senha original.                                   |
-| `role`               |         Sim | `student` ou `admin`.                                                    |
-| `status`             |         Sim | Ao menos `active` ou `blocked`; verificação de e-mail está a validar.    |
-| `email_verified_at`  |         Não | Preparação para verificação, caso aprovada.                              |
-| `blocked_at`         |         Não | Instante do bloqueio.                                                    |
-| `blocked_by_user_id` |         Não | Administrador que bloqueou.                                              |
-| `last_login_at`      |         Não | Última autenticação bem-sucedida.                                        |
+| Campo                 | Obrigatório | Descrição                                                                |
+| --------------------- | ----------: | ------------------------------------------------------------------------ |
+| `id`                  |         Sim | Identificador do usuário.                                                |
+| `username`            |         Sim | Nome usado no login; deve ser único conforme normalização a definir.     |
+| `email`               |         Sim | E-mail para recuperação; deve ser único conforme normalização a definir. |
+| `role`                |         Sim | `student` ou `admin`.                                                    |
+| `status`              |         Sim | Ao menos `active` ou `blocked`; verificação de e-mail está a validar.    |
+| `email_verified_at`   |         Não | Preparação para verificação, caso aprovada.                              |
+| `blocked_at`          |         Não | Instante do bloqueio.                                                    |
+| `blocked_by_user_id`  |         Não | Administrador que bloqueou.                                              |
+| `last_login_at`       |         Não | Última autenticação bem-sucedida.                                        |
+| `password_changed_at` |         Não | Última redefinição concluída; impede reutilização do mesmo token.        |
 
 Restrições:
 
@@ -83,16 +83,13 @@ Restrições:
 | `last_seen_at`       |         Não | Último uso conhecido.                                                  |
 | `user_agent_summary` |         Não | Informação mínima para gestão de sessões, sem excesso de rastreamento. |
 
-### `password_reset_tokens`
+### Recuperação de senha
 
-| Campo                   | Obrigatório | Descrição                                            |
-| ----------------------- | ----------: | ---------------------------------------------------- |
-| `id`                    |         Sim | Solicitação de redefinição.                          |
-| `user_id`               |         Sim | Conta relacionada.                                   |
-| `token_hash`            |         Sim | Token protegido.                                     |
-| `expires_at`            |         Sim | Expiração curta.                                     |
-| `used_at`               |         Não | Marca uso único.                                     |
-| `requested_by_admin_id` |         Não | Administrador que iniciou auxílio, quando aplicável. |
+Credenciais, links e tokens de recuperação pertencem ao Supabase Auth e não são
+persistidos nas tabelas acadêmicas do Planna. `password_changed_at` registra a
+conclusão no perfil local e impede que um token emitido antes dessa alteração
+seja utilizado novamente. A conclusão também gera um evento de auditoria sem
+armazenar senha ou token.
 
 ## Estrutura acadêmica
 

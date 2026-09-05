@@ -47,6 +47,9 @@ export function LoginForm() {
           </span>
         )}
       </div>
+      <div className="password-help">
+        <Link href="/forgot-password">Esqueci minha senha</Link>
+      </div>
       {state.message && (
         <p className="form-message" role="alert">
           {state.message}

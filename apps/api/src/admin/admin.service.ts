@@ -87,7 +87,9 @@ export class AdminService {
       select: { id: true, email: true },
     });
     if (!user) this.throwNotFound();
-    const { error } = await this.auth.auth.resetPasswordForEmail(user.email);
+    const { error } = await this.auth.auth.resetPasswordForEmail(user.email, {
+      redirectTo: getRequiredEnvironment('PASSWORD_RECOVERY_REDIRECT_URL'),
+    });
     if (error) {
       throw new ConflictException({
         error: {

@@ -76,16 +76,24 @@ de conflito não revela se o nome de usuário, o e-mail ou ambos já existem.
 
 Recebe `username` e `password`. Resolve o e-mail somente no servidor e autentica pelo Supabase Auth. Falhas retornam `INVALID_CREDENTIALS` sem revelar qual campo falhou.
 
+### `POST /auth/password-recovery`
+
+Recebe `email` e responde `202` com `{ requested: true }`. A resposta é idêntica
+quando a conta não existe, o provedor limita o envio ou ocorre outra falha de
+entrega, reduzindo enumeração de contas.
+
+### `POST /auth/password-reset`
+
+Recebe a nova `password` e exige no cabeçalho Bearer o token temporário entregue
+no link de recuperação. Em sucesso, registra a alteração, revoga as sessões e
+impede a reutilização de token emitido antes da troca.
+
 ### Demais operações
 
 ```text
 POST /auth/logout
-POST /auth/password-recovery
-POST /auth/password-reset
 GET  /me
 ```
-
-Recuperação sempre responde de forma neutra para reduzir enumeração de contas.
 
 ## Cursos e períodos
 

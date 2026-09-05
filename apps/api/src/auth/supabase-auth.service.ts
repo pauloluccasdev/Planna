@@ -13,6 +13,7 @@ import { PrismaService } from '../database/prisma.service.js';
 import { AccountStatus } from '../generated/prisma/enums.js';
 import type { AuthUser } from './auth-user.js';
 import type { LoginDto } from './dto/login.dto.js';
+import type { PasswordRecoveryDto } from './dto/password-recovery.dto.js';
 import type { RegisterDto } from './dto/register.dto.js';
 
 @Injectable()
@@ -176,6 +177,67 @@ export class SupabaseAuthService {
     };
   }
 
+  async requestPasswordRecovery(input: PasswordRecoveryDto) {
+    const email = input.email.trim().normalize('NFKC');
+    await this.client.auth.resetPasswordForEmail(email, {
+      redirectTo: getRequiredEnvironment('PASSWORD_RECOVERY_REDIRECT_URL'),
+    });
+
+    return { requested: true };
+  }
+
+  async resetPassword(user: AuthUser, accessToken: string, password: string) {
+    const issuedAt =
+      typeof user.claims.iat === 'number'
+        ? new Date(user.claims.iat * 1_000)
+        : null;
+    const account = await this.prisma.userAccount.findUnique({
+      where: { id: user.id },
+      select: { passwordChangedAt: true },
+    });
+    if (
+      !issuedAt ||
+      !account ||
+      (account.passwordChangedAt && issuedAt < account.passwordChangedAt)
+    ) {
+      this.throwExpiredPasswordReset();
+    }
+
+    const { error } = await this.adminClient.auth.admin.updateUserById(
+      user.id,
+      {
+        password,
+      },
+    );
+    if (error) {
+      throw new UnprocessableEntityException({
+        error: {
+          code: 'PASSWORD_RESET_REJECTED',
+          message: 'Não foi possível usar esta senha. Escolha outra senha.',
+        },
+      });
+    }
+
+    await this.prisma.$transaction(async (transaction) => {
+      await transaction.userAccount.update({
+        where: { id: user.id },
+        data: { passwordChangedAt: new Date() },
+      });
+      await transaction.auditEvent.create({
+        data: {
+          actorUserId: user.id,
+          studentScopeId: user.id,
+          action: 'PASSWORD_RESET_COMPLETED',
+          entityType: 'USER_ACCOUNT',
+          entityId: user.id,
+        },
+      });
+    });
+    await this.adminClient.auth.admin.signOut(accessToken, 'global');
+
+    return { completed: true };
+  }
+
   async verifyAccessToken(token: string): Promise<AuthUser> {
     const { data, error } = await this.client.auth.getClaims(token);
     const subject = data?.claims.sub;
@@ -191,9 +253,24 @@ export class SupabaseAuthService {
 
     const account = await this.prisma.userAccount.findUnique({
       where: { id: subject },
-      select: { email: true, username: true, role: true, status: true },
+      select: {
+        email: true,
+        username: true,
+        role: true,
+        status: true,
+        passwordChangedAt: true,
+      },
     });
-    if (!account || account.status !== AccountStatus.ACTIVE) {
+    const issuedAt =
+      typeof data.claims.iat === 'number'
+        ? new Date(data.claims.iat * 1_000)
+        : null;
+    if (
+      !account ||
+      account.status !== AccountStatus.ACTIVE ||
+      !issuedAt ||
+      (account.passwordChangedAt && issuedAt < account.passwordChangedAt)
+    ) {
       throw new UnauthorizedException({
         error: {
           code: 'ACCOUNT_UNAVAILABLE',
@@ -229,6 +306,15 @@ export class SupabaseAuthService {
       error: {
         code: 'ACCOUNT_ALREADY_EXISTS',
         message: 'O nome de usuário ou e-mail informado não está disponível.',
+      },
+    });
+  }
+
+  private throwExpiredPasswordReset(): never {
+    throw new UnauthorizedException({
+      error: {
+        code: 'PASSWORD_RESET_EXPIRED',
+        message: 'Este link de recuperação expirou ou já foi utilizado.',
       },
     });
   }
