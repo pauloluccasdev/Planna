@@ -701,6 +701,19 @@ export class PlanningService {
           });
         }
       }
+      await transaction.auditEvent.create({
+        data: {
+          actorUserId: studentId,
+          studentScopeId: studentId,
+          action: 'PLANNING_PROPOSAL_CONFIRMED',
+          entityType: 'PLANNING_PROPOSAL',
+          entityId: proposal.id,
+          metadata: {
+            confirmedAt: confirmedAt.toISOString(),
+            blockCount: proposal.blocks.length,
+          },
+        },
+      });
       return transaction.planningProposal.findUniqueOrThrow({
         where: { id },
         include: {
@@ -713,37 +726,49 @@ export class PlanningService {
   }
 
   async discard(studentId: string, id: string) {
-    const proposal = await this.prisma.planningProposal.findFirst({
-      where: { id, studentId },
-      select: { id: true, status: true, revision: true },
-    });
-    if (!proposal) this.throwProposalNotFound();
-    if (proposal.status === ProposalStatus.DISCARDED) return proposal;
-    if (
-      proposal.status !== ProposalStatus.READY &&
-      proposal.status !== ProposalStatus.REVIEWING
-    ) {
-      throw new ConflictException({
-        error: {
-          code: 'PLANNING_PROPOSAL_NOT_DISCARDABLE',
-          message: 'Esta proposta não pode mais ser descartada.',
+    return this.prisma.$transaction(async (transaction) => {
+      await transaction.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${studentId}, 0))`;
+      const proposal = await transaction.planningProposal.findFirst({
+        where: { id, studentId },
+        select: { id: true, status: true, revision: true },
+      });
+      if (!proposal) this.throwProposalNotFound();
+      if (proposal.status === ProposalStatus.DISCARDED) return proposal;
+      if (
+        proposal.status !== ProposalStatus.READY &&
+        proposal.status !== ProposalStatus.REVIEWING
+      ) {
+        throw new ConflictException({
+          error: {
+            code: 'PLANNING_PROPOSAL_NOT_DISCARDABLE',
+            message: 'Esta proposta não pode mais ser descartada.',
+          },
+        });
+      }
+      const changed = await transaction.planningProposal.updateMany({
+        where: {
+          id,
+          studentId,
+          revision: proposal.revision,
+          status: { in: [ProposalStatus.READY, ProposalStatus.REVIEWING] },
+        },
+        data: {
+          status: ProposalStatus.DISCARDED,
+          revision: { increment: 1 },
         },
       });
-    }
-    const changed = await this.prisma.planningProposal.updateMany({
-      where: {
-        id,
-        studentId,
-        revision: proposal.revision,
-        status: { in: [ProposalStatus.READY, ProposalStatus.REVIEWING] },
-      },
-      data: {
-        status: ProposalStatus.DISCARDED,
-        revision: { increment: 1 },
-      },
+      if (changed.count !== 1) this.throwProposalStale();
+      await transaction.auditEvent.create({
+        data: {
+          actorUserId: studentId,
+          studentScopeId: studentId,
+          action: 'PLANNING_PROPOSAL_DISCARDED',
+          entityType: 'PLANNING_PROPOSAL',
+          entityId: proposal.id,
+        },
+      });
+      return transaction.planningProposal.findUniqueOrThrow({ where: { id } });
     });
-    if (changed.count !== 1) this.throwProposalStale();
-    return this.prisma.planningProposal.findUniqueOrThrow({ where: { id } });
   }
 
   private throwInvalidRange(): never {

@@ -68,6 +68,29 @@ async function cleanupUserData(database, id) {
     [id],
   );
   await database.query('delete from study_blocks where student_id = $1', [id]);
+  await database.query(
+    'delete from proposed_block_parts where proposed_block_id in (select id from proposed_study_blocks where student_id = $1)',
+    [id],
+  );
+  await database.query(
+    'delete from proposal_diagnostics where proposal_id in (select id from planning_proposals where student_id = $1)',
+    [id],
+  );
+  await database.query(
+    'delete from proposed_study_blocks where student_id = $1',
+    [id],
+  );
+  await database.query(
+    'delete from proposal_courses where proposal_id in (select id from planning_proposals where student_id = $1)',
+    [id],
+  );
+  await database.query(
+    'delete from proposal_subjects where proposal_id in (select id from planning_proposals where student_id = $1)',
+    [id],
+  );
+  await database.query('delete from planning_proposals where student_id = $1', [
+    id,
+  ]);
   await database.query('delete from recurrence_series where student_id = $1', [
     id,
   ]);

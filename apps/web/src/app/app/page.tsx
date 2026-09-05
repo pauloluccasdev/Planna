@@ -159,6 +159,9 @@ export default async function DashboardPage({ searchParams }: Props) {
           <Link className="secondary-button" href="/app/study/new">
             Registrar estudo
           </Link>
+          <Link className="secondary-button" href="/app/planning">
+            Gerar planejamento
+          </Link>
           <Link className="button" href="/app/courses">
             Organizar estudos
           </Link>

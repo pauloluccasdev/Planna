@@ -54,15 +54,22 @@ describe('PlanningService', () => {
   });
 
   it('does not discard a confirmed proposal', async () => {
-    prisma.planningProposal.findFirst.mockResolvedValue({
-      id: 'proposal-id',
-      status: ProposalStatus.CONFIRMED,
-      revision: 2,
-    });
+    const transaction = {
+      $executeRaw: vi.fn().mockResolvedValue(1),
+      planningProposal: {
+        findFirst: vi.fn().mockResolvedValue({
+          id: 'proposal-id',
+          status: ProposalStatus.CONFIRMED,
+          revision: 2,
+        }),
+        updateMany: vi.fn(),
+      },
+    };
+    prisma.$transaction.mockImplementation((callback) => callback(transaction));
     await expect(
       service.discard('student-id', 'proposal-id'),
     ).rejects.toBeInstanceOf(ConflictException);
-    expect(prisma.planningProposal.updateMany).not.toHaveBeenCalled();
+    expect(transaction.planningProposal.updateMany).not.toHaveBeenCalled();
   });
 
   it('does not expose another student proposal during confirmation', async () => {
@@ -75,5 +82,37 @@ describe('PlanningService', () => {
     await expect(
       service.confirm('student-id', 'proposal-id'),
     ).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it('audits a discarded proposal in the same transaction', async () => {
+    const discarded = {
+      id: 'proposal-id',
+      status: ProposalStatus.DISCARDED,
+      revision: 2,
+    };
+    const transaction = {
+      $executeRaw: vi.fn().mockResolvedValue(1),
+      planningProposal: {
+        findFirst: vi.fn().mockResolvedValue({
+          id: 'proposal-id',
+          status: ProposalStatus.READY,
+          revision: 1,
+        }),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+        findUniqueOrThrow: vi.fn().mockResolvedValue(discarded),
+      },
+      auditEvent: { create: vi.fn().mockResolvedValue({ id: 'audit-id' }) },
+    };
+    prisma.$transaction.mockImplementation((callback) => callback(transaction));
+
+    await expect(service.discard('student-id', 'proposal-id')).resolves.toBe(
+      discarded,
+    );
+    expect(transaction.auditEvent.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        action: 'PLANNING_PROPOSAL_DISCARDED',
+        entityId: 'proposal-id',
+      }),
+    });
   });
 });
