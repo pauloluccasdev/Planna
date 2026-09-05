@@ -9,6 +9,7 @@ export type PartFormState = {
   errors?: { name?: string };
 };
 export type PartEditState = { message?: string; success?: string };
+export type ContentCompletionState = { message?: string };
 
 export type ContentEditState = {
   message?: string;
@@ -59,6 +60,28 @@ export async function updateContent(
   revalidatePath(`/app/contents/${contentId}`);
   revalidatePath(`/app/subjects/${subjectId}`);
   redirect(`/app/contents/${contentId}`);
+}
+
+export async function completeContent(
+  contentId: string,
+  _state: ContentCompletionState,
+): Promise<ContentCompletionState> {
+  void _state;
+  const response = await authenticatedApi(`contents/${contentId}/complete`, {
+    method: "POST",
+  });
+  if (!response || response.status === 401) redirect("/login");
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as {
+      error?: { message?: string };
+    } | null;
+    return {
+      message:
+        payload?.error?.message ?? "Não foi possível concluir o conteúdo.",
+    };
+  }
+  revalidatePath(`/app/contents/${contentId}`);
+  return {};
 }
 
 export async function createPart(

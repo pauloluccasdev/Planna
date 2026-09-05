@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { authenticatedApi } from "../../../_lib/api";
 import { movePart } from "./actions";
+import { ContentCompletion } from "./content-completion";
 import { PartForm } from "./part-form";
 import { PartManager } from "./part-manager";
 
@@ -103,9 +104,11 @@ export default async function ContentPage({ params }: Props) {
             <p>
               {progress.totalParts
                 ? `${progress.completedParts} de ${progress.totalParts} partes concluídas`
-                : progress.status === "IN_PROGRESS"
-                  ? "Existe execução registrada. A conclusão depende da regra para conteúdos sem partes."
-                  : "Nenhuma execução registrada até agora."}
+                : progress.status === "COMPLETED"
+                  ? "Conclusão confirmada manualmente por você."
+                  : progress.status === "IN_PROGRESS"
+                    ? "Existe execução registrada. Confirme quando terminar todo o conteúdo."
+                    : "Nenhuma execução registrada até agora."}
             </p>
           </div>
           <div className="progress-summary">
@@ -123,6 +126,9 @@ export default async function ContentPage({ params }: Props) {
               </div>
             ) : null}
             <small>{progress.futureBlockCount} blocos futuros</small>
+            {progress.totalParts === 0 && progress.status !== "COMPLETED" ? (
+              <ContentCompletion contentId={contentId} />
+            ) : null}
           </div>
           {progress.needsFuturePlanning ? (
             <div className="planning-warning">

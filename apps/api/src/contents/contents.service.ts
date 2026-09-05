@@ -20,6 +20,7 @@ const contentSelection = {
   description: true,
   priority: true,
   estimatedDurationSeconds: true,
+  manuallyCompletedAt: true,
   archivedAt: true,
   createdAt: true,
   updatedAt: true,
@@ -93,6 +94,7 @@ export class ContentsService {
       where: { id, studentId },
       select: {
         id: true,
+        manuallyCompletedAt: true,
         parts: {
           where: { archivedAt: null },
           select: { id: true },
@@ -138,7 +140,9 @@ export class ContentsService {
       ({ contentPartId }) => contentPartId,
     );
     const completed =
-      partIds.length > 0 && completedPartIds.length === partIds.length;
+      partIds.length > 0
+        ? completedPartIds.length === partIds.length
+        : content.manuallyCompletedAt !== null;
     const status = completed
       ? 'COMPLETED'
       : executionCount > 0
@@ -152,7 +156,9 @@ export class ContentsService {
       percentage:
         partIds.length > 0
           ? (completedPartIds.length * 100) / partIds.length
-          : null,
+          : completed
+            ? 100
+            : null,
       futureBlockCount,
       needsFuturePlanning: !completed && futureBlockCount === 0,
     };
@@ -197,6 +203,52 @@ export class ContentsService {
       where: { id },
       data: { archivedAt: archived ? new Date() : null },
       select: contentSelection,
+    });
+  }
+
+  async completeManually(studentId: string, id: string) {
+    const content = await this.get(studentId, id);
+    if (content.archivedAt) {
+      throw new ConflictException({
+        error: {
+          code: 'CONTENT_ARCHIVED',
+          message: 'Restaure o conteúdo antes de concluí-lo.',
+        },
+      });
+    }
+    if (content._count.parts > 0) {
+      throw new ConflictException({
+        error: {
+          code: 'CONTENT_HAS_PARTS',
+          message: 'Conclua as partes deste conteúdo individualmente.',
+        },
+      });
+    }
+    if (content.manuallyCompletedAt) return content;
+
+    return this.prisma.$transaction(async (transaction) => {
+      const completedAt = new Date();
+      const update = await transaction.content.updateMany({
+        where: { id, studentId, manuallyCompletedAt: null },
+        data: { manuallyCompletedAt: completedAt },
+      });
+      const completed = await transaction.content.findUnique({
+        where: { id },
+        select: contentSelection,
+      });
+      if (!completed) this.throwNotFound();
+      if (update.count === 0) return completed;
+      await transaction.auditEvent.create({
+        data: {
+          actorUserId: studentId,
+          studentScopeId: studentId,
+          action: 'CONTENT_MANUALLY_COMPLETED',
+          entityType: 'CONTENT',
+          entityId: id,
+          metadata: { completedAt: completedAt.toISOString() },
+        },
+      });
+      return completed;
     });
   }
 

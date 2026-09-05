@@ -17,6 +17,7 @@ describe('ContentsService', () => {
     studySession: { count: vi.fn() },
     studySessionCompletedPart: { findMany: vi.fn() },
     studyBlock: { count: vi.fn() },
+    $transaction: vi.fn(),
   };
   let service: ContentsService;
 
@@ -90,6 +91,7 @@ describe('ContentsService', () => {
   it('derives completion from all active parts confirmed by sessions', async () => {
     prisma.content.findFirst.mockResolvedValue({
       id: 'content-id',
+      manuallyCompletedAt: null,
       parts: [{ id: 'part-1' }, { id: 'part-2' }],
     });
     prisma.studySessionCompletedPart.findMany.mockResolvedValue([
@@ -111,6 +113,7 @@ describe('ContentsService', () => {
   it('signals content with remaining work and no future block', async () => {
     prisma.content.findFirst.mockResolvedValue({
       id: 'content-id',
+      manuallyCompletedAt: null,
       parts: [{ id: 'part-1' }, { id: 'part-2' }],
     });
     prisma.studySessionCompletedPart.findMany.mockResolvedValue([
@@ -128,9 +131,10 @@ describe('ContentsService', () => {
     );
   });
 
-  it('does not invent completion criteria for content without parts', async () => {
+  it('keeps content without parts in progress until manual confirmation', async () => {
     prisma.content.findFirst.mockResolvedValue({
       id: 'content-id',
+      manuallyCompletedAt: null,
       parts: [],
     });
     prisma.studySession.count.mockResolvedValue(1);
@@ -142,6 +146,98 @@ describe('ContentsService', () => {
         needsFuturePlanning: true,
       }),
     );
+  });
+
+  it('derives completion without parts from manual confirmation', async () => {
+    prisma.content.findFirst.mockResolvedValue({
+      id: 'content-id',
+      manuallyCompletedAt: new Date(),
+      parts: [],
+    });
+    prisma.studySession.count.mockResolvedValue(1);
+    prisma.studyBlock.count.mockResolvedValue(0);
+    await expect(service.progress('student-id', 'content-id')).resolves.toEqual(
+      expect.objectContaining({
+        status: 'COMPLETED',
+        percentage: 100,
+        needsFuturePlanning: false,
+      }),
+    );
+  });
+
+  it('records manual completion and its audit event atomically', async () => {
+    prisma.content.findFirst.mockResolvedValue({
+      id: 'content-id',
+      archivedAt: null,
+      manuallyCompletedAt: null,
+      _count: { parts: 0 },
+    });
+    const transaction = {
+      content: {
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+        findUnique: vi.fn().mockResolvedValue({ id: 'content-id' }),
+      },
+      auditEvent: { create: vi.fn().mockResolvedValue({}) },
+    };
+    prisma.$transaction.mockImplementation((callback) => callback(transaction));
+
+    await service.completeManually('student-id', 'content-id');
+
+    expect(transaction.content.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          id: 'content-id',
+          studentId: 'student-id',
+          manuallyCompletedAt: null,
+        },
+        data: { manuallyCompletedAt: expect.any(Date) },
+      }),
+    );
+    expect(transaction.auditEvent.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          action: 'CONTENT_MANUALLY_COMPLETED',
+          entityId: 'content-id',
+        }),
+      }),
+    );
+  });
+
+  it('rejects manual completion when the content has parts', async () => {
+    prisma.content.findFirst.mockResolvedValue({
+      id: 'content-id',
+      archivedAt: null,
+      manuallyCompletedAt: null,
+      _count: { parts: 1 },
+    });
+    await expect(
+      service.completeManually('student-id', 'content-id'),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('does not duplicate the audit when a concurrent completion won', async () => {
+    prisma.content.findFirst.mockResolvedValue({
+      id: 'content-id',
+      archivedAt: null,
+      manuallyCompletedAt: null,
+      _count: { parts: 0 },
+    });
+    const transaction = {
+      content: {
+        updateMany: vi.fn().mockResolvedValue({ count: 0 }),
+        findUnique: vi.fn().mockResolvedValue({
+          id: 'content-id',
+          manuallyCompletedAt: new Date(),
+        }),
+      },
+      auditEvent: { create: vi.fn() },
+    };
+    prisma.$transaction.mockImplementation((callback) => callback(transaction));
+
+    await service.completeManually('student-id', 'content-id');
+
+    expect(transaction.auditEvent.create).not.toHaveBeenCalled();
   });
 
   it('blocks hard deletion when execution history exists', async () => {

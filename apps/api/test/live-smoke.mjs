@@ -49,6 +49,10 @@ async function withDatabase(callback) {
 
 async function cleanupUserData(database, id) {
   await database.query(
+    'delete from audit_events where student_scope_id = $1 or actor_user_id = $1',
+    [id],
+  );
+  await database.query(
     'delete from study_session_completed_parts where study_session_id in (select id from study_sessions where student_id = $1)',
     [id],
   );
@@ -695,6 +699,47 @@ try {
     throw new Error('Cancelled recurrence still appears in the calendar');
   }
 
+  const completedContent = await fetch(
+    `${apiUrl}/contents/${contentId}/complete`,
+    { method: 'POST', headers },
+  );
+  if (!completedContent.ok) {
+    throw new Error(
+      `Completing content manually failed with ${completedContent.status}`,
+    );
+  }
+  const repeatedCompletion = await fetch(
+    `${apiUrl}/contents/${contentId}/complete`,
+    { method: 'POST', headers },
+  );
+  if (!repeatedCompletion.ok) {
+    throw new Error('Manual content completion was not idempotent');
+  }
+  const contentProgress = await fetch(
+    `${apiUrl}/contents/${contentId}/progress`,
+    { headers },
+  );
+  const contentProgressBody = await contentProgress.json();
+  if (
+    !contentProgress.ok ||
+    contentProgressBody.data.status !== 'COMPLETED' ||
+    contentProgressBody.data.percentage !== 100
+  ) {
+    throw new Error('Manual content completion did not update progress');
+  }
+  const completionAuditCount = await withDatabase(async (database) => {
+    const result = await database.query(
+      `select count(*)::int as count
+       from audit_events
+       where entity_id = $1 and action = 'CONTENT_MANUALLY_COMPLETED'`,
+      [contentId],
+    );
+    return result.rows[0].count;
+  });
+  if (completionAuditCount !== 1) {
+    throw new Error('Manual content completion audit is not idempotent');
+  }
+
   if (keepTestUser) {
     const alternateContent = await fetch(
       `${apiUrl}/subjects/${subjectId}/contents`,
@@ -809,6 +854,7 @@ try {
       calendarListed: true,
       recurrenceCancelled: true,
       cancelledRecurrenceHiddenFromCalendar: true,
+      contentCompletedManually: true,
       cleanupScheduled: true,
       ...(keepTestUser
         ? {

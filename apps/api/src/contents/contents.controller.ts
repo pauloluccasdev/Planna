@@ -83,6 +83,14 @@ export class ContentsController {
     return { data: await this.contents.setArchived(user.id, id, true) };
   }
 
+  @Post('contents/:id/complete')
+  async complete(
+    @CurrentUser() user: AuthUser,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    return { data: await this.contents.completeManually(user.id, id) };
+  }
+
   @Post('contents/:id/restore')
   async restore(
     @CurrentUser() user: AuthUser,
