@@ -109,6 +109,12 @@ PWA somente solicita permissão por ação do aluno e apenas quando uma chave VA
 pública estiver configurada. Endpoint e chaves da inscrição permanecem somente
 na API e não são reapresentados ao cliente.
 
+A PWA observa o estado de conectividade do navegador e informa explicitamente
+quando fica offline. O aviso não promete operação offline nem introduz cache de
+dados acadêmicos; ele desaparece quando a conectividade é restabelecida. O
+service worker assume a versão nova imediatamente e reutiliza uma janela aberta
+ao tocar em uma futura notificação, evitando acumular instalações ou abas.
+
 ## Tarefas agendadas
 
 Supabase Cron pode executar SQL ou chamar Edge Functions. Jobs candidatos:
