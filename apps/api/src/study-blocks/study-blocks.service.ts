@@ -7,7 +7,12 @@ import {
 import { randomUUID } from 'node:crypto';
 import { AvailabilityService } from '../availability/availability.service.js';
 import { PrismaService } from '../database/prisma.service.js';
-import { BlockSource, BlockStatus } from '../generated/prisma/enums.js';
+import type { Prisma } from '../generated/prisma/client.js';
+import {
+  BlockSource,
+  BlockStatus,
+  SessionStatus,
+} from '../generated/prisma/enums.js';
 import { OverdueService } from '../overdue/overdue.service.js';
 import type { CreateStudyBlockDto } from './dto/create-study-block.dto.js';
 import type { CreateRecurringStudyBlockDto } from './dto/create-recurring-study-block.dto.js';
@@ -597,14 +602,38 @@ export class StudyBlocksService {
         },
       });
     }
-    return this.prisma.studyBlock.update({
-      where: { id },
-      data: {
-        status: BlockStatus.CANCELLED,
-        cancelledAt: new Date(),
-        revision: { increment: 1 },
-      },
-      select: blockSelection,
+    return this.prisma.$transaction(async (transaction) => {
+      await transaction.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${studentId}, 0))`;
+      const current = await transaction.studyBlock.findFirst({
+        where: { id, studentId },
+        select: { id: true, contentId: true, status: true },
+      });
+      if (!current) this.throwNotFound();
+      if (finalBlockStatuses.has(current.status)) {
+        throw new ConflictException({
+          error: {
+            code: 'STUDY_BLOCK_NOT_CANCELLABLE',
+            message: 'Este bloco não pode ser cancelado.',
+          },
+        });
+      }
+      const cancelledAt = new Date();
+      const cancelled = await transaction.studyBlock.update({
+        where: { id },
+        data: {
+          status: BlockStatus.CANCELLED,
+          cancelledAt,
+          revision: { increment: 1 },
+        },
+        select: blockSelection,
+      });
+      const uncoveredContents = await this.findUncoveredContents(
+        transaction,
+        studentId,
+        [current.contentId],
+        cancelledAt,
+      );
+      return { ...cancelled, warnings: { uncoveredContents } };
     });
   }
 
@@ -625,6 +654,15 @@ export class StudyBlocksService {
     return this.prisma.$transaction(async (transaction) => {
       await transaction.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${studentId}, 0))`;
       const cancelledAt = new Date();
+      const affectedContents = await transaction.studyBlock.findMany({
+        where: {
+          studentId,
+          recurrenceSeriesId: seriesId,
+          status: { in: activeBlockStatuses },
+        },
+        select: { contentId: true },
+        distinct: ['contentId'],
+      });
       const result = await transaction.studyBlock.updateMany({
         where: {
           studentId,
@@ -637,8 +675,88 @@ export class StudyBlocksService {
           revision: { increment: 1 },
         },
       });
-      return { seriesId, cancelledBlocks: result.count, cancelledAt };
+      const uncoveredContents = await this.findUncoveredContents(
+        transaction,
+        studentId,
+        affectedContents.map(({ contentId }) => contentId),
+        cancelledAt,
+      );
+      return {
+        seriesId,
+        cancelledBlocks: result.count,
+        cancelledAt,
+        warnings: { uncoveredContents },
+      };
     });
+  }
+
+  private async findUncoveredContents(
+    client: PrismaService | Prisma.TransactionClient,
+    studentId: string,
+    contentIds: string[],
+    now: Date,
+  ) {
+    const uniqueContentIds = [...new Set(contentIds)];
+    if (uniqueContentIds.length === 0) return [];
+    const [contents, completedParts, futureBlockGroups] = await Promise.all([
+      client.content.findMany({
+        where: {
+          id: { in: uniqueContentIds },
+          studentId,
+          archivedAt: null,
+        },
+        select: {
+          id: true,
+          name: true,
+          manuallyCompletedAt: true,
+          parts: {
+            where: { archivedAt: null },
+            select: { id: true },
+          },
+        },
+      }),
+      client.studySessionCompletedPart.findMany({
+        where: {
+          contentPart: {
+            contentId: { in: uniqueContentIds },
+            archivedAt: null,
+          },
+          studySession: { studentId, status: SessionStatus.COMPLETED },
+        },
+        select: {
+          contentPartId: true,
+          contentPart: { select: { contentId: true } },
+        },
+        distinct: ['contentPartId'],
+      }),
+      client.studyBlock.groupBy({
+        by: ['contentId'],
+        where: {
+          studentId,
+          contentId: { in: uniqueContentIds },
+          endsAt: { gt: now },
+          status: { in: activeBlockStatuses },
+        },
+        _count: { _all: true },
+      }),
+    ]);
+    const completedPartIds = new Set(
+      completedParts.map(({ contentPartId }) => contentPartId),
+    );
+    const coveredContentIds = new Set(
+      futureBlockGroups.map(({ contentId }) => contentId),
+    );
+    return contents
+      .filter((content) => {
+        const completed =
+          content.parts.length > 0
+            ? content.parts.every(({ id: partId }) =>
+                completedPartIds.has(partId),
+              )
+            : content.manuallyCompletedAt !== null;
+        return !completed && !coveredContentIds.has(content.id);
+      })
+      .map(({ id: contentId, name }) => ({ contentId, name }));
   }
 
   private async resolvePomodoro(studentId: string, input: CreateStudyBlockDto) {

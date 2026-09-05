@@ -275,6 +275,11 @@ DELETE /study-block-series/{series_id}
 
 Na criação, o payload do bloco recebe `repeatUntil` no formato `YYYY-MM-DD`. A operação é atômica: todas as ocorrências precisam estar dentro da disponibilidade e sem conflito, ou nenhuma é criada. Uma série diária aceita no máximo 366 blocos. O cancelamento individual usa a rota do bloco; o cancelamento da série altera apenas ocorrências ainda ativas e preserva as concluídas.
 
+O cancelamento de um bloco ou série inclui `warnings.uncoveredContents` com os
+conteúdos ainda incompletos que ficaram sem blocos futuros. A resposta permite
+que a interface cumpra o RF-STS-005 imediatamente, sem transformar o aviso em
+uma alteração automática do planejamento.
+
 ## Sessões de estudo
 
 ### Consultas
@@ -384,7 +389,7 @@ Respostas não incluem identificadores ou resumos acadêmicos.
 |  409 | `PROPOSAL_STALE`              | Entradas mudaram.                      |
 |  422 | `CONTENT_MISSING_ESTIMATE`    | Inelegível à geração.                  |
 |  422 | `CONTENT_PART_MISMATCH`       | Parte não pertence ao conteúdo.        |
-|  422 | `PROPOSAL_PARTS_REQUIRED`     | Bloco proposto ainda sem partes.        |
+|  422 | `PROPOSAL_PARTS_REQUIRED`     | Bloco proposto ainda sem partes.       |
 |  429 | `RATE_LIMITED`                | Limite excedido.                       |
 |  500 | `INTERNAL_ERROR`              | Falha inesperada com `request_id`.     |
 

@@ -92,10 +92,12 @@ function weekRange(anchorText?: string) {
   };
 }
 
-type Props = { searchParams: Promise<{ week?: string }> };
+type Props = {
+  searchParams: Promise<{ week?: string; cancellation?: string }>;
+};
 
 export default async function DashboardPage({ searchParams }: Props) {
-  const { week } = await searchParams;
+  const { week, cancellation } = await searchParams;
   const range = weekRange(week);
   const [
     meResponse,
@@ -205,6 +207,24 @@ export default async function DashboardPage({ searchParams }: Props) {
               ? "Continuar sessão"
               : "Abrir cronômetro"}
           </Link>
+        </section>
+      ) : null}
+      {cancellation === "success" || cancellation === "uncovered" ? (
+        <section className="dashboard-feedback" role="status">
+          <div>
+            <strong>
+              {cancellation === "uncovered"
+                ? "Bloco cancelado; conteúdo sem planejamento futuro."
+                : "Bloco cancelado."}
+            </strong>
+            {cancellation === "uncovered" ? (
+              <p>
+                O conteúdo ainda não foi concluído e ficou sem blocos futuros.
+                Você pode planejá-lo novamente quando desejar.
+              </p>
+            ) : null}
+          </div>
+          <Link href={`/app?week=${range.current}`}>Fechar</Link>
         </section>
       ) : null}
       <section className="metrics-strip" aria-label="Resumo da semana">

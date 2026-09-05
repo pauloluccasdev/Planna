@@ -1475,6 +1475,26 @@ a.resource-row:hover {
   font-size: 0.72rem;
   text-transform: uppercase;
 }
+.dashboard-feedback {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 20px;
+  padding: 16px 20px;
+  border: 1px solid #e6c765;
+  border-radius: 14px;
+  background: #fff8dc;
+}
+.dashboard-feedback p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  line-height: 1.45;
+}
+.dashboard-feedback a {
+  color: var(--ink);
+  font-weight: 700;
+}
 .metrics-strip {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -2395,6 +2415,10 @@ a.resource-row:hover {
     justify-self: start;
   }
   .active-session-banner {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .dashboard-feedback {
     align-items: flex-start;
     flex-direction: column;
   }

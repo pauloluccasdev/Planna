@@ -34,6 +34,7 @@ let fixtureEarlyBlockId;
 let fixtureAlternateContentId;
 let fixtureAlternatePartId;
 let fixturePlanningProposalId;
+let fixtureCancellationBlockId;
 
 async function withDatabase(callback) {
   const database = new pg.Client({
@@ -681,6 +682,7 @@ try {
   ) {
     throw new Error('Confirming the regenerated automatic plan failed');
   }
+  const uncoveredAfterAutomaticCancellation = [];
   for (const automaticBlock of confirmedPlanningBody.data.confirmedBlocks) {
     const cancelledAutomaticBlock = await fetch(
       `${apiUrl}/study-blocks/${automaticBlock.id}/cancel`,
@@ -689,6 +691,20 @@ try {
     if (!cancelledAutomaticBlock.ok) {
       throw new Error('Cleaning up a confirmed automatic block failed');
     }
+    const cancelledAutomaticBody = await cancelledAutomaticBlock.json();
+    uncoveredAfterAutomaticCancellation.push(
+      ...cancelledAutomaticBody.data.warnings.uncoveredContents,
+    );
+  }
+  if (
+    !uncoveredAfterAutomaticCancellation.some(
+      ({ contentId: uncoveredContentId }) =>
+        uncoveredContentId === planningContentId,
+    )
+  ) {
+    throw new Error(
+      'Cancelling the last future block did not warn about uncovered content',
+    );
   }
 
   const createdBlock = await fetch(`${apiUrl}/study-blocks`, {
@@ -1219,6 +1235,35 @@ try {
         `${tomorrow}T11:00:00-03:00`,
       )
     ).id;
+    const cancellationContent = await fetch(
+      `${apiUrl}/subjects/${subjectId}/contents`,
+      {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          name: 'Conteúdo com último bloco',
+          priority: 3,
+          estimatedDurationSeconds: 1800,
+        }),
+      },
+    );
+    if (cancellationContent.status !== 201) {
+      throw new Error('Creating cancellation browser content failed');
+    }
+    const cancellationContentId = (await cancellationContent.json()).data.id;
+    const cancellationBlock = await fetch(`${apiUrl}/study-blocks`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        contentId: cancellationContentId,
+        startsAt: `${tomorrow}T14:00:00-03:00`,
+        endsAt: `${tomorrow}T14:30:00-03:00`,
+      }),
+    });
+    if (cancellationBlock.status !== 201) {
+      throw new Error('Creating cancellation browser block failed');
+    }
+    fixtureCancellationBlockId = (await cancellationBlock.json()).data.id;
     const fixtureSession = await fetch(
       `${apiUrl}/study-blocks/${currentFixtureBlock.id}/sessions/start`,
       { method: 'POST', headers },
@@ -1279,6 +1324,7 @@ try {
       futureEventChangeInvalidatedProposal: true,
       proposalPartsRequiredBeforeConfirmation: true,
       automaticPlanningConfirmedAtomically: true,
+      uncoveredContentDetectedAfterCancellation: true,
       studyBlockCreated: true,
       studyBlockUpdatedWithHistory: true,
       staleStudyBlockUpdateRejected: true,
@@ -1321,6 +1367,7 @@ try {
               alternateContentId: fixtureAlternateContentId,
               alternatePartId: fixtureAlternatePartId,
               planningProposalId: fixturePlanningProposalId,
+              cancellationBlockId: fixtureCancellationBlockId,
             },
           }
         : {}),

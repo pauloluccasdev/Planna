@@ -11,11 +11,17 @@ import { StudyBlocksService } from './study-blocks.service.js';
 
 describe('StudyBlocksService', () => {
   const prisma = {
-    content: { findFirst: vi.fn() },
+    content: { findFirst: vi.fn(), findMany: vi.fn() },
     contentPart: { count: vi.fn() },
     pomodoroPreference: { findUnique: vi.fn() },
     recurrenceSeries: { findFirst: vi.fn() },
-    studyBlock: { findFirst: vi.fn(), update: vi.fn() },
+    studyBlock: {
+      findFirst: vi.fn(),
+      findMany: vi.fn(),
+      update: vi.fn(),
+      groupBy: vi.fn(),
+    },
+    studySessionCompletedPart: { findMany: vi.fn() },
     $transaction: vi.fn(),
   };
   const availability = { coversInterval: vi.fn(), coversIntervals: vi.fn() };
@@ -28,6 +34,9 @@ describe('StudyBlocksService', () => {
     availability.coversInterval.mockResolvedValue(true);
     availability.coversIntervals.mockResolvedValue([true]);
     overdue.reconcileStudent.mockResolvedValue({ markedOverdue: 0 });
+    prisma.content.findMany.mockResolvedValue([]);
+    prisma.studyBlock.groupBy.mockResolvedValue([]);
+    prisma.studySessionCompletedPart.findMany.mockResolvedValue([]);
     service = new StudyBlocksService(
       prisma as unknown as PrismaService,
       availability as unknown as AvailabilityService,
@@ -144,7 +153,22 @@ describe('StudyBlocksService', () => {
     prisma.recurrenceSeries.findFirst.mockResolvedValue({ id: 'series-id' });
     const transaction = {
       $executeRaw: vi.fn().mockResolvedValue(1),
-      studyBlock: { updateMany: vi.fn().mockResolvedValue({ count: 2 }) },
+      content: {
+        findMany: vi.fn().mockResolvedValue([
+          {
+            id: 'content-id',
+            name: 'Bioquímica',
+            manuallyCompletedAt: null,
+            parts: [],
+          },
+        ]),
+      },
+      studyBlock: {
+        findMany: vi.fn().mockResolvedValue([{ contentId: 'content-id' }]),
+        updateMany: vi.fn().mockResolvedValue({ count: 2 }),
+        groupBy: vi.fn().mockResolvedValue([]),
+      },
+      studySessionCompletedPart: { findMany: vi.fn().mockResolvedValue([]) },
     };
     prisma.$transaction.mockImplementation((callback) => callback(transaction));
 
@@ -159,7 +183,45 @@ describe('StudyBlocksService', () => {
       }),
     );
     expect(result).toEqual(
-      expect.objectContaining({ seriesId: 'series-id', cancelledBlocks: 2 }),
+      expect.objectContaining({
+        seriesId: 'series-id',
+        cancelledBlocks: 2,
+        warnings: {
+          uncoveredContents: [{ contentId: 'content-id', name: 'Bioquímica' }],
+        },
+      }),
     );
+  });
+
+  it('does not warn when another future block still covers the content', async () => {
+    prisma.recurrenceSeries.findFirst.mockResolvedValue({ id: 'series-id' });
+    const transaction = {
+      $executeRaw: vi.fn().mockResolvedValue(1),
+      content: {
+        findMany: vi.fn().mockResolvedValue([
+          {
+            id: 'content-id',
+            name: 'Bioquímica',
+            manuallyCompletedAt: null,
+            parts: [],
+          },
+        ]),
+      },
+      studyBlock: {
+        findMany: vi.fn().mockResolvedValue([{ contentId: 'content-id' }]),
+        updateMany: vi.fn().mockResolvedValue({ count: 2 }),
+        groupBy: vi
+          .fn()
+          .mockResolvedValue([
+            { contentId: 'content-id', _count: { _all: 1 } },
+          ]),
+      },
+      studySessionCompletedPart: { findMany: vi.fn().mockResolvedValue([]) },
+    };
+    prisma.$transaction.mockImplementation((callback) => callback(transaction));
+
+    const result = await service.cancelSeries('student-id', 'series-id');
+
+    expect(result.warnings.uncoveredContents).toEqual([]);
   });
 });

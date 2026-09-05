@@ -38,15 +38,19 @@ export async function startStudySession(blockId: string) {
 }
 
 export async function cancelStudyBlock(blockId: string) {
-  await mutate<{ id: string }>(`study-blocks/${blockId}/cancel`);
+  const result = await mutate<CancellationResult>(
+    `study-blocks/${blockId}/cancel`,
+  );
   revalidatePath("/app");
+  return result.data;
 }
 
 export async function cancelStudyBlockSeries(seriesId: string) {
-  await mutate<{ seriesId: string; cancelledBlocks: number }>(
+  const result = await mutate<CancellationResult>(
     `study-blocks/series/${seriesId}/cancel`,
   );
   revalidatePath("/app");
+  return result.data;
 }
 
 export async function pauseStudySession(sessionId: string) {
@@ -110,4 +114,10 @@ type SessionMutation = {
     startedAt: string;
     endedAt: string | null;
   }>;
+};
+
+type CancellationResult = {
+  warnings: {
+    uncoveredContents: Array<{ contentId: string; name: string }>;
+  };
 };

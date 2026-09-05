@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useTransition } from "react";
 import {
   cancelStudyBlock,
@@ -23,8 +23,20 @@ export function BlockActions({
   canEdit,
 }: Props) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState("");
+
+  function showCancellationResult(result: {
+    warnings: { uncoveredContents: Array<{ name: string }> };
+  }) {
+    const nextSearchParams = new URLSearchParams(searchParams.toString());
+    nextSearchParams.set(
+      "cancellation",
+      result.warnings.uncoveredContents.length > 0 ? "uncovered" : "success",
+    );
+    router.replace(`/app?${nextSearchParams.toString()}`);
+  }
 
   function start() {
     setError("");
@@ -44,8 +56,9 @@ export function BlockActions({
     setError("");
     startTransition(async () => {
       try {
-        await cancelStudyBlockSeries(recurrenceSeriesId);
-        router.refresh();
+        showCancellationResult(
+          await cancelStudyBlockSeries(recurrenceSeriesId),
+        );
       } catch {
         setError("Não foi possível cancelar a série.");
       }
@@ -62,8 +75,7 @@ export function BlockActions({
     setError("");
     startTransition(async () => {
       try {
-        await cancelStudyBlock(blockId);
-        router.refresh();
+        showCancellationResult(await cancelStudyBlock(blockId));
       } catch {
         setError("Não foi possível cancelar o bloco.");
       }
