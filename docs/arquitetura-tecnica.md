@@ -114,6 +114,9 @@ quando fica offline. O aviso não promete operação offline nem introduz cache 
 dados acadêmicos; ele desaparece quando a conectividade é restabelecida. O
 service worker assume a versão nova imediatamente e reutiliza uma janela aberta
 ao tocar em uma futura notificação, evitando acumular instalações ou abas.
+O manifesto abre a área autenticada e oferece ícones PNG de 192 e 512 pixels,
+além de uma variante `maskable` com fundo opaco para instalação adaptável em
+Android e um ícone dedicado para a tela inicial do iOS.
 
 ## Tarefas agendadas
 

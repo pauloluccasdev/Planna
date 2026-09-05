@@ -11,7 +11,7 @@ self.addEventListener("push", (event) => {
   event.waitUntil(
     self.registration.showNotification(payload.title ?? "Planna", {
       body: payload.body ?? "Você tem uma atualização no seu planejamento.",
-      icon: "/planna-icon.svg",
+      icon: "/planna-icon-192.png",
       data: { url: payload.url ?? "/" },
     }),
   );

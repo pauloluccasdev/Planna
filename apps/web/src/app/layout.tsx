@@ -18,6 +18,10 @@ export const metadata: Metadata = {
   title: { default: "Planna", template: "%s | Planna" },
   description: "Planejamento adaptativo para estudantes universitários.",
   applicationName: "Planna",
+  icons: {
+    icon: "/planna-icon.svg",
+    apple: "/planna-apple-touch-icon.png",
+  },
   appleWebApp: { capable: true, title: "Planna" },
 };
 
