@@ -14,6 +14,8 @@ for (const name of required) {
 }
 
 const apiUrl = process.env.API_URL ?? 'http://localhost:3001/api/v1';
+const keepTestUser = process.env.KEEP_TEST_USER === '1';
+const cleanupOnly = process.env.CLEANUP_ONLY === '1';
 const suffix = Date.now();
 const email = `planna-it-${suffix}@example.com`;
 const username = `planna_it_${suffix}`;
@@ -94,6 +96,10 @@ async function cleanupStaleSmokeUsers() {
 
 try {
   await cleanupStaleSmokeUsers();
+  if (cleanupOnly) {
+    console.log(JSON.stringify({ staleSmokeUsersCleaned: true }));
+    process.exit(0);
+  }
   const createdUser = await admin.auth.admin.createUser({
     email,
     password,
@@ -507,10 +513,11 @@ try {
       recurrenceCancelled: true,
       cancelledRecurrenceHiddenFromCalendar: true,
       cleanupScheduled: true,
+      ...(keepTestUser ? { fixture: { username, password, userId } } : {}),
     }),
   );
 } finally {
-  if (userId) {
+  if (userId && !keepTestUser) {
     await withDatabase((database) => cleanupUserData(database, userId)).catch(
       () => {},
     );

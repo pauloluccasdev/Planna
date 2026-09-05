@@ -148,6 +148,9 @@ export default async function DashboardPage({ searchParams }: Props) {
           <p>Seus blocos e compromissos acadêmicos aparecerão aqui.</p>
         </div>
         <div className="dashboard-intro-actions">
+          <Link className="secondary-button" href="/app/metrics">
+            Ver indicadores
+          </Link>
           <Link className="secondary-button" href="/app/study/new">
             Registrar estudo
           </Link>
