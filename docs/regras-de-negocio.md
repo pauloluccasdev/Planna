@@ -64,7 +64,7 @@ Este documento registra somente decisões confirmadas. As identificações devem
 
 - **RN-RSC-001** — Prioridade manual e urgência calculada são conceitos diferentes.
 - **RN-RSC-002** — A proximidade de um evento pode fazer conteúdo de baixa prioridade anteceder conteúdo de prioridade alta sem evento próximo.
-- **RN-RSC-003** — O cálculo considera prioridade, proximidade de eventos, carga restante, progresso, atrasos e disponibilidade.
+- **RN-RSC-003** — No MVP, a ordem de priorização automática considera a prioridade definida pelo aluno e a proximidade de provas ou trabalhos relacionados. Carga restante e disponibilidade determinam quanto pode ser alocado, mas não acrescentam peso à prioridade.
 - **RN-RSC-004** — O Planna alerta preventivamente quando a disponibilidade é insuficiente para cumprir a carga antes de um evento.
 
 ## Sessões, blocos e Pomodoro
@@ -82,6 +82,8 @@ Este documento registra somente decisões confirmadas. As identificações devem
 - **RN-SES-011** — Minimizar a PWA ou bloquear a tela não pausa a sessão.
 - **RN-SES-012** — Em fechamento inesperado, o Planna deve solicitar confirmação posterior do horário de interrupção quando não puder detectá-lo com segurança.
 - **RN-SES-013** — Se o estudo atual invadir o próximo bloco, o Planna alerta; o aluno decide continuar, pausar ou concluir.
+- **RN-SES-014** — O aluno define como organizar sua sequência de estudo, inclusive quantidade de pausas e alternância de conteúdos. Cada bloco continua pertencendo a um único conteúdo; uma sequência com matérias diferentes é representada por blocos consecutivos.
+- **RN-SES-015** — Durante a execução, o aluno pode mudar livremente o conteúdo ou as pausas. O Planna registra o que foi efetivamente realizado sem reescrever silenciosamente os blocos confirmados.
 
 ## Estados e progresso
 
@@ -91,6 +93,7 @@ Este documento registra somente decisões confirmadas. As identificações devem
 - **RN-STS-004** — Conteúdo pendente não possui bloco concluído; conteúdo em andamento possui execução e trabalho restante; conteúdo concluído não possui partes ou blocos restantes.
 - **RN-STS-005** — Se partes não forem confirmadas ou não houver blocos suficientes, o conteúdo permanece em andamento e demanda novo planejamento.
 - **RN-STS-006** — Cancelar o último bloco futuro não conclui o conteúdo; ele fica sinalizado como sem blocos futuros.
+- **RN-STS-007** — Um conteúdo sem partes somente é concluído após confirmação manual do aluno; atingir a estimativa ou concluir o último bloco não o conclui automaticamente.
 
 ## Replanejamento e histórico
 
@@ -101,6 +104,7 @@ Este documento registra somente decisões confirmadas. As identificações devem
 - **RN-RPL-005** — Depois de uma rejeição, uma nova sugestão somente é criada mediante solicitação do aluno.
 - **RN-RPL-006** — O bloco original permanece no histórico como replanejado e ligado ao novo bloco.
 - **RN-RPL-007** — Alterações manuais em blocos confirmados preservam os valores anteriores e o momento da mudança.
+- **RN-RPL-008** — Ao replanejar um bloco parcialmente executado, a sugestão usa somente a duração planejada ainda não realizada. Foco e pausas Pomodoro registrados contam como tempo realizado; períodos em que a sessão ficou pausada aguardando retomada não contam.
 
 ## Cancelamento e indicadores
 

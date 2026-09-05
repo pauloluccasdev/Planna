@@ -87,7 +87,7 @@ O conteúdo deve ser listado como não elegível, com motivo, quando falhar ness
 3. Subtrair os intervalos de eventos acadêmicos que possuam término.
 4. Subtrair blocos confirmados elegíveis à ocupação da agenda.
 5. Normalizar intervalos restantes em ordem cronológica.
-6. Descartar fragmentos menores que a duração mínima do bloco — parâmetro ainda a validar.
+6. Descartar apenas fragmentos sem duração positiva; o MVP não impõe um tamanho mínimo fixo de produto ao bloco automático.
 
 Intervalos de eventos sobrepostos devem ser combinados na subtração para não duplicar tempo ocupado.
 
@@ -120,14 +120,12 @@ Blocos atrasados precisam ser considerados uma única vez: como carga a recupera
 
 ### Componentes confirmados
 
-O ordenamento deve considerar:
+No MVP, o ordenamento deve considerar:
 
 - prioridade manual;
 - proximidade de evento relacionado;
-- carga restante;
-- progresso atual;
-- existência de atraso;
-- capacidade disponível até o prazo.
+
+A carga restante e a capacidade disponível determinam a quantidade alocável e os diagnósticos de déficit. Conteúdos atrasados continuam obrigatoriamente elegíveis, mas atraso e progresso não acrescentam peso ao ordenamento no MVP.
 
 ### Modelo de pontuação candidato
 
@@ -135,14 +133,11 @@ Cada componente deve ser normalizado para uma faixa comum antes da combinação:
 
 ```text
 score =
-    peso_prioridade   * prioridade_normalizada
-  + peso_prazo        * urgencia_prazo
-  + peso_atraso       * indicador_atraso
-  + peso_risco        * risco_capacidade
-  + peso_progresso    * pressao_de_conclusao
+    peso_prioridade * prioridade_normalizada
+  + peso_prazo      * urgencia_prazo
 ```
 
-Os pesos e as curvas ainda não estão aprovados. O modelo expressa a estrutura, não valores definitivos.
+Os coeficientes técnicos devem ser versionados e calibrados com cenários reais. Eles não podem introduzir fatores de negócio além de prioridade e proximidade do evento sem nova decisão do produto.
 
 ### Urgência de prazo candidata
 
@@ -160,17 +155,15 @@ pressao = carga_restante_ate_evento / capacidade_livre_ate_evento
 
 Quando um evento está marcado como “conteúdos ainda não informados”, ele aumenta o risco informativo da disciplina, mas não autoriza o motor a inventar conteúdos relacionados.
 
-### Desempate candidato
+### Desempate técnico
 
 Quando os scores forem iguais:
 
 1. evento relacionado mais próximo;
-2. bloco atrasado mais antigo;
-3. maior prioridade manual;
-4. menor carga restante, favorecendo conclusão;
-5. identificador estável, garantindo resultado reproduzível.
+2. maior prioridade manual;
+3. identificador estável, garantindo resultado reproduzível.
 
-A ordem de desempate é proposta técnica e requer validação com cenários reais.
+A ordem mantém o resultado determinístico sem introduzir novos fatores de priorização.
 
 ## Alocação
 
@@ -195,12 +188,13 @@ O bloco deve respeitar:
 
 - tamanho do intervalo livre;
 - carga restante do conteúdo;
-- ciclos da configuração padrão de Pomodoro;
-- duração mínima e máxima ainda a validar;
+- organização de foco e pausas escolhida pelo aluno para a sequência;
 - limite do evento relacionado;
 - blocos e eventos adjacentes.
 
 Pausas do Pomodoro fazem parte da duração planejada do bloco conforme a regra atual.
+
+Não existe duração mínima ou máxima fixa de produto para blocos automáticos. O Planna adapta cada bloco à carga restante, ao espaço disponível e à organização escolhida. Um bloco permanece associado a um único conteúdo; alternar matérias produz blocos consecutivos de conteúdos diferentes.
 
 ### Partes
 
@@ -255,7 +249,7 @@ Fluxo candidato:
 
 1. Detectar o atraso depois do fim programado.
 2. Verificar se já houve primeira sugestão automática.
-3. Determinar a carga do bloco a recuperar.
+3. Determinar a carga do bloco a recuperar como `max(0, duração planejada - duração já realizada)`.
 4. Localizar o primeiro horário futuro válido considerando urgência do conteúdo.
 5. Criar sugestão com justificativa, sem reservar definitivamente o horário.
 6. Revalidar o horário quando o aluno aceitar ou editar.
@@ -263,7 +257,7 @@ Fluxo candidato:
 
 Após rejeição, outra sugestão só pode ser produzida por solicitação do aluno.
 
-**A validar:** se um bloco parcialmente executado deve ser sugerido com duração original ou apenas duração remanescente.
+Foco e pausas Pomodoro registrados compõem a duração realizada. Tempo em que a sessão permaneceu pausada aguardando retomada não compõe essa duração.
 
 ## Validação antes da confirmação
 
@@ -321,18 +315,16 @@ Com as mesmas entradas e parâmetros, a geração deve produzir o mesmo resultad
 10. Um conteúdo atrasado ficou fora da seleção inicial.
 11. O horizonte cobre um semestre.
 12. A proposta fica desatualizada antes da confirmação.
-13. Não existe fragmento grande o suficiente para o bloco mínimo.
+13. Restam apenas fragmentos sem duração utilizável após a subtração das ocupações.
 14. Um evento não possui conteúdos informados.
 15. Duas gerações recebem exatamente as mesmas entradas.
 
 ## Decisões pendentes específicas
 
-- pesos e curvas do score;
+- coeficientes técnicos entre prioridade e proximidade do evento;
 - desempates definitivos;
-- duração mínima e máxima de bloco;
 - política de carga cumprida por conclusão antecipada ou excedente;
 - efeito de sessões não planejadas na carga restante;
-- duração sugerida para bloco parcialmente executado;
 - limite de horizonte e quantidade de blocos;
 - tratamento de propostas desatualizadas;
 - distribuição desejável entre disciplinas para evitar concentração excessiva;

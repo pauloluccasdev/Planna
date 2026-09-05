@@ -43,7 +43,7 @@ Sinalizações independentes do estado:
 - em risco;
 - arquivado.
 
-**A validar:** critério exato de conclusão para conteúdo sem partes.
+Conteúdo sem partes somente transita para concluído após confirmação manual do aluno. A estimativa atingida ou o último bloco concluído não produz essa transição automaticamente.
 
 ## Parte de conteúdo
 
@@ -137,12 +137,12 @@ Sinalizações:
 
 ## Matriz resumida de ações
 
-| Estado do bloco | Iniciar | Pausar | Concluir | Cancelar | Replanejar |
-|---|---:|---:|---:|---:|---:|
-| Confirmado | Sim | Não | Sim | Sim | A validar |
-| Em execução | Já ativo | Sim | Sim | A validar | Não |
-| Pausado | Retomar | Já pausado | Sim | Sim | Após atraso |
-| Atrasado | Sim | Não | Sim | Sim | Sim |
-| Concluído | Não | Não | Já concluído | Não | Não |
-| Cancelado | Não | Não | Não | Já cancelado | Não |
-| Replanejado | Não | Não | Não | Não | Já replanejado |
+| Estado do bloco |  Iniciar |     Pausar |     Concluir |     Cancelar |     Replanejar |
+| --------------- | -------: | ---------: | -----------: | -----------: | -------------: |
+| Confirmado      |      Sim |        Não |          Sim |          Sim |      A validar |
+| Em execução     | Já ativo |        Sim |          Sim |    A validar |            Não |
+| Pausado         |  Retomar | Já pausado |          Sim |          Sim |    Após atraso |
+| Atrasado        |      Sim |        Não |          Sim |          Sim |            Sim |
+| Concluído       |      Não |        Não | Já concluído |          Não |            Não |
+| Cancelado       |      Não |        Não |          Não | Já cancelado |            Não |
+| Replanejado     |      Não |        Não |          Não |          Não | Já replanejado |

@@ -12,7 +12,7 @@
 - **Sessão de estudo:** registro da execução real, planejada, não planejada ou retroativa.
 - **Pomodoro:** ciclos configuráveis de foco e pausa usados durante uma sessão.
 - **Prioridade:** importância de 1 a 5 definida pelo aluno.
-- **Urgência:** pressão calculada conforme eventos, carga, progresso, atraso e disponibilidade.
+- **Urgência:** pressão temporal calculada pela proximidade de uma prova ou trabalho relacionado. Capacidade e carga são diagnósticos separados.
 - **Atraso:** estado de um bloco cujo horário terminou sem conclusão.
 - **Replanejamento:** substituição confirmada de um bloco por outro, preservando o histórico.
 - **Cumprimento:** indicador de blocos concluídos em relação aos previstos elegíveis.

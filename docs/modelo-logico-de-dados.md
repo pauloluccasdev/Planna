@@ -52,18 +52,18 @@ users
 
 ### `users`
 
-| Campo | Obrigatório | Descrição |
-|---|---:|---|
-| `id` | Sim | Identificador do usuário. |
-| `username` | Sim | Nome usado no login; deve ser único conforme normalização a definir. |
-| `email` | Sim | E-mail para recuperação; deve ser único conforme normalização a definir. |
-| `password_hash` | Sim | Hash da senha, nunca a senha original. |
-| `role` | Sim | `student` ou `admin`. |
-| `status` | Sim | Ao menos `active` ou `blocked`; verificação de e-mail está a validar. |
-| `email_verified_at` | Não | Preparação para verificação, caso aprovada. |
-| `blocked_at` | Não | Instante do bloqueio. |
-| `blocked_by_user_id` | Não | Administrador que bloqueou. |
-| `last_login_at` | Não | Última autenticação bem-sucedida. |
+| Campo                | Obrigatório | Descrição                                                                |
+| -------------------- | ----------: | ------------------------------------------------------------------------ |
+| `id`                 |         Sim | Identificador do usuário.                                                |
+| `username`           |         Sim | Nome usado no login; deve ser único conforme normalização a definir.     |
+| `email`              |         Sim | E-mail para recuperação; deve ser único conforme normalização a definir. |
+| `password_hash`      |         Sim | Hash da senha, nunca a senha original.                                   |
+| `role`               |         Sim | `student` ou `admin`.                                                    |
+| `status`             |         Sim | Ao menos `active` ou `blocked`; verificação de e-mail está a validar.    |
+| `email_verified_at`  |         Não | Preparação para verificação, caso aprovada.                              |
+| `blocked_at`         |         Não | Instante do bloqueio.                                                    |
+| `blocked_by_user_id` |         Não | Administrador que bloqueou.                                              |
+| `last_login_at`      |         Não | Última autenticação bem-sucedida.                                        |
 
 Restrições:
 
@@ -73,91 +73,91 @@ Restrições:
 
 ### `auth_sessions`
 
-| Campo | Obrigatório | Descrição |
-|---|---:|---|
-| `id` | Sim | Sessão de autenticação, não sessão de estudo. |
-| `user_id` | Sim | Proprietário. |
-| `token_hash` | Sim | Identificador secreto armazenado de forma protegida. |
-| `expires_at` | Sim | Expiração. |
-| `revoked_at` | Não | Revogação explícita. |
-| `last_seen_at` | Não | Último uso conhecido. |
-| `user_agent_summary` | Não | Informação mínima para gestão de sessões, sem excesso de rastreamento. |
+| Campo                | Obrigatório | Descrição                                                              |
+| -------------------- | ----------: | ---------------------------------------------------------------------- |
+| `id`                 |         Sim | Sessão de autenticação, não sessão de estudo.                          |
+| `user_id`            |         Sim | Proprietário.                                                          |
+| `token_hash`         |         Sim | Identificador secreto armazenado de forma protegida.                   |
+| `expires_at`         |         Sim | Expiração.                                                             |
+| `revoked_at`         |         Não | Revogação explícita.                                                   |
+| `last_seen_at`       |         Não | Último uso conhecido.                                                  |
+| `user_agent_summary` |         Não | Informação mínima para gestão de sessões, sem excesso de rastreamento. |
 
 ### `password_reset_tokens`
 
-| Campo | Obrigatório | Descrição |
-|---|---:|---|
-| `id` | Sim | Solicitação de redefinição. |
-| `user_id` | Sim | Conta relacionada. |
-| `token_hash` | Sim | Token protegido. |
-| `expires_at` | Sim | Expiração curta. |
-| `used_at` | Não | Marca uso único. |
-| `requested_by_admin_id` | Não | Administrador que iniciou auxílio, quando aplicável. |
+| Campo                   | Obrigatório | Descrição                                            |
+| ----------------------- | ----------: | ---------------------------------------------------- |
+| `id`                    |         Sim | Solicitação de redefinição.                          |
+| `user_id`               |         Sim | Conta relacionada.                                   |
+| `token_hash`            |         Sim | Token protegido.                                     |
+| `expires_at`            |         Sim | Expiração curta.                                     |
+| `used_at`               |         Não | Marca uso único.                                     |
+| `requested_by_admin_id` |         Não | Administrador que iniciou auxílio, quando aplicável. |
 
 ## Estrutura acadêmica
 
 ### `courses`
 
-| Campo | Obrigatório | Descrição |
-|---|---:|---|
-| `id` | Sim | Curso. |
-| `student_id` | Sim | Proprietário aluno. |
-| `name` | Sim | Nome do curso. |
-| `description` | Não | Observação. |
-| `status` | Sim | `active` ou `archived`. |
-| `archived_at` | Não | Instante do arquivamento. |
+| Campo         | Obrigatório | Descrição                 |
+| ------------- | ----------: | ------------------------- |
+| `id`          |         Sim | Curso.                    |
+| `student_id`  |         Sim | Proprietário aluno.       |
+| `name`        |         Sim | Nome do curso.            |
+| `description` |         Não | Observação.               |
+| `status`      |         Sim | `active` ou `archived`.   |
+| `archived_at` |         Não | Instante do arquivamento. |
 
 ### `academic_periods`
 
-| Campo | Obrigatório | Descrição |
-|---|---:|---|
-| `id` | Sim | Período opcional. |
-| `course_id` | Sim | Curso ao qual pertence. |
-| `name` | Sim | Ex.: “2026.1” ou “3º semestre”. |
-| `position` | Não | Ordenação manual. |
-| `starts_on` | Não | Início opcional — a validar. |
-| `ends_on` | Não | Fim opcional — a validar. |
+| Campo       | Obrigatório | Descrição                       |
+| ----------- | ----------: | ------------------------------- |
+| `id`        |         Sim | Período opcional.               |
+| `course_id` |         Sim | Curso ao qual pertence.         |
+| `name`      |         Sim | Ex.: “2026.1” ou “3º semestre”. |
+| `position`  |         Não | Ordenação manual.               |
+| `starts_on` |         Não | Início opcional — a validar.    |
+| `ends_on`   |         Não | Fim opcional — a validar.       |
 
 ### `subjects`
 
-| Campo | Obrigatório | Descrição |
-|---|---:|---|
-| `id` | Sim | Disciplina. |
-| `student_id` | Sim | Proprietário redundante para isolamento e integridade. |
-| `course_id` | Sim | Curso. |
-| `academic_period_id` | Não | Período opcional do mesmo curso. |
-| `name` | Sim | Nome. |
-| `description` | Não | Observação. |
-| `status` | Sim | `active` ou `archived`. |
-| `archived_at` | Não | Instante do arquivamento. |
+| Campo                | Obrigatório | Descrição                                              |
+| -------------------- | ----------: | ------------------------------------------------------ |
+| `id`                 |         Sim | Disciplina.                                            |
+| `student_id`         |         Sim | Proprietário redundante para isolamento e integridade. |
+| `course_id`          |         Sim | Curso.                                                 |
+| `academic_period_id` |         Não | Período opcional do mesmo curso.                       |
+| `name`               |         Sim | Nome.                                                  |
+| `description`        |         Não | Observação.                                            |
+| `status`             |         Sim | `active` ou `archived`.                                |
+| `archived_at`        |         Não | Instante do arquivamento.                              |
 
 ### `contents`
 
-| Campo | Obrigatório | Descrição |
-|---|---:|---|
-| `id` | Sim | Conteúdo. |
-| `student_id` | Sim | Proprietário. |
-| `subject_id` | Sim | Disciplina. |
-| `name` | Sim | Nome. |
-| `description` | Não | Observação. |
-| `priority` | Sim | Inteiro de 1 a 5. |
-| `estimated_duration_seconds` | Não | Estimativa do conteúdo completo. |
-| `status_override` | Não | Não recomendado no MVP; reservado apenas se futura regra exigir. |
-| `archived_at` | Não | Arquivamento. |
+| Campo                        | Obrigatório | Descrição                                                                      |
+| ---------------------------- | ----------: | ------------------------------------------------------------------------------ |
+| `id`                         |         Sim | Conteúdo.                                                                      |
+| `student_id`                 |         Sim | Proprietário.                                                                  |
+| `subject_id`                 |         Sim | Disciplina.                                                                    |
+| `name`                       |         Sim | Nome.                                                                          |
+| `description`                |         Não | Observação.                                                                    |
+| `priority`                   |         Sim | Inteiro de 1 a 5.                                                              |
+| `estimated_duration_seconds` |         Não | Estimativa do conteúdo completo.                                               |
+| `manually_completed_at`      |         Não | Confirmação explícita de conclusão, usada quando o conteúdo não possui partes. |
+| `archived_at`                |         Não | Arquivamento.                                                                  |
 
-O estado de progresso deve ser derivado de sessões, partes e blocos, não atualizado manualmente em uma coluna sem histórico.
+O estado de progresso é derivado de sessões, partes, blocos e, para conteúdo sem partes, da confirmação manual registrada. A confirmação não substitui o histórico de execução.
 
 ### `content_parts`
 
-| Campo | Obrigatório | Descrição |
-|---|---:|---|
-| `id` | Sim | Parte. |
-| `student_id` | Sim | Proprietário. |
-| `content_id` | Sim | Conteúdo pai. |
-| `name` | Sim | Nome. |
-| `description` | Não | Observação. |
-| `position` | Sim | Ordem exibida ao aluno. |
-| `archived_at` | Não | Preserva histórico quando vinculada. |
+| Campo         | Obrigatório | Descrição                            |
+| ------------- | ----------: | ------------------------------------ |
+| `id`          |         Sim | Parte.                               |
+| `student_id`  |         Sim | Proprietário.                        |
+| `content_id`  |         Sim | Conteúdo pai.                        |
+| `name`        |         Sim | Nome.                                |
+| `description` |         Não | Observação.                          |
+| `position`    |         Sim | Ordem exibida ao aluno.              |
+| `archived_at` |         Não | Preserva histórico quando vinculada. |
 
 Não existe estimativa individual por parte.
 
@@ -165,37 +165,37 @@ Não existe estimativa individual por parte.
 
 ### `academic_event_types`
 
-| Campo | Obrigatório | Descrição |
-|---|---:|---|
-| `id` | Sim | Tipo. |
-| `student_id` | Não | Nulo para tipo padrão; preenchido para personalizado. |
-| `name` | Sim | Prova, teste, trabalho, simulado ou nome personalizado. |
-| `is_system` | Sim | Impede edição dos tipos padrão. |
-| `archived_at` | Não | Arquivamento de tipo personalizado. |
+| Campo         | Obrigatório | Descrição                                               |
+| ------------- | ----------: | ------------------------------------------------------- |
+| `id`          |         Sim | Tipo.                                                   |
+| `student_id`  |         Não | Nulo para tipo padrão; preenchido para personalizado.   |
+| `name`        |         Sim | Prova, teste, trabalho, simulado ou nome personalizado. |
+| `is_system`   |         Sim | Impede edição dos tipos padrão.                         |
+| `archived_at` |         Não | Arquivamento de tipo personalizado.                     |
 
 Unicidade recomendada por `student_id + nome normalizado`, tratando tipos de sistema separadamente.
 
 ### `academic_events`
 
-| Campo | Obrigatório | Descrição |
-|---|---:|---|
-| `id` | Sim | Evento. |
-| `student_id` | Sim | Proprietário. |
-| `subject_id` | Sim | Disciplina. |
-| `event_type_id` | Sim | Tipo permitido ao aluno ou padrão. |
-| `title` | Sim | Título. |
-| `description` | Não | Observação. |
-| `starts_at` | Sim | Data e horário informados. |
-| `ends_at` | Não | Término opcional; quando ausente, o evento é marcador e não reserva intervalo. |
-| `contents_status` | Sim | `informed` ou `not_informed_yet`. |
-| `deleted_at` | Não | Exclusão lógica quando houver referências históricas. |
+| Campo             | Obrigatório | Descrição                                                                      |
+| ----------------- | ----------: | ------------------------------------------------------------------------------ |
+| `id`              |         Sim | Evento.                                                                        |
+| `student_id`      |         Sim | Proprietário.                                                                  |
+| `subject_id`      |         Sim | Disciplina.                                                                    |
+| `event_type_id`   |         Sim | Tipo permitido ao aluno ou padrão.                                             |
+| `title`           |         Sim | Título.                                                                        |
+| `description`     |         Não | Observação.                                                                    |
+| `starts_at`       |         Sim | Data e horário informados.                                                     |
+| `ends_at`         |         Não | Término opcional; quando ausente, o evento é marcador e não reserva intervalo. |
+| `contents_status` |         Sim | `informed` ou `not_informed_yet`.                                              |
+| `deleted_at`      |         Não | Exclusão lógica quando houver referências históricas.                          |
 
 ### `academic_event_contents`
 
-| Campo | Obrigatório | Descrição |
-|---|---:|---|
-| `academic_event_id` | Sim | Evento. |
-| `content_id` | Sim | Conteúdo da mesma disciplina e aluno. |
+| Campo               | Obrigatório | Descrição                             |
+| ------------------- | ----------: | ------------------------------------- |
+| `academic_event_id` |         Sim | Evento.                               |
+| `content_id`        |         Sim | Conteúdo da mesma disciplina e aluno. |
 
 Chave única composta: `academic_event_id + content_id`.
 
@@ -205,14 +205,14 @@ Se `contents_status = not_informed_yet`, esta associação deve estar vazia. Ao 
 
 ### `availability_intervals`
 
-| Campo | Obrigatório | Descrição |
-|---|---:|---|
-| `id` | Sim | Intervalo. |
-| `student_id` | Sim | Proprietário. |
-| `weekday` | Sim | Dia da semana em convenção única. |
-| `start_local_time` | Sim | Horário inicial local. |
-| `end_local_time` | Sim | Horário final local. |
-| `active` | Sim | Participa da grade. |
+| Campo              | Obrigatório | Descrição                         |
+| ------------------ | ----------: | --------------------------------- |
+| `id`               |         Sim | Intervalo.                        |
+| `student_id`       |         Sim | Proprietário.                     |
+| `weekday`          |         Sim | Dia da semana em convenção única. |
+| `start_local_time` |         Sim | Horário inicial local.            |
+| `end_local_time`   |         Sim | Horário final local.              |
+| `active`           |         Sim | Participa da grade.               |
 
 Restrições:
 
@@ -222,11 +222,11 @@ Restrições:
 
 ### `pomodoro_preferences`
 
-| Campo | Obrigatório | Descrição |
-|---|---:|---|
-| `student_id` | Sim | Uma preferência padrão por aluno. |
-| `focus_seconds` | Sim | Tempo de foco. |
-| `break_seconds` | Sim | Tempo de pausa. |
+| Campo           | Obrigatório | Descrição                         |
+| --------------- | ----------: | --------------------------------- |
+| `student_id`    |         Sim | Uma preferência padrão por aluno. |
+| `focus_seconds` |         Sim | Tempo de foco.                    |
+| `break_seconds` |         Sim | Tempo de pausa.                   |
 
 Limites mínimos e máximos estão a validar.
 
@@ -234,20 +234,20 @@ Limites mínimos e máximos estão a validar.
 
 ### `planning_proposals`
 
-| Campo | Obrigatório | Descrição |
-|---|---:|---|
-| `id` | Sim | Proposta. |
-| `student_id` | Sim | Proprietário. |
-| `period_start` | Sim | Início solicitado. |
-| `period_end` | Sim | Fim solicitado. |
-| `status` | Sim | `processing`, `ready`, `reviewing`, `confirmed`, `discarded` ou `failed`. |
-| `algorithm_version` | Sim | Versão reproduzível. |
-| `parameters_snapshot` | Sim | Parâmetros/ponderações serializados em formato estruturado. |
-| `input_version` | Sim | Versão/fingerprint das entradas relevantes. |
-| `requested_at` | Sim | Solicitação. |
-| `completed_at` | Não | Fim do processamento. |
-| `confirmed_at` | Não | Confirmação do aluno. |
-| `failure_code` | Não | Código seguro de falha. |
+| Campo                 | Obrigatório | Descrição                                                                 |
+| --------------------- | ----------: | ------------------------------------------------------------------------- |
+| `id`                  |         Sim | Proposta.                                                                 |
+| `student_id`          |         Sim | Proprietário.                                                             |
+| `period_start`        |         Sim | Início solicitado.                                                        |
+| `period_end`          |         Sim | Fim solicitado.                                                           |
+| `status`              |         Sim | `processing`, `ready`, `reviewing`, `confirmed`, `discarded` ou `failed`. |
+| `algorithm_version`   |         Sim | Versão reproduzível.                                                      |
+| `parameters_snapshot` |         Sim | Parâmetros/ponderações serializados em formato estruturado.               |
+| `input_version`       |         Sim | Versão/fingerprint das entradas relevantes.                               |
+| `requested_at`        |         Sim | Solicitação.                                                              |
+| `completed_at`        |         Não | Fim do processamento.                                                     |
+| `confirmed_at`        |         Não | Confirmação do aluno.                                                     |
+| `failure_code`        |         Não | Código seguro de falha.                                                   |
 
 ### `proposal_courses` e `proposal_subjects`
 
@@ -255,21 +255,21 @@ Guardam o escopo escolhido na solicitação. Cada tabela usa chave única `propo
 
 ### `proposed_study_blocks`
 
-| Campo | Obrigatório | Descrição |
-|---|---:|---|
-| `id` | Sim | Bloco dentro da proposta. |
-| `proposal_id` | Sim | Proposta. |
-| `student_id` | Sim | Proprietário. |
-| `content_id` | Sim | Exatamente um conteúdo. |
-| `starts_at` | Sim | Início proposto. |
-| `ends_at` | Sim | Fim proposto. |
-| `planned_duration_seconds` | Sim | Duração preservada. |
-| `focus_seconds` | Sim | Configuração copiada para o bloco. |
-| `break_seconds` | Sim | Configuração copiada para o bloco. |
-| `explanation_factors` | Sim | Motivos estruturados, não apenas texto. |
-| `source_overdue_block_id` | Não | Atraso que forçou inclusão, quando aplicável. |
-| `removed_at` | Não | Remoção durante revisão. |
-| `revision` | Sim | Controle de concorrência da edição. |
+| Campo                      | Obrigatório | Descrição                                     |
+| -------------------------- | ----------: | --------------------------------------------- |
+| `id`                       |         Sim | Bloco dentro da proposta.                     |
+| `proposal_id`              |         Sim | Proposta.                                     |
+| `student_id`               |         Sim | Proprietário.                                 |
+| `content_id`               |         Sim | Exatamente um conteúdo.                       |
+| `starts_at`                |         Sim | Início proposto.                              |
+| `ends_at`                  |         Sim | Fim proposto.                                 |
+| `planned_duration_seconds` |         Sim | Duração preservada.                           |
+| `focus_seconds`            |         Sim | Configuração copiada para o bloco.            |
+| `break_seconds`            |         Sim | Configuração copiada para o bloco.            |
+| `explanation_factors`      |         Sim | Motivos estruturados, não apenas texto.       |
+| `source_overdue_block_id`  |         Não | Atraso que forçou inclusão, quando aplicável. |
+| `removed_at`               |         Não | Remoção durante revisão.                      |
+| `revision`                 |         Sim | Controle de concorrência da edição.           |
 
 ### `proposed_block_parts`
 
@@ -277,57 +277,57 @@ Associação `proposed_block_id + content_part_id`. A parte deve pertencer ao co
 
 ### `proposal_diagnostics`
 
-| Campo | Obrigatório | Descrição |
-|---|---:|---|
-| `id` | Sim | Diagnóstico. |
-| `proposal_id` | Sim | Proposta. |
-| `kind` | Sim | Ex.: `capacity_deficit`, `missing_estimate`, `unknown_event_contents`. |
-| `course_id` | Não | Recorte opcional. |
-| `subject_id` | Não | Recorte opcional. |
-| `content_id` | Não | Recorte opcional. |
-| `academic_event_id` | Não | Evento opcional. |
-| `required_seconds` | Não | Carga necessária. |
-| `available_seconds` | Não | Capacidade. |
-| `deficit_seconds` | Não | Déficit. |
-| `details` | Não | Fatores estruturados adicionais. |
+| Campo               | Obrigatório | Descrição                                                              |
+| ------------------- | ----------: | ---------------------------------------------------------------------- |
+| `id`                |         Sim | Diagnóstico.                                                           |
+| `proposal_id`       |         Sim | Proposta.                                                              |
+| `kind`              |         Sim | Ex.: `capacity_deficit`, `missing_estimate`, `unknown_event_contents`. |
+| `course_id`         |         Não | Recorte opcional.                                                      |
+| `subject_id`        |         Não | Recorte opcional.                                                      |
+| `content_id`        |         Não | Recorte opcional.                                                      |
+| `academic_event_id` |         Não | Evento opcional.                                                       |
+| `required_seconds`  |         Não | Carga necessária.                                                      |
+| `available_seconds` |         Não | Capacidade.                                                            |
+| `deficit_seconds`   |         Não | Déficit.                                                               |
+| `details`           |         Não | Fatores estruturados adicionais.                                       |
 
 ## Planejamento confirmado
 
 ### `recurrence_series`
 
-| Campo | Obrigatório | Descrição |
-|---|---:|---|
-| `id` | Sim | Série manual. |
-| `student_id` | Sim | Proprietário. |
-| `frequency` | Sim | `daily` no MVP. |
-| `starts_on` | Sim | Primeira data. |
-| `ends_on` | Sim | Data final escolhida. |
-| `created_from_block_id` | Não | Ocorrência de origem. |
+| Campo                   | Obrigatório | Descrição             |
+| ----------------------- | ----------: | --------------------- |
+| `id`                    |         Sim | Série manual.         |
+| `student_id`            |         Sim | Proprietário.         |
+| `frequency`             |         Sim | `daily` no MVP.       |
+| `starts_on`             |         Sim | Primeira data.        |
+| `ends_on`               |         Sim | Data final escolhida. |
+| `created_from_block_id` |         Não | Ocorrência de origem. |
 
 As ocorrências devem ser materializadas como blocos concretos para permitir execução, edição e cancelamento individual.
 
 ### `study_blocks`
 
-| Campo | Obrigatório | Descrição |
-|---|---:|---|
-| `id` | Sim | Bloco confirmado. |
-| `student_id` | Sim | Proprietário. |
-| `content_id` | Sim | Exatamente um conteúdo. |
-| `proposal_id` | Não | Proposta que o originou. |
-| `proposed_block_id` | Não | Bloco proposto de origem. |
-| `recurrence_series_id` | Não | Série manual, quando aplicável. |
-| `source` | Sim | `manual`, `automatic` ou `replanned`. |
-| `status` | Sim | Estado operacional do bloco. |
-| `starts_at` | Sim | Início planejado atual. |
-| `ends_at` | Sim | Fim planejado atual. |
-| `planned_duration_seconds` | Sim | Duração planejada preservada. |
-| `focus_seconds` | Sim | Pomodoro do bloco. |
-| `break_seconds` | Sim | Pomodoro do bloco. |
-| `replaces_block_id` | Não | Bloco original substituído. |
-| `replaced_by_block_id` | Não | Novo bloco que o substituiu. |
-| `cancelled_at` | Não | Cancelamento. |
-| `completed_at` | Não | Conclusão. |
-| `revision` | Sim | Concorrência otimista. |
+| Campo                      | Obrigatório | Descrição                             |
+| -------------------------- | ----------: | ------------------------------------- |
+| `id`                       |         Sim | Bloco confirmado.                     |
+| `student_id`               |         Sim | Proprietário.                         |
+| `content_id`               |         Sim | Exatamente um conteúdo.               |
+| `proposal_id`              |         Não | Proposta que o originou.              |
+| `proposed_block_id`        |         Não | Bloco proposto de origem.             |
+| `recurrence_series_id`     |         Não | Série manual, quando aplicável.       |
+| `source`                   |         Sim | `manual`, `automatic` ou `replanned`. |
+| `status`                   |         Sim | Estado operacional do bloco.          |
+| `starts_at`                |         Sim | Início planejado atual.               |
+| `ends_at`                  |         Sim | Fim planejado atual.                  |
+| `planned_duration_seconds` |         Sim | Duração planejada preservada.         |
+| `focus_seconds`            |         Sim | Pomodoro do bloco.                    |
+| `break_seconds`            |         Sim | Pomodoro do bloco.                    |
+| `replaces_block_id`        |         Não | Bloco original substituído.           |
+| `replaced_by_block_id`     |         Não | Novo bloco que o substituiu.          |
+| `cancelled_at`             |         Não | Cancelamento.                         |
+| `completed_at`             |         Não | Conclusão.                            |
+| `revision`                 |         Sim | Concorrência otimista.                |
 
 Restrições:
 
@@ -346,15 +346,15 @@ Associação única `study_block_id + content_part_id`. A parte deve pertencer a
 
 ### `study_block_versions`
 
-| Campo | Obrigatório | Descrição |
-|---|---:|---|
-| `id` | Sim | Versão histórica. |
-| `study_block_id` | Sim | Bloco. |
-| `version_number` | Sim | Sequência por bloco. |
-| `changed_at` | Sim | Momento da alteração. |
-| `changed_by_user_id` | Sim | Aluno responsável. |
-| `change_reason` | Não | Edição manual, replanejamento etc. |
-| `snapshot` | Sim | Valores anteriores suficientes para auditoria. |
+| Campo                | Obrigatório | Descrição                                      |
+| -------------------- | ----------: | ---------------------------------------------- |
+| `id`                 |         Sim | Versão histórica.                              |
+| `study_block_id`     |         Sim | Bloco.                                         |
+| `version_number`     |         Sim | Sequência por bloco.                           |
+| `changed_at`         |         Sim | Momento da alteração.                          |
+| `changed_by_user_id` |         Sim | Aluno responsável.                             |
+| `change_reason`      |         Não | Edição manual, replanejamento etc.             |
+| `snapshot`           |         Sim | Valores anteriores suficientes para auditoria. |
 
 Chave única: `study_block_id + version_number`.
 
@@ -362,22 +362,22 @@ Chave única: `study_block_id + version_number`.
 
 ### `study_sessions`
 
-| Campo | Obrigatório | Descrição |
-|---|---:|---|
-| `id` | Sim | Sessão realizada. |
-| `student_id` | Sim | Proprietário. |
-| `content_id` | Sim | Conteúdo estudado. |
-| `study_block_id` | Não | Bloco relacionado, se planejada/retroativa vinculada. |
-| `kind` | Sim | `planned`, `unplanned` ou `retroactive`. |
-| `status` | Sim | `running`, `paused`, `completed` ou `needs_reconciliation`. |
-| `started_at` | Sim | Início efetivo ou informado. |
-| `ended_at` | Não | Término efetivo. |
-| `focus_duration_seconds` | Não | Total derivado ou materializado. |
-| `pomodoro_break_duration_seconds` | Não | Pausas que contam no realizado. |
-| `realized_duration_seconds` | Não | Soma contabilizada conforme regra. |
-| `note` | Não | Observação do aluno. |
-| `reconciled_at` | Não | Correção após interrupção. |
-| `revision` | Sim | Concorrência otimista. |
+| Campo                             | Obrigatório | Descrição                                                   |
+| --------------------------------- | ----------: | ----------------------------------------------------------- |
+| `id`                              |         Sim | Sessão realizada.                                           |
+| `student_id`                      |         Sim | Proprietário.                                               |
+| `content_id`                      |         Sim | Conteúdo estudado.                                          |
+| `study_block_id`                  |         Não | Bloco relacionado, se planejada/retroativa vinculada.       |
+| `kind`                            |         Sim | `planned`, `unplanned` ou `retroactive`.                    |
+| `status`                          |         Sim | `running`, `paused`, `completed` ou `needs_reconciliation`. |
+| `started_at`                      |         Sim | Início efetivo ou informado.                                |
+| `ended_at`                        |         Não | Término efetivo.                                            |
+| `focus_duration_seconds`          |         Não | Total derivado ou materializado.                            |
+| `pomodoro_break_duration_seconds` |         Não | Pausas que contam no realizado.                             |
+| `realized_duration_seconds`       |         Não | Soma contabilizada conforme regra.                          |
+| `note`                            |         Não | Observação do aluno.                                        |
+| `reconciled_at`                   |         Não | Correção após interrupção.                                  |
+| `revision`                        |         Sim | Concorrência otimista.                                      |
 
 Uma sessão vinculada deve ter o mesmo conteúdo do bloco.
 
@@ -385,24 +385,24 @@ Uma sessão vinculada deve ter o mesmo conteúdo do bloco.
 
 Representação técnica candidata para reconstruir o tempo sem confiar no contador visual:
 
-| Campo | Obrigatório | Descrição |
-|---|---:|---|
-| `id` | Sim | Segmento. |
-| `study_session_id` | Sim | Sessão. |
-| `kind` | Sim | `focus` ou `pomodoro_break`. |
-| `started_at` | Sim | Início. |
-| `ended_at` | Não | Fim; no máximo um segmento aberto na sessão. |
-| `sequence` | Sim | Ordem. |
+| Campo              | Obrigatório | Descrição                                    |
+| ------------------ | ----------: | -------------------------------------------- |
+| `id`               |         Sim | Segmento.                                    |
+| `study_session_id` |         Sim | Sessão.                                      |
+| `kind`             |         Sim | `focus` ou `pomodoro_break`.                 |
+| `started_at`       |         Sim | Início.                                      |
+| `ended_at`         |         Não | Fim; no máximo um segmento aberto na sessão. |
+| `sequence`         |         Sim | Ordem.                                       |
 
 Tempo aguardando retomada não gera segmento e não é contabilizado.
 
 ### `study_session_completed_parts`
 
-| Campo | Obrigatório | Descrição |
-|---|---:|---|
-| `study_session_id` | Sim | Sessão concluída. |
-| `content_part_id` | Sim | Parte confirmada. |
-| `confirmed_at` | Sim | Momento da confirmação. |
+| Campo              | Obrigatório | Descrição               |
+| ------------------ | ----------: | ----------------------- |
+| `study_session_id` |         Sim | Sessão concluída.       |
+| `content_part_id`  |         Sim | Parte confirmada.       |
+| `confirmed_at`     |         Sim | Momento da confirmação. |
 
 A parte deve pertencer ao conteúdo da sessão. A associação preserva o fato mesmo se a parte for arquivada depois.
 
@@ -416,21 +416,21 @@ Pausadas não participam dessa exclusividade.
 
 ### `replanning_suggestions`
 
-| Campo | Obrigatório | Descrição |
-|---|---:|---|
-| `id` | Sim | Sugestão. |
-| `student_id` | Sim | Proprietário. |
-| `overdue_block_id` | Sim | Bloco atrasado original. |
-| `status` | Sim | `generated`, `editing`, `accepted` ou `rejected`; expiração a validar. |
-| `generation_kind` | Sim | `automatic_first` ou `student_requested`. |
-| `suggested_starts_at` | Sim | Novo início. |
-| `suggested_ends_at` | Sim | Novo fim. |
-| `suggested_duration_seconds` | Sim | Duração sugerida. |
-| `explanation_factors` | Sim | Motivos estruturados. |
-| `edited_at` | Não | Edição pelo aluno. |
-| `decided_at` | Não | Aceitação ou rejeição. |
-| `created_block_id` | Não | Bloco criado após aceitação. |
-| `revision` | Sim | Concorrência otimista. |
+| Campo                        | Obrigatório | Descrição                                                              |
+| ---------------------------- | ----------: | ---------------------------------------------------------------------- |
+| `id`                         |         Sim | Sugestão.                                                              |
+| `student_id`                 |         Sim | Proprietário.                                                          |
+| `overdue_block_id`           |         Sim | Bloco atrasado original.                                               |
+| `status`                     |         Sim | `generated`, `editing`, `accepted` ou `rejected`; expiração a validar. |
+| `generation_kind`            |         Sim | `automatic_first` ou `student_requested`.                              |
+| `suggested_starts_at`        |         Sim | Novo início.                                                           |
+| `suggested_ends_at`          |         Sim | Novo fim.                                                              |
+| `suggested_duration_seconds` |         Sim | Duração sugerida.                                                      |
+| `explanation_factors`        |         Sim | Motivos estruturados.                                                  |
+| `edited_at`                  |         Não | Edição pelo aluno.                                                     |
+| `decided_at`                 |         Não | Aceitação ou rejeição.                                                 |
+| `created_block_id`           |         Não | Bloco criado após aceitação.                                           |
+| `revision`                   |         Sim | Concorrência otimista.                                                 |
 
 Aceitação deve ocorrer em transação que revalida o horário, cria o substituto, liga os blocos e encerra a sugestão.
 
@@ -438,30 +438,30 @@ Aceitação deve ocorrer em transação que revalida o horário, cria o substitu
 
 ### `push_subscriptions`
 
-| Campo | Obrigatório | Descrição |
-|---|---:|---|
-| `id` | Sim | Inscrição de navegador/dispositivo. |
-| `student_id` | Sim | Proprietário. |
-| `endpoint` | Sim | Endpoint único de push. |
-| `public_key` | Sim | Chave necessária ao protocolo. |
-| `auth_secret` | Sim | Segredo protegido. |
-| `expires_at` | Não | Expiração quando fornecida. |
-| `revoked_at` | Não | Revogação ou falha definitiva. |
-| `last_success_at` | Não | Última entrega aceita. |
+| Campo             | Obrigatório | Descrição                           |
+| ----------------- | ----------: | ----------------------------------- |
+| `id`              |         Sim | Inscrição de navegador/dispositivo. |
+| `student_id`      |         Sim | Proprietário.                       |
+| `endpoint`        |         Sim | Endpoint único de push.             |
+| `public_key`      |         Sim | Chave necessária ao protocolo.      |
+| `auth_secret`     |         Sim | Segredo protegido.                  |
+| `expires_at`      |         Não | Expiração quando fornecida.         |
+| `revoked_at`      |         Não | Revogação ou falha definitiva.      |
+| `last_success_at` |         Não | Última entrega aceita.              |
 
 ### `notifications`
 
-| Campo | Obrigatório | Descrição |
-|---|---:|---|
-| `id` | Sim | Notificação lógica. |
-| `student_id` | Sim | Destinatário. |
-| `kind` | Sim | Lembrete, risco, atraso ou sugestão. |
-| `related_type` | Não | Tipo seguro do objeto relacionado. |
-| `related_id` | Não | Identificador do contexto. |
-| `scheduled_for` | Sim | Horário planejado. |
-| `status` | Sim | `scheduled`, `sent`, `failed` ou `cancelled`. |
-| `sent_at` | Não | Envio. |
-| `failure_code` | Não | Falha sem segredo. |
+| Campo           | Obrigatório | Descrição                                     |
+| --------------- | ----------: | --------------------------------------------- |
+| `id`            |         Sim | Notificação lógica.                           |
+| `student_id`    |         Sim | Destinatário.                                 |
+| `kind`          |         Sim | Lembrete, risco, atraso ou sugestão.          |
+| `related_type`  |         Não | Tipo seguro do objeto relacionado.            |
+| `related_id`    |         Não | Identificador do contexto.                    |
+| `scheduled_for` |         Sim | Horário planejado.                            |
+| `status`        |         Sim | `scheduled`, `sent`, `failed` ou `cancelled`. |
+| `sent_at`       |         Não | Envio.                                        |
+| `failure_code`  |         Não | Falha sem segredo.                            |
 
 Uma tabela complementar de entregas por inscrição pode ser necessária se o aluno tiver vários dispositivos; decisão física posterior.
 
@@ -471,32 +471,32 @@ Uma tabela complementar de entregas por inscrição pode ser necessária se o al
 
 Persistência é opcional; o cálculo pode ser sob demanda. Se necessário para explicabilidade:
 
-| Campo | Obrigatório | Descrição |
-|---|---:|---|
-| `id` | Sim | Avaliação. |
-| `student_id` | Sim | Proprietário. |
-| `scope_type` | Sim | Conteúdo, disciplina, curso ou evento. |
-| `scope_id` | Sim | Objeto avaliado. |
-| `required_seconds` | Sim | Carga. |
-| `available_seconds` | Sim | Capacidade. |
-| `deficit_seconds` | Sim | Déficit. |
-| `pressure_value` | Não | Pressão calculada. |
-| `factors` | Sim | Entradas explicáveis. |
-| `algorithm_version` | Sim | Versão. |
-| `calculated_at` | Sim | Momento. |
+| Campo               | Obrigatório | Descrição                              |
+| ------------------- | ----------: | -------------------------------------- |
+| `id`                |         Sim | Avaliação.                             |
+| `student_id`        |         Sim | Proprietário.                          |
+| `scope_type`        |         Sim | Conteúdo, disciplina, curso ou evento. |
+| `scope_id`          |         Sim | Objeto avaliado.                       |
+| `required_seconds`  |         Sim | Carga.                                 |
+| `available_seconds` |         Sim | Capacidade.                            |
+| `deficit_seconds`   |         Sim | Déficit.                               |
+| `pressure_value`    |         Não | Pressão calculada.                     |
+| `factors`           |         Sim | Entradas explicáveis.                  |
+| `algorithm_version` |         Sim | Versão.                                |
+| `calculated_at`     |         Sim | Momento.                               |
 
 ### `audit_events`
 
-| Campo | Obrigatório | Descrição |
-|---|---:|---|
-| `id` | Sim | Evento de auditoria. |
-| `actor_user_id` | Não | Usuário responsável; nulo para processo de sistema. |
-| `student_scope_id` | Não | Proprietário acadêmico afetado, sem expor conteúdo ao admin. |
-| `action` | Sim | Código estável da ação. |
-| `entity_type` | Sim | Tipo da entidade. |
-| `entity_id` | Sim | Identificador. |
-| `occurred_at` | Sim | Momento. |
-| `metadata` | Não | Dados mínimos e não sensíveis. |
+| Campo              | Obrigatório | Descrição                                                    |
+| ------------------ | ----------: | ------------------------------------------------------------ |
+| `id`               |         Sim | Evento de auditoria.                                         |
+| `actor_user_id`    |         Não | Usuário responsável; nulo para processo de sistema.          |
+| `student_scope_id` |         Não | Proprietário acadêmico afetado, sem expor conteúdo ao admin. |
+| `action`           |         Sim | Código estável da ação.                                      |
+| `entity_type`      |         Sim | Tipo da entidade.                                            |
+| `entity_id`        |         Sim | Identificador.                                               |
+| `occurred_at`      |         Sim | Momento.                                                     |
+| `metadata`         |         Não | Dados mínimos e não sensíveis.                               |
 
 Auditoria administrativa deve registrar bloqueio, desbloqueio e recuperação. O conteúdo do evento não pode transformar auditoria em canal de acesso acadêmico para administradores.
 
@@ -573,12 +573,11 @@ Nem toda regra cabe em chave estrangeira simples. As seguintes operações devem
 
 ## Decisões bloqueantes antes da modelagem física
 
-1. Critério de conclusão de conteúdo sem partes.
-2. Semântica de parte concluída reutilizada em outro bloco.
-3. Regra de carga cumprida para estimativa restante.
-4. Política de sobreposição de sessões retroativas.
-5. Estados finais e transições ainda marcados como candidatos.
-6. Política de criação de evento com intervalo sobre bloco confirmado.
-7. Limites de campos, durações, recorrências e horizonte.
-8. Verificação obrigatória ou não do e-mail.
-9. Retenção de propostas, auditoria e dados cancelados.
+1. Semântica de parte concluída reutilizada em outro bloco.
+2. Regra de carga cumprida para estimativa restante.
+3. Política de sobreposição de sessões retroativas.
+4. Estados finais e transições ainda marcados como candidatos.
+5. Política de criação de evento com intervalo sobre bloco confirmado.
+6. Limites de campos, durações, recorrências e horizonte.
+7. Verificação obrigatória ou não do e-mail.
+8. Retenção de propostas, auditoria e dados cancelados.

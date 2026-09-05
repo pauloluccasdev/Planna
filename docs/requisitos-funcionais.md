@@ -43,6 +43,7 @@
 - **RF-CON-006 — Gerenciar partes:** o aluno deve poder criar, consultar, editar, ordenar e remover partes de um conteúdo, respeitando o histórico associado.
 - **RF-CON-007 — Exibir progresso:** o sistema deve apresentar estado e progresso do conteúdo e de suas partes com base nos blocos e confirmações. Referências: RN-STS-003 a RN-STS-006.
 - **RF-CON-008 — Sinalizar falta de blocos:** o sistema deve avisar quando um conteúdo pendente ou em andamento não possuir blocos futuros. Referência: RN-STS-006.
+- **RF-CON-009 — Concluir conteúdo inteiro:** quando não houver partes, o aluno deve concluir o conteúdo por confirmação manual; estimativa ou último bloco não produzem conclusão automática. Referência: RN-STS-007.
 
 ## Eventos acadêmicos
 
@@ -79,7 +80,7 @@
 - **RF-PLA-002 — Validar elegibilidade:** o sistema deve sinalizar e não alocar conteúdo sem estimativa. Referência: RN-ACA-008.
 - **RF-PLA-003 — Preservar compromissos:** a geração deve considerar blocos confirmados e intervalos de eventos com término como horários indisponíveis. Referências: RN-PLN-005, RN-DSP-005.
 - **RF-PLA-004 — Incluir atrasos:** a proposta deve incluir conteúdos com blocos atrasados, ainda que fora da seleção inicial. Referência: RN-PLN-006.
-- **RF-PLA-005 — Priorizar conteúdos:** o sistema deve ordenar a alocação considerando prioridade, urgência, carga, progresso, atraso e disponibilidade. Referências: RN-RSC-001 a RN-RSC-003.
+- **RF-PLA-005 — Priorizar conteúdos:** o sistema deve ordenar a alocação do MVP considerando a prioridade informada e a proximidade de provas ou trabalhos relacionados. Carga e disponibilidade limitam a alocação e geram diagnósticos. Referências: RN-RSC-001 a RN-RSC-003.
 - **RF-PLA-006 — Gerar blocos:** o sistema deve determinar duração e horário de blocos somente dentro da disponibilidade. Referências: RN-PLN-009, RN-PLN-015.
 - **RF-PLA-007 — Informar capacidade insuficiente:** a proposta deve informar horas não alocadas e itens em risco. Referências: RN-PLN-015, RN-RSC-004.
 - **RF-PLA-008 — Manter como proposta:** a geração não deve alterar o planejamento vigente. Referência: RN-PLN-002.
@@ -113,6 +114,8 @@
 - **RF-SES-014 — Reconciliar interrupção:** ao detectar encerramento inesperado sem horário confiável, o sistema deve pedir confirmação no próximo acesso. Referência: RN-SES-012.
 - **RF-SES-015 — Registrar retroativamente:** o aluno deve informar data, início, fim, conteúdo, partes e observação opcional de uma sessão anterior. Referência: RN-SES-004.
 - **RF-SES-016 — Classificar retroativo:** o aluno deve vincular o registro a um bloco ou classificá-lo como não planejado. Referência: RN-SES-004.
+- **RF-SES-017 — Organizar sequência:** o aluno deve poder definir pausas e alternar conteúdos por meio de blocos consecutivos, mantendo um conteúdo por bloco. Referência: RN-SES-014.
+- **RF-SES-018 — Mudar durante a execução:** o aluno deve poder mudar conteúdo ou pausas durante o estudo, preservando separadamente o planejamento confirmado e a execução real. Referência: RN-SES-015.
 
 ## Estados, atraso e cancelamento
 

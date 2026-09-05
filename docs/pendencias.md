@@ -6,10 +6,7 @@ Estes pontos não bloqueiam a consolidação inicial, mas devem ser decididos an
 
 - Campos obrigatórios e limites de tamanho para cursos, disciplinas, conteúdos, partes e observações.
 - Estados completos e transições permitidas para blocos, sessões, propostas, conteúdos e partes.
-- Fórmula e pesos exatos do motor de priorização.
-- Duração mínima e máxima de blocos gerados automaticamente.
-- Distribuição dos ciclos de Pomodoro dentro de blocos de diferentes durações.
-- Critério preciso para considerar um conteúdo concluído quando não possui partes.
+- Calibração dos coeficientes técnicos entre prioridade e proximidade de provas ou trabalhos.
 - Comportamento de uma parte associada a vários blocos.
 - Validação de sobreposição em registros retroativos.
 - Limites para séries recorrentes e geração de planejamento semestral.
@@ -33,7 +30,6 @@ Estes pontos não bloqueiam a consolidação inicial, mas devem ser decididos an
 - Data de atribuição histórica de cancelamentos e replanejamentos.
 - Inclusão ou não do indicador histórico de atrasos ocorridos, além dos atrasos atuais.
 - Faixas visuais de pressão e risco de capacidade.
-- Política para bloco atrasado parcialmente executado: duração original ou somente remanescente.
 - Critérios de concentração e espaçamento de conteúdos no motor automático.
 - Normalização e regras de unicidade de nome de usuário e e-mail.
 - Estratégia de retenção para propostas descartadas, tokens expirados e inscrições push inválidas.

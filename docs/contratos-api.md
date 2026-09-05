@@ -124,6 +124,7 @@ GET    /contents?course_id=&subject_id=&status=
 GET    /contents/{content_id}
 GET    /contents/{content_id}/progress
 PATCH  /contents/{content_id}
+POST   /contents/{content_id}/complete
 POST   /contents/{content_id}/archive
 POST   /contents/{content_id}/restore
 DELETE /contents/{content_id}
@@ -135,7 +136,7 @@ DELETE /content-parts/{part_id}
 PUT    /contents/{content_id}/parts-order
 ```
 
-Conteúdo exige `priority`; estimativa é opcional. `GET /contents/{content_id}/progress` retorna estado derivado, partes confirmadas, percentual quando calculável, quantidade de blocos futuros e a sinalização `needs_future_planning`. O critério de conclusão sem partes permanece pendente e não é inferido silenciosamente.
+Conteúdo exige `priority`; estimativa é opcional. `GET /contents/{content_id}/progress` retorna estado derivado, partes confirmadas, percentual quando calculável, quantidade de blocos futuros e a sinalização `needs_future_planning`. `POST /contents/{content_id}/complete` registra a confirmação explícita e somente é válido quando o conteúdo não possui partes. Conteúdo sem partes não é finalizado apenas por atingir a estimativa.
 
 ## Eventos acadêmicos
 
@@ -347,7 +348,6 @@ No MVP atual, a reconciliação idempotente de atraso também é executada antes
 - localização definitiva da API;
 - evento com intervalo criado sobre bloco confirmado;
 - sessão retroativa sobreposta;
-- conclusão de conteúdo sem partes;
 - paginação e limites máximos;
 - rate limiting;
 - formato de revisão: `ETag`/`If-Match` ou campo no payload.

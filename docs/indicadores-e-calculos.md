@@ -293,9 +293,8 @@ Não somar os 40 minutos ao numerador de 100 sem comunicar a mudança de signifi
 1. Como conclusão antecipada reduz a estimativa restante.
 2. Como tempo excedente reduz a estimativa restante.
 3. Como estudo não planejado reduz a estimativa restante.
-4. Como determinar conclusão de conteúdo sem partes.
-5. Qual data atribui cancelamento e replanejamento a um período histórico.
-6. Se o painel principal combina ou separa tempo não planejado.
-7. Se “atrasos ocorridos” entra no MVP além de “atrasos atuais”.
-8. Faixas visuais de pressão/risco.
-9. Regra de sobreposição e múltiplas sessões retroativas vinculadas ao mesmo bloco.
+4. Qual data atribui cancelamento e replanejamento a um período histórico.
+5. Se o painel principal combina ou separa tempo não planejado.
+6. Se “atrasos ocorridos” entra no MVP além de “atrasos atuais”.
+7. Faixas visuais de pressão/risco.
+8. Regra de sobreposição e múltiplas sessões retroativas vinculadas ao mesmo bloco.
