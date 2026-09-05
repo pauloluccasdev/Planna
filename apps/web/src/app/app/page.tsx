@@ -27,6 +27,7 @@ type CalendarItem =
   | {
       type: "study_block";
       id: string;
+      recurrenceSeriesId: string | null;
       startsAt: string;
       endsAt: string;
       status: string;
@@ -268,7 +269,11 @@ export default async function DashboardPage({ searchParams }: Props) {
                   </div>
                   {item.type === "study_block" &&
                   ["CONFIRMED", "OVERDUE"].includes(item.status) ? (
-                    <BlockActions blockId={item.id} canStart={!activeSession} />
+                    <BlockActions
+                      blockId={item.id}
+                      recurrenceSeriesId={item.recurrenceSeriesId}
+                      canStart={!activeSession}
+                    />
                   ) : null}
                 </article>
               ))}

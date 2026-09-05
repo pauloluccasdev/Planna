@@ -42,6 +42,13 @@ export async function cancelStudyBlock(blockId: string) {
   revalidatePath("/app");
 }
 
+export async function cancelStudyBlockSeries(seriesId: string) {
+  await mutate<{ seriesId: string; cancelledBlocks: number }>(
+    `study-blocks/series/${seriesId}/cancel`,
+  );
+  revalidatePath("/app");
+}
+
 export async function pauseStudySession(sessionId: string) {
   const result = await mutate<SessionMutation>(
     `study-sessions/${sessionId}/pause`,

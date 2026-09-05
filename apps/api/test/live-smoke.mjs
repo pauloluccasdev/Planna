@@ -429,6 +429,33 @@ try {
     throw new Error('Calendar did not return the expected study block');
   }
 
+  const seriesId = recurringBody.data[0].recurrenceSeriesId;
+  const cancelledSeries = await fetch(
+    `${apiUrl}/study-blocks/series/${seriesId}/cancel`,
+    { method: 'POST', headers },
+  );
+  if (cancelledSeries.status !== 201) {
+    throw new Error(
+      `Cancelling recurrence failed with ${cancelledSeries.status}: ${await cancelledSeries.text()}`,
+    );
+  }
+  const cancelledSeriesBody = await cancelledSeries.json();
+  if (cancelledSeriesBody.data.cancelledBlocks !== 3) {
+    throw new Error('Cancelling recurrence did not affect all active occurrences');
+  }
+  const remainingCalendar = await fetch(
+    `${apiUrl}/calendar?from=2099-08-01T00%3A00%3A00-03%3A00&to=2099-08-10T00%3A00%3A00-03%3A00`,
+    { headers },
+  );
+  const remainingCalendarBody = await remainingCalendar.json();
+  if (
+    !remainingCalendar.ok ||
+    remainingCalendarBody.data.length !== 1 ||
+    remainingCalendarBody.data[0].id !== blockId
+  ) {
+    throw new Error('Cancelled recurrence still appears in the calendar');
+  }
+
   console.log(
     JSON.stringify({
       authenticated: true,
@@ -454,6 +481,8 @@ try {
       retroactiveSessionCreated: true,
       metricsCalculated: true,
       calendarListed: true,
+      recurrenceCancelled: true,
+      cancelledRecurrenceHiddenFromCalendar: true,
       cleanupScheduled: true,
     }),
   );

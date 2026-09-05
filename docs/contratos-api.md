@@ -225,11 +225,12 @@ GET   /study-blocks/{block_id}/history
 
 ```text
 POST   /study-blocks/recurring/daily
+POST   /study-blocks/series/{series_id}/cancel
 PATCH  /study-block-series/{series_id}
 DELETE /study-block-series/{series_id}
 ```
 
-Na criação, o payload do bloco recebe `repeatUntil` no formato `YYYY-MM-DD`. A operação é atômica: todas as ocorrências precisam estar dentro da disponibilidade e sem conflito, ou nenhuma é criada. Uma série diária aceita no máximo 366 blocos. Ocorrência individual usa rota do bloco; futuras operações sobre a série usarão escopo explícito.
+Na criação, o payload do bloco recebe `repeatUntil` no formato `YYYY-MM-DD`. A operação é atômica: todas as ocorrências precisam estar dentro da disponibilidade e sem conflito, ou nenhuma é criada. Uma série diária aceita no máximo 366 blocos. O cancelamento individual usa a rota do bloco; o cancelamento da série altera apenas ocorrências ainda ativas e preserva as concluídas.
 
 ## Sessões de estudo
 

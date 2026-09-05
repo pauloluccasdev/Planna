@@ -39,6 +39,7 @@ export class CalendarService {
         },
         select: {
           id: true,
+          recurrenceSeriesId: true,
           startsAt: true,
           endsAt: true,
           status: true,

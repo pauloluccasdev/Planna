@@ -13,6 +13,7 @@ describe('StudyBlocksService', () => {
     content: { findFirst: vi.fn() },
     contentPart: { count: vi.fn() },
     pomodoroPreference: { findUnique: vi.fn() },
+    recurrenceSeries: { findFirst: vi.fn() },
     studyBlock: { findFirst: vi.fn(), update: vi.fn() },
     $transaction: vi.fn(),
   };
@@ -107,5 +108,36 @@ describe('StudyBlocksService', () => {
       }),
     ).rejects.toBeInstanceOf(ConflictException);
     expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('does not expose a recurrence owned by another student', async () => {
+    prisma.recurrenceSeries.findFirst.mockResolvedValue(null);
+    await expect(
+      service.cancelSeries('student-id', 'series-id'),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('cancels only active blocks from the selected recurrence', async () => {
+    prisma.recurrenceSeries.findFirst.mockResolvedValue({ id: 'series-id' });
+    const transaction = {
+      $executeRaw: vi.fn().mockResolvedValue(1),
+      studyBlock: { updateMany: vi.fn().mockResolvedValue({ count: 2 }) },
+    };
+    prisma.$transaction.mockImplementation((callback) => callback(transaction));
+
+    const result = await service.cancelSeries('student-id', 'series-id');
+
+    expect(transaction.studyBlock.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          studentId: 'student-id',
+          recurrenceSeriesId: 'series-id',
+        }),
+      }),
+    );
+    expect(result).toEqual(
+      expect.objectContaining({ seriesId: 'series-id', cancelledBlocks: 2 }),
+    );
   });
 });

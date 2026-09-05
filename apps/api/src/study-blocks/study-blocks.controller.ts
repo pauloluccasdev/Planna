@@ -62,4 +62,12 @@ export class StudyBlocksController {
   ) {
     return { data: await this.blocks.cancel(user.id, id) };
   }
+
+  @Post('series/:seriesId/cancel')
+  async cancelSeries(
+    @CurrentUser() user: AuthUser,
+    @Param('seriesId', new ParseUUIDPipe()) seriesId: string,
+  ) {
+    return { data: await this.blocks.cancelSeries(user.id, seriesId) };
+  }
 }

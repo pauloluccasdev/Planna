@@ -934,7 +934,8 @@ a.resource-row:hover {
   flex-wrap: wrap;
   gap: 8px;
 }
-.calendar-cancel {
+.calendar-cancel,
+.calendar-cancel-series {
   padding: 5px;
   border: 0;
   background: transparent;
@@ -942,6 +943,9 @@ a.resource-row:hover {
   font-size: 0.72rem;
   font-weight: 700;
   cursor: pointer;
+}
+.calendar-cancel-series {
+  color: #6f594b;
 }
 .calendar-actions button:disabled {
   cursor: not-allowed;

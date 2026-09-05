@@ -2,11 +2,19 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { cancelStudyBlock, startStudySession } from "./session/actions";
+import {
+  cancelStudyBlock,
+  cancelStudyBlockSeries,
+  startStudySession,
+} from "./session/actions";
 
-type Props = { blockId: string; canStart: boolean };
+type Props = {
+  blockId: string;
+  recurrenceSeriesId: string | null;
+  canStart: boolean;
+};
 
-export function BlockActions({ blockId, canStart }: Props) {
+export function BlockActions({ blockId, recurrenceSeriesId, canStart }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState("");
@@ -15,6 +23,25 @@ export function BlockActions({ blockId, canStart }: Props) {
     setError("");
     startTransition(async () => {
       await startStudySession(blockId);
+    });
+  }
+
+  function cancelSeries() {
+    if (
+      !recurrenceSeriesId ||
+      !window.confirm(
+        "Deseja cancelar todos os blocos ainda ativos desta série? Blocos já concluídos serão preservados.",
+      )
+    )
+      return;
+    setError("");
+    startTransition(async () => {
+      try {
+        await cancelStudyBlockSeries(recurrenceSeriesId);
+        router.refresh();
+      } catch {
+        setError("Não foi possível cancelar a série.");
+      }
     });
   }
 
@@ -57,6 +84,16 @@ export function BlockActions({ blockId, canStart }: Props) {
       >
         Cancelar
       </button>
+      {recurrenceSeriesId ? (
+        <button
+          className="calendar-cancel-series"
+          type="button"
+          disabled={pending}
+          onClick={cancelSeries}
+        >
+          Cancelar série
+        </button>
+      ) : null}
       {error ? <small className="form-error">{error}</small> : null}
     </div>
   );

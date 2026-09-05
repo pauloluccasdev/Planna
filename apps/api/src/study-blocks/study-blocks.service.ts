@@ -388,6 +388,39 @@ export class StudyBlocksService {
     });
   }
 
+  async cancelSeries(studentId: string, seriesId: string) {
+    const series = await this.prisma.recurrenceSeries.findFirst({
+      where: { id: seriesId, studentId },
+      select: { id: true },
+    });
+    if (!series) {
+      throw new NotFoundException({
+        error: {
+          code: 'RECURRENCE_SERIES_NOT_FOUND',
+          message: 'Série recorrente não encontrada.',
+        },
+      });
+    }
+
+    return this.prisma.$transaction(async (transaction) => {
+      await transaction.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${studentId}, 0))`;
+      const cancelledAt = new Date();
+      const result = await transaction.studyBlock.updateMany({
+        where: {
+          studentId,
+          recurrenceSeriesId: seriesId,
+          status: { in: activeBlockStatuses },
+        },
+        data: {
+          status: BlockStatus.CANCELLED,
+          cancelledAt,
+          revision: { increment: 1 },
+        },
+      });
+      return { seriesId, cancelledBlocks: result.count, cancelledAt };
+    });
+  }
+
   private async resolvePomodoro(studentId: string, input: CreateStudyBlockDto) {
     if (
       (input.focusSeconds === undefined) !==
