@@ -44,6 +44,48 @@ function databaseTimeToString(value: Date): string {
   return value.toISOString().slice(11, 19);
 }
 
+type NormalizedInterval = {
+  weekday: number;
+  startLocalTime: string;
+  endLocalTime: string;
+};
+
+export function mergeAvailabilityIntervals(
+  intervals: NormalizedInterval[],
+): NormalizedInterval[] {
+  const sorted = intervals
+    .map((interval) => ({
+      ...interval,
+      startLocalTime: normalizeTime(interval.startLocalTime),
+      endLocalTime: normalizeTime(interval.endLocalTime),
+    }))
+    .sort((left, right) =>
+      left.weekday === right.weekday
+        ? timeToSeconds(left.startLocalTime) -
+          timeToSeconds(right.startLocalTime)
+        : left.weekday - right.weekday,
+    );
+
+  return sorted.reduce<NormalizedInterval[]>((merged, interval) => {
+    const previous = merged.at(-1);
+    if (
+      previous?.weekday === interval.weekday &&
+      timeToSeconds(interval.startLocalTime) <=
+        timeToSeconds(previous.endLocalTime)
+    ) {
+      if (
+        timeToSeconds(interval.endLocalTime) >
+        timeToSeconds(previous.endLocalTime)
+      ) {
+        previous.endLocalTime = interval.endLocalTime;
+      }
+      return merged;
+    }
+    merged.push({ ...interval });
+    return merged;
+  }, []);
+}
+
 function instantToLocalPoint(value: Date) {
   const parts = Object.fromEntries(
     localDateTime
@@ -151,6 +193,58 @@ export class AvailabilityService {
       if (normalized.length > 0) {
         await transaction.availabilityInterval.createMany({
           data: normalized.map((interval) => ({
+            studentId,
+            weekday: interval.weekday,
+            startLocalTime: timeToDatabaseDate(interval.startLocalTime),
+            endLocalTime: timeToDatabaseDate(interval.endLocalTime),
+          })),
+        });
+      }
+    });
+    return this.get(studentId);
+  }
+
+  async expand(studentId: string, intervals: AvailabilityIntervalDto[]) {
+    const additions = this.validateIntervals(intervals);
+    await this.prisma.$transaction(async (transaction) => {
+      await transaction.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${studentId}, 0))`;
+      const current = await transaction.availabilityInterval.findMany({
+        where: { studentId, active: true },
+        select: {
+          weekday: true,
+          startLocalTime: true,
+          endLocalTime: true,
+        },
+      });
+      const merged = mergeAvailabilityIntervals([
+        ...current.map((interval) => ({
+          weekday: interval.weekday,
+          startLocalTime: databaseTimeToString(interval.startLocalTime),
+          endLocalTime: databaseTimeToString(interval.endLocalTime),
+        })),
+        ...additions,
+      ]);
+      const conflicts = await this.findFutureBlockConflicts(
+        studentId,
+        merged,
+        transaction,
+      );
+      if (conflicts.length > 0) {
+        throw new ConflictException({
+          error: {
+            code: 'AVAILABILITY_HAS_AFFECTED_BLOCKS',
+            message:
+              'A nova disponibilidade deixaria blocos futuros fora da grade.',
+            details: { blockIds: conflicts.map(({ blockId }) => blockId) },
+          },
+        });
+      }
+      await transaction.availabilityInterval.deleteMany({
+        where: { studentId },
+      });
+      if (merged.length > 0) {
+        await transaction.availabilityInterval.createMany({
+          data: merged.map((interval) => ({
             studentId,
             weekday: interval.weekday,
             startLocalTime: timeToDatabaseDate(interval.startLocalTime),

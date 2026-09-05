@@ -1216,6 +1216,23 @@ a.resource-row:hover {
   border: 0;
   cursor: pointer;
 }
+.availability-expansion {
+  display: grid;
+  gap: 10px;
+  padding: 18px;
+  border: 1px solid #e1c98d;
+  border-radius: 12px;
+  background: #fff9e9;
+}
+.availability-expansion p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+.availability-expansion .secondary-button {
+  width: max-content;
+}
 .recurrence-picker {
   display: grid;
   gap: 13px;

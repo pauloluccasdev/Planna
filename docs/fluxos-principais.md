@@ -14,6 +14,16 @@
 10. O sistema valida disponibilidade e conflitos.
 11. O aluno confirma a proposta.
 
+## Criação de bloco fora da disponibilidade
+
+1. O aluno preenche o bloco e tenta confirmá-lo.
+2. O Planna impede a criação e explica que o horário está fora da grade semanal.
+3. O aluno escolhe explicitamente adicionar o horário à disponibilidade.
+4. O Planna une o horário à grade atual e preserva os dados preenchidos.
+5. Em uma série diária, somente os dias da semana abrangidos são incluídos.
+6. Nenhum bloco é criado durante a ampliação da grade.
+7. O aluno confirma novamente e o Planna revalida disponibilidade e conflitos antes de criar o bloco ou a série.
+
 ## Execução de um bloco
 
 1. O aluno abre um bloco e inicia a sessão.

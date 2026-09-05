@@ -4,11 +4,18 @@ import {
 } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PrismaService } from '../database/prisma.service.js';
-import { AvailabilityService } from './availability.service.js';
+import {
+  AvailabilityService,
+  mergeAvailabilityIntervals,
+} from './availability.service.js';
 
 describe('AvailabilityService', () => {
   const transaction = {
-    availabilityInterval: { deleteMany: vi.fn(), createMany: vi.fn() },
+    availabilityInterval: {
+      findMany: vi.fn(),
+      deleteMany: vi.fn(),
+      createMany: vi.fn(),
+    },
     studyBlock: { findMany: vi.fn() },
     $executeRaw: vi.fn(),
   };
@@ -23,6 +30,7 @@ describe('AvailabilityService', () => {
     vi.clearAllMocks();
     prisma.studyBlock.findMany.mockResolvedValue([]);
     transaction.studyBlock.findMany.mockResolvedValue([]);
+    transaction.availabilityInterval.findMany.mockResolvedValue([]);
     prisma.availabilityInterval.findMany.mockResolvedValue([]);
     service = new AvailabilityService(prisma as unknown as PrismaService);
   });
@@ -70,5 +78,44 @@ describe('AvailabilityService', () => {
       where: { studentId: 'student-id' },
     });
     expect(transaction.availabilityInterval.createMany).toHaveBeenCalledOnce();
+  });
+
+  it('merges overlapping and adjacent intervals by weekday', () => {
+    expect(
+      mergeAvailabilityIntervals([
+        { weekday: 1, startLocalTime: '19:00', endLocalTime: '20:00' },
+        { weekday: 1, startLocalTime: '19:30', endLocalTime: '21:00' },
+        { weekday: 1, startLocalTime: '21:00', endLocalTime: '22:00' },
+        { weekday: 2, startLocalTime: '19:00', endLocalTime: '20:00' },
+      ]),
+    ).toEqual([
+      { weekday: 1, startLocalTime: '19:00:00', endLocalTime: '22:00:00' },
+      { weekday: 2, startLocalTime: '19:00:00', endLocalTime: '20:00:00' },
+    ]);
+  });
+
+  it('expands the grade without replacing uncovered intervals', async () => {
+    transaction.availabilityInterval.findMany.mockResolvedValue([
+      {
+        weekday: 1,
+        startLocalTime: new Date('1970-01-01T19:00:00.000Z'),
+        endLocalTime: new Date('1970-01-01T20:00:00.000Z'),
+      },
+    ]);
+
+    await service.expand('student-id', [
+      { weekday: 1, startLocalTime: '20:00', endLocalTime: '21:00' },
+    ]);
+
+    expect(transaction.availabilityInterval.createMany).toHaveBeenCalledWith({
+      data: [
+        expect.objectContaining({
+          studentId: 'student-id',
+          weekday: 1,
+          startLocalTime: new Date('1970-01-01T19:00:00.000Z'),
+          endLocalTime: new Date('1970-01-01T21:00:00.000Z'),
+        }),
+      ],
+    });
   });
 });

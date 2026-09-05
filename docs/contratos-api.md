@@ -192,9 +192,14 @@ Eventos sobrepostos retornam sucesso com `warnings`; conflito com bloco confirma
 GET  /availability
 PUT  /availability
 POST /availability/validate
+POST /availability/expand
 ```
 
 `PUT` substitui atomicamente a grade. Se invalidar blocos futuros, retorna `409 AVAILABILITY_HAS_AFFECTED_BLOCKS` com as referências necessárias.
+
+`POST /availability/expand` une os intervalos informados à grade atual de forma
+atômica e idempotente. Intervalos sobrepostos ou adjacentes são consolidados. O
+comando exige ação explícita do aluno e não cria o bloco que motivou a expansão.
 
 ## Preferência de Pomodoro
 

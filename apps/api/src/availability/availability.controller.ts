@@ -23,6 +23,14 @@ export class AvailabilityController {
     return { data: await this.availability.validate(user.id, input.intervals) };
   }
 
+  @Post('expand')
+  async expand(
+    @CurrentUser() user: AuthUser,
+    @Body() input: ReplaceAvailabilityDto,
+  ) {
+    return { data: await this.availability.expand(user.id, input.intervals) };
+  }
+
   @Put()
   async replace(
     @CurrentUser() user: AuthUser,

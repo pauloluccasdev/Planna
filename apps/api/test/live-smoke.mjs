@@ -445,6 +445,52 @@ try {
     );
   }
 
+  const firstExpansion = await fetch(`${apiUrl}/availability/expand`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      intervals: [
+        { weekday: 1, startLocalTime: '18:00', endLocalTime: '19:00' },
+      ],
+    }),
+  });
+  if (!firstExpansion.ok) {
+    throw new Error(
+      `POST /availability/expand failed with ${firstExpansion.status}`,
+    );
+  }
+  const adjacentExpansion = await fetch(`${apiUrl}/availability/expand`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      intervals: [
+        { weekday: 1, startLocalTime: '19:00', endLocalTime: '20:00' },
+      ],
+    }),
+  });
+  const adjacentExpansionBody = await adjacentExpansion.json();
+  if (
+    !adjacentExpansion.ok ||
+    adjacentExpansionBody.data.length !== 1 ||
+    adjacentExpansionBody.data[0].startLocalTime !== '18:00:00' ||
+    adjacentExpansionBody.data[0].endLocalTime !== '20:00:00'
+  ) {
+    throw new Error('Availability expansion did not preserve and merge slots');
+  }
+  const repeatedExpansion = await fetch(`${apiUrl}/availability/expand`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      intervals: [
+        { weekday: 1, startLocalTime: '19:00', endLocalTime: '20:00' },
+      ],
+    }),
+  });
+  const repeatedExpansionBody = await repeatedExpansion.json();
+  if (!repeatedExpansion.ok || repeatedExpansionBody.data.length !== 1) {
+    throw new Error('Availability expansion is not idempotent');
+  }
+
   const availability = await fetch(`${apiUrl}/availability`, {
     method: 'PUT',
     headers,
@@ -987,6 +1033,7 @@ try {
       subjectUpdatedWithAcademicPeriod: true,
       contentCreated: true,
       academicEventUpdatedAtomically: true,
+      availabilityExpandedIdempotently: true,
       availabilitySaved: true,
       pomodoroSaved: true,
       studyBlockCreated: true,
