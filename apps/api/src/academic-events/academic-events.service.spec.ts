@@ -65,4 +65,18 @@ describe('AcademicEventsService', () => {
     expect(result.event).toEqual({ id: 'event-id' });
     expect(result.warnings).toHaveLength(1);
   });
+
+  it('requires content status and identifiers together when updating', async () => {
+    prisma.academicEvent.findFirst.mockResolvedValue({
+      id: 'event-id',
+      subjectId: 'subject-id',
+      startsAt: new Date('2026-09-20T23:00:00.000Z'),
+      endsAt: null,
+    });
+    await expect(
+      service.update('student-id', 'event-id', {
+        contentsStatus: EventContentsStatus.NOT_INFORMED_YET,
+      }),
+    ).rejects.toBeInstanceOf(UnprocessableEntityException);
+  });
 });

@@ -1269,6 +1269,26 @@ a.resource-row:hover {
   border: 0;
   cursor: pointer;
 }
+.event-editor {
+  margin-top: 14px;
+  border-top: 1px solid var(--line);
+}
+.event-editor > summary {
+  padding-top: 13px;
+  color: var(--accent-dark);
+  font-size: 0.8rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+.event-editor .event-form {
+  margin-top: 18px;
+  padding-top: 2px;
+}
+.event-editor .event-form > .button {
+  justify-self: start;
+  border: 0;
+  cursor: pointer;
+}
 .contents-choice {
   display: flex;
   flex-wrap: wrap;

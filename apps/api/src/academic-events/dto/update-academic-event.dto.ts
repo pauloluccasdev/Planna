@@ -1,4 +1,7 @@
 import {
+  ArrayUnique,
+  IsArray,
+  IsEnum,
   IsISO8601,
   IsOptional,
   IsString,
@@ -6,6 +9,7 @@ import {
   MaxLength,
   MinLength,
 } from 'class-validator';
+import { EventContentsStatus } from '../../generated/prisma/enums.js';
 
 export class UpdateAcademicEventDto {
   @IsOptional()
@@ -30,4 +34,14 @@ export class UpdateAcademicEventDto {
   @IsOptional()
   @IsISO8601({ strict: true })
   endsAt?: string | null;
+
+  @IsOptional()
+  @IsEnum(EventContentsStatus)
+  contentsStatus?: EventContentsStatus;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayUnique()
+  @IsUUID(undefined, { each: true })
+  contentIds?: string[];
 }

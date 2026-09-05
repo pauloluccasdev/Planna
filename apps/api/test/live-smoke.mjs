@@ -66,6 +66,13 @@ async function cleanupUserData(database, id) {
     id,
   ]);
   await database.query(
+    'delete from academic_event_contents where academic_event_id in (select id from academic_events where student_id = $1)',
+    [id],
+  );
+  await database.query('delete from academic_events where student_id = $1', [
+    id,
+  ]);
+  await database.query(
     'delete from pomodoro_preferences where student_id = $1',
     [id],
   );
@@ -185,6 +192,83 @@ try {
     throw new Error(`POST /contents failed with ${createdContent.status}`);
   }
   const contentId = (await createdContent.json()).data.id;
+
+  const eventTypes = await fetch(`${apiUrl}/academic-event-types`, { headers });
+  const eventTypesBody = await eventTypes.json();
+  if (!eventTypes.ok || eventTypesBody.data.length === 0) {
+    throw new Error('GET /academic-event-types did not return a system type');
+  }
+  const eventTypeId = eventTypesBody.data[0].id;
+  const createdEvent = await fetch(`${apiUrl}/academic-events`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      subjectId,
+      eventTypeId,
+      title: 'Avaliação de integração',
+      startsAt: '2099-09-01T19:00:00-03:00',
+      contentsStatus: 'NOT_INFORMED_YET',
+      contentIds: [],
+    }),
+  });
+  if (createdEvent.status !== 201) {
+    throw new Error(
+      `POST /academic-events failed with ${createdEvent.status}: ${await createdEvent.text()}`,
+    );
+  }
+  const eventId = (await createdEvent.json()).data.id;
+  const updatedEvent = await fetch(`${apiUrl}/academic-events/${eventId}`, {
+    method: 'PATCH',
+    headers,
+    body: JSON.stringify({
+      title: 'Avaliação de integração atualizada',
+      description: 'Conteúdo divulgado pelo professor',
+      startsAt: '2099-09-02T19:30:00-03:00',
+      endsAt: '2099-09-02T20:30:00-03:00',
+      contentsStatus: 'INFORMED',
+      contentIds: [contentId],
+    }),
+  });
+  const updatedEventBody = await updatedEvent.json();
+  if (
+    !updatedEvent.ok ||
+    updatedEventBody.data.title !== 'Avaliação de integração atualizada' ||
+    updatedEventBody.data.contentsStatus !== 'INFORMED' ||
+    updatedEventBody.data.contentLinks.length !== 1
+  ) {
+    throw new Error(
+      'Academic event and its contents were not updated together',
+    );
+  }
+  const rejectedEventUpdate = await fetch(
+    `${apiUrl}/academic-events/${eventId}`,
+    {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify({
+        title: 'Não deve persistir',
+        contentsStatus: 'INFORMED',
+        contentIds: [randomUUID()],
+      }),
+    },
+  );
+  if (rejectedEventUpdate.status !== 422) {
+    throw new Error('Invalid academic event content should return 422');
+  }
+  const eventAfterRejectedUpdate = await fetch(
+    `${apiUrl}/academic-events/${eventId}`,
+    { headers },
+  );
+  const eventAfterRejectedUpdateBody = await eventAfterRejectedUpdate.json();
+  if (
+    !eventAfterRejectedUpdate.ok ||
+    eventAfterRejectedUpdateBody.data.title !==
+      'Avaliação de integração atualizada'
+  ) {
+    throw new Error(
+      'Rejected academic event update partially changed metadata',
+    );
+  }
 
   const availability = await fetch(`${apiUrl}/availability`, {
     method: 'PUT',
@@ -314,12 +398,17 @@ try {
     }),
   });
   if (expiredBlock.status !== 201) {
-    throw new Error(`Creating expired block failed with ${expiredBlock.status}`);
+    throw new Error(
+      `Creating expired block failed with ${expiredBlock.status}`,
+    );
   }
   const expiredBlockId = (await expiredBlock.json()).data.id;
-  const reconciledBlock = await fetch(`${apiUrl}/study-blocks/${expiredBlockId}`, {
-    headers,
-  });
+  const reconciledBlock = await fetch(
+    `${apiUrl}/study-blocks/${expiredBlockId}`,
+    {
+      headers,
+    },
+  );
   const reconciledBlockBody = await reconciledBlock.json();
   if (!reconciledBlock.ok || reconciledBlockBody.data.status !== 'OVERDUE') {
     throw new Error('Expired block was not automatically marked overdue');
@@ -475,7 +564,9 @@ try {
   }
   const cancelledSeriesBody = await cancelledSeries.json();
   if (cancelledSeriesBody.data.cancelledBlocks !== 3) {
-    throw new Error('Cancelling recurrence did not affect all active occurrences');
+    throw new Error(
+      'Cancelling recurrence did not affect all active occurrences',
+    );
   }
   const remainingCalendar = await fetch(
     `${apiUrl}/calendar?from=2099-08-01T00%3A00%3A00-03%3A00&to=2099-08-10T00%3A00%3A00-03%3A00`,
@@ -510,7 +601,9 @@ try {
         body: JSON.stringify({ contentId, startsAt, endsAt }),
       });
       if (response.status !== 201) {
-        throw new Error(`Creating browser fixture block failed with ${response.status}`);
+        throw new Error(
+          `Creating browser fixture block failed with ${response.status}`,
+        );
       }
       return (await response.json()).data;
     };
@@ -533,7 +626,9 @@ try {
       { method: 'POST', headers },
     );
     if (fixtureSession.status !== 201) {
-      throw new Error(`Starting browser fixture session failed with ${fixtureSession.status}`);
+      throw new Error(
+        `Starting browser fixture session failed with ${fixtureSession.status}`,
+      );
     }
     fixtureSessionId = (await fixtureSession.json()).data.id;
   }
@@ -546,6 +641,7 @@ try {
       courseListed: true,
       subjectCreated: true,
       contentCreated: true,
+      academicEventUpdatedAtomically: true,
       availabilitySaved: true,
       pomodoroSaved: true,
       studyBlockCreated: true,
@@ -573,6 +669,7 @@ try {
               username,
               password,
               userId,
+              subjectId,
               sessionId: fixtureSessionId,
               earlyBlockId: fixtureEarlyBlockId,
             },

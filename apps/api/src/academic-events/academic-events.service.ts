@@ -122,23 +122,60 @@ export class AcademicEventsService {
           ? new Date(input.endsAt)
           : null;
     this.validateRange(startsAt, endsAt);
-    if (input.eventTypeId)
-      await this.requireEventType(studentId, input.eventTypeId);
+    if (
+      (input.contentsStatus === undefined) !==
+      (input.contentIds === undefined)
+    ) {
+      this.throwInvalidContents(
+        'Informe juntos o estado e os conteúdos cobrados.',
+      );
+    }
+    await Promise.all([
+      input.eventTypeId
+        ? this.requireEventType(studentId, input.eventTypeId)
+        : Promise.resolve(),
+      input.contentsStatus && input.contentIds
+        ? this.validateContents(
+            studentId,
+            current.subjectId,
+            input.contentsStatus,
+            input.contentIds,
+          )
+        : Promise.resolve(),
+    ]);
 
-    const event = await this.prisma.academicEvent.update({
-      where: { id },
-      data: {
-        ...(input.eventTypeId === undefined
-          ? {}
-          : { eventTypeId: input.eventTypeId }),
-        ...(input.title === undefined ? {} : { title: input.title.trim() }),
-        ...(input.description === undefined
-          ? {}
-          : { description: input.description.trim() || null }),
-        ...(input.startsAt === undefined ? {} : { startsAt }),
-        ...(input.endsAt === undefined ? {} : { endsAt }),
-      },
-      select: eventSelection,
+    const event = await this.prisma.$transaction(async (transaction) => {
+      if (input.contentsStatus !== undefined && input.contentIds) {
+        await transaction.academicEventContent.deleteMany({
+          where: { academicEventId: id },
+        });
+        if (input.contentIds.length > 0) {
+          await transaction.academicEventContent.createMany({
+            data: input.contentIds.map((contentId) => ({
+              academicEventId: id,
+              contentId,
+            })),
+          });
+        }
+      }
+      return transaction.academicEvent.update({
+        where: { id },
+        data: {
+          ...(input.eventTypeId === undefined
+            ? {}
+            : { eventTypeId: input.eventTypeId }),
+          ...(input.title === undefined ? {} : { title: input.title.trim() }),
+          ...(input.description === undefined
+            ? {}
+            : { description: input.description.trim() || null }),
+          ...(input.startsAt === undefined ? {} : { startsAt }),
+          ...(input.endsAt === undefined ? {} : { endsAt }),
+          ...(input.contentsStatus === undefined
+            ? {}
+            : { contentsStatus: input.contentsStatus }),
+        },
+        select: eventSelection,
+      });
     });
     return {
       event,

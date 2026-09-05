@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { authenticatedApi } from "../../../../_lib/api";
 import { removeAcademicEvent } from "./actions";
 import { EventForm } from "./event-form";
+import { EventEditor } from "./event-editor";
 import { EventTypeForm } from "./event-type-form";
 
 export const metadata: Metadata = { title: "Compromissos acadêmicos" };
@@ -14,7 +15,9 @@ type EventType = { id: string; name: string; isSystem: boolean };
 type Content = { id: string; name: string };
 type AcademicEvent = {
   id: string;
+  eventTypeId: string;
   title: string;
+  description: string | null;
   startsAt: string;
   endsAt: string | null;
   contentsStatus: "INFORMED" | "NOT_INFORMED_YET";
@@ -102,6 +105,12 @@ export default async function EventsPage({ params }: Props) {
                         .map((link) => link.content.name)
                         .join(", ")}
                 </p>
+                <EventEditor
+                  subjectId={subjectId}
+                  event={event}
+                  eventTypes={eventTypes}
+                  contents={contents}
+                />
               </article>
             ))
           ) : (
