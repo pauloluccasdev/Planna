@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { authenticatedApi } from "../../_lib/api";
-import { completeStudySession } from "./actions";
+import { CompletionForm } from "./completion-form";
 import { SessionTimer } from "./session-timer";
 
 export const metadata: Metadata = { title: "Sessão de estudo" };
@@ -139,35 +139,14 @@ export default async function StudySessionPage({ searchParams }: Props) {
           <p>
             Confirme as partes finalizadas e, se quiser, deixe uma observação.
           </p>
-          <form action={completeStudySession.bind(null, session.id)}>
-            {selectedParts.length > 0 ? (
-              <fieldset className="completion-parts">
-                <legend>Partes do bloco</legend>
-                {selectedParts.map((part) => (
-                  <label key={part.id}>
-                    <input
-                      type="checkbox"
-                      name="completedPartIds"
-                      value={part.id}
-                      defaultChecked={alreadyCompleted.has(part.id)}
-                    />
-                    <span>{part.name}</span>
-                  </label>
-                ))}
-              </fieldset>
-            ) : null}
-            <label className="field">
-              <span>Observação (opcional)</span>
-              <textarea
-                name="note"
-                maxLength={2000}
-                defaultValue={session.note ?? ""}
-              />
-            </label>
-            <button className="danger-button" type="submit">
-              {session.studyBlock ? "Concluir este bloco" : "Concluir sessão"}
-            </button>
-          </form>
+          <CompletionForm
+            sessionId={session.id}
+            sessionStatus={session.status}
+            parts={selectedParts}
+            completedPartIds={[...alreadyCompleted]}
+            note={session.note ?? ""}
+            plannedEndsAt={session.studyBlock?.endsAt ?? null}
+          />
         </article>
       </div>
     </main>

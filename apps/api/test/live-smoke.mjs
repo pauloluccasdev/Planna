@@ -30,6 +30,7 @@ const admin = createClient(
 let userId;
 let courseId;
 let fixtureSessionId;
+let fixtureEarlyBlockId;
 
 async function withDatabase(callback) {
   const database = new pg.Client({
@@ -191,8 +192,8 @@ try {
     body: JSON.stringify({
       intervals: [0, 1, 2, 3, 4, 5, 6].map((weekday) => ({
         weekday,
-        startLocalTime: '18:00',
-        endLocalTime: '22:00',
+        startLocalTime: '00:00',
+        endLocalTime: '23:59',
       })),
     }),
   });
@@ -353,7 +354,11 @@ try {
     `${apiUrl}/study-sessions/${sessionId}/pomodoro-break`,
     { method: 'POST', headers },
   );
-  if (!breakSession.ok) throw new Error('Starting Pomodoro break failed');
+  if (!breakSession.ok) {
+    throw new Error(
+      `Starting Pomodoro break failed with ${breakSession.status}: ${await breakSession.text()}`,
+    );
+  }
 
   const focusSession = await fetch(
     `${apiUrl}/study-sessions/${sessionId}/focus`,
@@ -495,6 +500,9 @@ try {
     const yesterdayValue = new Date(`${today}T12:00:00Z`);
     yesterdayValue.setUTCDate(yesterdayValue.getUTCDate() - 1);
     const yesterday = yesterdayValue.toISOString().slice(0, 10);
+    const tomorrowValue = new Date(`${today}T12:00:00Z`);
+    tomorrowValue.setUTCDate(tomorrowValue.getUTCDate() + 1);
+    const tomorrow = tomorrowValue.toISOString().slice(0, 10);
     const createFixtureBlock = async (startsAt, endsAt) => {
       const response = await fetch(`${apiUrl}/study-blocks`, {
         method: 'POST',
@@ -514,6 +522,12 @@ try {
       `${yesterday}T19:00:00-03:00`,
       `${yesterday}T20:00:00-03:00`,
     );
+    fixtureEarlyBlockId = (
+      await createFixtureBlock(
+        `${tomorrow}T10:00:00-03:00`,
+        `${tomorrow}T11:00:00-03:00`,
+      )
+    ).id;
     const fixtureSession = await fetch(
       `${apiUrl}/study-blocks/${currentFixtureBlock.id}/sessions/start`,
       { method: 'POST', headers },
@@ -554,7 +568,15 @@ try {
       cancelledRecurrenceHiddenFromCalendar: true,
       cleanupScheduled: true,
       ...(keepTestUser
-        ? { fixture: { username, password, userId, sessionId: fixtureSessionId } }
+        ? {
+            fixture: {
+              username,
+              password,
+              userId,
+              sessionId: fixtureSessionId,
+              earlyBlockId: fixtureEarlyBlockId,
+            },
+          }
         : {}),
     }),
   );
