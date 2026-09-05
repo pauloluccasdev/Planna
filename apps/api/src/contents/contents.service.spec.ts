@@ -14,9 +14,9 @@ describe('ContentsService', () => {
       count: vi.fn(),
       delete: vi.fn(),
     },
-    studySession: { count: vi.fn() },
+    studySession: { count: vi.fn(), groupBy: vi.fn() },
     studySessionCompletedPart: { findMany: vi.fn() },
-    studyBlock: { count: vi.fn() },
+    studyBlock: { count: vi.fn(), groupBy: vi.fn() },
     $transaction: vi.fn(),
   };
   let service: ContentsService;
@@ -37,6 +37,58 @@ describe('ContentsService', () => {
         }),
       }),
     );
+  });
+
+  it('adds progress and missing-future-block warnings to content lists in batch', async () => {
+    prisma.content.findMany.mockResolvedValue([
+      {
+        id: 'content-1',
+        name: 'Cardiovascular',
+        manuallyCompletedAt: null,
+        parts: [{ id: 'part-1' }, { id: 'part-2' }],
+      },
+      {
+        id: 'content-2',
+        name: 'Respiratório',
+        manuallyCompletedAt: null,
+        parts: [],
+      },
+    ]);
+    prisma.studySessionCompletedPart.findMany.mockResolvedValue([
+      {
+        contentPartId: 'part-1',
+        contentPart: { contentId: 'content-1' },
+      },
+    ]);
+    prisma.studySession.groupBy.mockResolvedValue([
+      { contentId: 'content-1', _count: { _all: 1 } },
+    ]);
+    prisma.studyBlock.groupBy.mockResolvedValue([
+      { contentId: 'content-2', _count: { _all: 2 } },
+    ]);
+
+    const result = await service.listAll('student-id', {});
+
+    expect(result).toEqual([
+      expect.objectContaining({
+        id: 'content-1',
+        progress: expect.objectContaining({
+          status: 'IN_PROGRESS',
+          percentage: 50,
+          needsFuturePlanning: true,
+        }),
+      }),
+      expect.objectContaining({
+        id: 'content-2',
+        progress: expect.objectContaining({
+          status: 'PENDING',
+          futureBlockCount: 2,
+          needsFuturePlanning: false,
+        }),
+      }),
+    ]);
+    expect(prisma.studySession.groupBy).toHaveBeenCalledTimes(1);
+    expect(prisma.studyBlock.groupBy).toHaveBeenCalledTimes(1);
   });
 
   it('does not create content under a foreign subject', async () => {

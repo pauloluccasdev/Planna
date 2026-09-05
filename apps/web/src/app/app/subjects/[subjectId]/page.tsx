@@ -12,6 +12,20 @@ type Content = {
   priority: number;
   estimatedDurationSeconds: number | null;
   _count: { parts: number };
+  progress: {
+    status: "PENDING" | "IN_PROGRESS" | "COMPLETED";
+    completedParts: number;
+    totalParts: number;
+    percentage: number | null;
+    futureBlockCount: number;
+    needsFuturePlanning: boolean;
+  };
+};
+
+const progressLabels: Record<Content["progress"]["status"], string> = {
+  PENDING: "Pendente",
+  IN_PROGRESS: "Em andamento",
+  COMPLETED: "Concluído",
 };
 
 export const metadata: Metadata = { title: "Conteúdos" };
@@ -75,15 +89,35 @@ export default async function SubjectPage({ params }: Props) {
                 key={content.id}
               >
                 <div>
-                  <span className="resource-status">
-                    Prioridade {content.priority}
-                  </span>
+                  <div className="content-row-statuses">
+                    <span className="resource-status">
+                      Prioridade {content.priority}
+                    </span>
+                    <span
+                      className={`content-state content-state-${content.progress.status.toLowerCase().replace("_", "-")}`}
+                    >
+                      {progressLabels[content.progress.status]}
+                    </span>
+                  </div>
                   <h2>{content.name}</h2>
+                  {content.progress.needsFuturePlanning ? (
+                    <strong className="content-planning-alert">
+                      Sem blocos futuros · planejar novamente
+                    </strong>
+                  ) : null}
                 </div>
-                <span>
-                  {durationLabel(content.estimatedDurationSeconds)} ·{" "}
-                  {content._count.parts} partes →
-                </span>
+                <div className="content-row-summary">
+                  <span>{durationLabel(content.estimatedDurationSeconds)}</span>
+                  <span>
+                    {content._count.parts}{" "}
+                    {content._count.parts === 1 ? "parte" : "partes"} ·{" "}
+                    {content.progress.futureBlockCount}{" "}
+                    {content.progress.futureBlockCount === 1
+                      ? "bloco futuro"
+                      : "blocos futuros"}{" "}
+                    →
+                  </span>
+                </div>
               </Link>
             ))
           )}

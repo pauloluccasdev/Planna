@@ -158,7 +158,13 @@ DELETE /content-parts/{part_id}
 PUT    /contents/{content_id}/parts-order
 ```
 
-Conteúdo exige `priority`; estimativa é opcional. `GET /contents/{content_id}/progress` retorna estado derivado, partes confirmadas, percentual quando calculável, quantidade de blocos futuros e a sinalização `needs_future_planning`. `POST /contents/{content_id}/complete` registra a confirmação explícita e somente é válido quando o conteúdo não possui partes. Conteúdo sem partes não é finalizado apenas por atingir a estimativa.
+Conteúdo exige `priority`; estimativa é opcional. As listagens retornam um resumo
+`progress` calculado em lote, com estado, percentual quando calculável, partes
+confirmadas, quantidade de blocos futuros e `needsFuturePlanning`.
+`GET /contents/{content_id}/progress` retorna o mesmo diagnóstico detalhado.
+`POST /contents/{content_id}/complete` registra a confirmação explícita e somente
+é válido quando o conteúdo não possui partes. Conteúdo sem partes não é
+finalizado apenas por atingir a estimativa.
 
 ## Eventos acadêmicos
 

@@ -39,12 +39,50 @@ const contentSelection = {
   _count: { select: { parts: { where: { archivedAt: null } } } },
 } as const;
 
+type ProgressSource = {
+  id: string;
+  manuallyCompletedAt: Date | null;
+  parts: Array<{ id: string }>;
+};
+
+function summarizeProgress(
+  content: ProgressSource,
+  completedPartIds: string[],
+  executionCount: number,
+  futureBlockCount: number,
+) {
+  const totalParts = content.parts.length;
+  const completed =
+    totalParts > 0
+      ? completedPartIds.length === totalParts
+      : content.manuallyCompletedAt !== null;
+  const status = completed
+    ? ('COMPLETED' as const)
+    : executionCount > 0
+      ? ('IN_PROGRESS' as const)
+      : ('PENDING' as const);
+  return {
+    status,
+    totalParts,
+    completedParts: completedPartIds.length,
+    completedPartIds,
+    percentage:
+      totalParts > 0
+        ? (completedPartIds.length * 100) / totalParts
+        : completed
+          ? 100
+          : null,
+    futureBlockCount,
+    needsFuturePlanning: !completed && futureBlockCount === 0,
+  };
+}
+
 @Injectable()
 export class ContentsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  listAll(studentId: string, query: ListContentsQueryDto) {
-    return this.prisma.content.findMany({
+  async listAll(studentId: string, query: ListContentsQueryDto) {
+    const contents = await this.prisma.content.findMany({
       where: {
         studentId,
         archivedAt:
@@ -60,6 +98,7 @@ export class ContentsService {
         { name: 'asc' },
       ],
     });
+    return this.withProgress(studentId, contents);
   }
 
   async list(
@@ -68,7 +107,7 @@ export class ContentsService {
     query: ListContentsQueryDto,
   ) {
     await this.requireSubject(studentId, subjectId);
-    return this.prisma.content.findMany({
+    const contents = await this.prisma.content.findMany({
       where: {
         studentId,
         subjectId,
@@ -78,6 +117,7 @@ export class ContentsService {
       select: contentSelection,
       orderBy: [{ priority: 'desc' }, { name: 'asc' }],
     });
+    return this.withProgress(studentId, contents);
   }
 
   async get(studentId: string, id: string) {
@@ -139,29 +179,12 @@ export class ContentsService {
     const completedPartIds = completedPartRows.map(
       ({ contentPartId }) => contentPartId,
     );
-    const completed =
-      partIds.length > 0
-        ? completedPartIds.length === partIds.length
-        : content.manuallyCompletedAt !== null;
-    const status = completed
-      ? 'COMPLETED'
-      : executionCount > 0
-        ? 'IN_PROGRESS'
-        : 'PENDING';
-    return {
-      status,
-      totalParts: partIds.length,
-      completedParts: completedPartIds.length,
+    return summarizeProgress(
+      content,
       completedPartIds,
-      percentage:
-        partIds.length > 0
-          ? (completedPartIds.length * 100) / partIds.length
-          : completed
-            ? 100
-            : null,
+      executionCount,
       futureBlockCount,
-      needsFuturePlanning: !completed && futureBlockCount === 0,
-    };
+    );
   }
 
   async create(studentId: string, subjectId: string, input: CreateContentDto) {
@@ -275,6 +298,77 @@ export class ContentsService {
       });
     }
     await this.prisma.content.delete({ where: { id } });
+  }
+
+  private async withProgress<T extends ProgressSource>(
+    studentId: string,
+    contents: T[],
+  ) {
+    if (contents.length === 0) return [];
+    const contentIds = contents.map(({ id }) => id);
+    const [completedPartRows, executionGroups, futureBlockGroups] =
+      await Promise.all([
+        this.prisma.studySessionCompletedPart.findMany({
+          where: {
+            contentPart: {
+              contentId: { in: contentIds },
+              archivedAt: null,
+            },
+            studySession: {
+              studentId,
+              status: SessionStatus.COMPLETED,
+            },
+          },
+          select: {
+            contentPartId: true,
+            contentPart: { select: { contentId: true } },
+          },
+          distinct: ['contentPartId'],
+        }),
+        this.prisma.studySession.groupBy({
+          by: ['contentId'],
+          where: { studentId, contentId: { in: contentIds } },
+          _count: { _all: true },
+        }),
+        this.prisma.studyBlock.groupBy({
+          by: ['contentId'],
+          where: {
+            studentId,
+            contentId: { in: contentIds },
+            endsAt: { gt: new Date() },
+            status: {
+              in: [
+                BlockStatus.CONFIRMED,
+                BlockStatus.IN_PROGRESS,
+                BlockStatus.PAUSED,
+                BlockStatus.OVERDUE,
+              ],
+            },
+          },
+          _count: { _all: true },
+        }),
+      ]);
+    const completedByContent = new Map<string, string[]>();
+    for (const row of completedPartRows) {
+      const ids = completedByContent.get(row.contentPart.contentId) ?? [];
+      ids.push(row.contentPartId);
+      completedByContent.set(row.contentPart.contentId, ids);
+    }
+    const executionsByContent = new Map(
+      executionGroups.map((row) => [row.contentId, row._count._all]),
+    );
+    const futureBlocksByContent = new Map(
+      futureBlockGroups.map((row) => [row.contentId, row._count._all]),
+    );
+    return contents.map((content) => ({
+      ...content,
+      progress: summarizeProgress(
+        content,
+        completedByContent.get(content.id) ?? [],
+        executionsByContent.get(content.id) ?? 0,
+        futureBlocksByContent.get(content.id) ?? 0,
+      ),
+    }));
   }
 
   private async requireSubject(

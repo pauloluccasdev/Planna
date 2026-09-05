@@ -868,14 +868,55 @@ a.resource-row:hover {
   gap: 24px;
   padding: 24px;
 }
+
+.content-row-statuses {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.content-state {
+  display: inline-flex;
+  border-radius: 999px;
+  padding: 4px 9px;
+  background: #edf2ee;
+  color: var(--green-800);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.content-state-completed {
+  background: #def2df;
+  color: #235d31;
+}
+
+.content-state-in-progress {
+  background: #fff0c7;
+  color: #745310;
+}
+
+.content-planning-alert {
+  display: block;
+  margin-top: 7px;
+  color: #9a3f25;
+  font-size: 0.83rem;
+}
+
+.content-row-summary {
+  display: grid;
+  gap: 4px;
+  text-align: right;
+}
 .content-row h2 {
   margin: 7px 0 0;
   font-size: 1.15rem;
 }
-.content-row > span {
+.content-row-summary span {
   color: var(--muted);
   font-size: 0.8rem;
-  white-space: nowrap;
 }
 .content-create-form {
   display: grid;
@@ -1992,6 +2033,13 @@ a.resource-row:hover {
   }
   .content-layout {
     grid-template-columns: 1fr;
+  }
+  .content-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .content-row-summary {
+    text-align: left;
   }
   .compact-settings {
     grid-template-columns: 1fr;
