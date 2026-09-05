@@ -1022,6 +1022,9 @@ a.resource-row:hover {
   display: grid;
   gap: 24px;
 }
+.settings-stack > * {
+  min-width: 0;
+}
 .settings-card {
   padding: 30px;
 }
@@ -1558,6 +1561,52 @@ a.resource-row:hover {
   margin: 16px 0 0;
   color: var(--muted);
   font-size: 0.85rem;
+}
+.notification-settings-control {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px 20px;
+  align-items: center;
+}
+.notification-settings-control > div {
+  display: grid;
+  gap: 5px;
+}
+.notification-settings-control span {
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+.notification-settings-control .form-message {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+.notifications-shell {
+  padding-bottom: 64px;
+}
+.notification-list {
+  display: grid;
+  gap: 12px;
+}
+.notification-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 20px 24px;
+}
+.notification-row.is-read {
+  opacity: 0.68;
+}
+.notification-row h2 {
+  margin: 8px 0 5px;
+  font-size: 1.08rem;
+}
+.notification-row time {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+.notification-empty {
+  min-height: 300px;
 }
 .metrics-page {
   padding-bottom: 64px;
@@ -2190,6 +2239,16 @@ a.resource-row:hover {
   .replanning-comparison,
   .replanning-decisions,
   .replanning-request-form {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .notification-settings-control {
+    grid-template-columns: 1fr;
+  }
+  .notification-settings-control .form-message {
+    grid-column: auto;
+  }
+  .notification-row {
     align-items: flex-start;
     flex-direction: column;
   }

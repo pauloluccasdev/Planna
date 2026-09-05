@@ -173,6 +173,9 @@ export default async function DashboardPage({ searchParams }: Props) {
           <Link className="secondary-button" href="/app/metrics">
             Ver indicadores
           </Link>
+          <Link className="secondary-button" href="/app/notifications">
+            Notificações
+          </Link>
           <Link className="secondary-button" href="/app/replanning">
             Replanejar{openReplanningCount ? ` (${openReplanningCount})` : ""}
           </Link>

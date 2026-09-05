@@ -178,6 +178,59 @@ try {
   const me = await fetch(`${apiUrl}/me`, { headers });
   if (!me.ok) throw new Error(`GET /me failed with ${me.status}`);
 
+  const pushEndpoint = `https://push.example.test/${randomUUID()}`;
+  const registeredPush = await fetch(`${apiUrl}/push-subscriptions`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      endpoint: pushEndpoint,
+      expirationTime: null,
+      keys: { p256dh: 'integration-public-key', auth: 'integration-secret' },
+    }),
+  });
+  const registeredPushBody = await registeredPush.json();
+  if (
+    registeredPush.status !== 201 ||
+    !registeredPushBody.data.id ||
+    registeredPushBody.data.endpoint ||
+    registeredPushBody.data.publicKey ||
+    registeredPushBody.data.authSecret
+  ) {
+    throw new Error('Push subscription was not stored safely');
+  }
+  const notificationId = randomUUID();
+  await withDatabase((database) =>
+    database.query(
+      `insert into notifications
+        (id, student_id, kind, scheduled_for, status, sent_at, updated_at)
+       values ($1, $2, 'OVERDUE_BLOCK', now(), 'SENT', now(), now())`,
+      [notificationId, userId],
+    ),
+  );
+  const notifications = await fetch(`${apiUrl}/notifications`, { headers });
+  const notificationsBody = await notifications.json();
+  if (
+    !notifications.ok ||
+    notificationsBody.data.items[0]?.id !== notificationId
+  ) {
+    throw new Error('Notification inbox did not return the student item');
+  }
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const readNotification = await fetch(
+      `${apiUrl}/notifications/${notificationId}/read`,
+      { method: 'POST', headers },
+    );
+    const readBody = await readNotification.json();
+    if (!readNotification.ok || readBody.data.status !== 'READ') {
+      throw new Error('Notification was not marked as read idempotently');
+    }
+  }
+  const revokedPush = await fetch(
+    `${apiUrl}/push-subscriptions/${registeredPushBody.data.id}`,
+    { method: 'DELETE', headers },
+  );
+  if (!revokedPush.ok) throw new Error('Push subscription was not revoked');
+
   const refreshed = await fetch(`${apiUrl}/auth/refresh`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
@@ -922,6 +975,10 @@ try {
       authenticated: true,
       sessionRefreshed: true,
       profileResolved: true,
+      pushSubscriptionStoredSafely: true,
+      notificationInboxListed: true,
+      notificationReadIdempotently: true,
+      pushSubscriptionRevoked: true,
       courseCreated: true,
       courseListed: true,
       courseUpdated: true,

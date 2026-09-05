@@ -103,6 +103,12 @@ Processos assíncronos usam identificadores idempotentes, estado observável e r
 
 Enquanto o job periódico não estiver implantado, a API reconcilia blocos vencidos de forma idempotente antes de responder agenda, blocos e indicadores. O job futuro complementa essa garantia para notificações sem acesso ativo do aluno.
 
+A camada inicial de notificações já separa registro/revogação da inscrição,
+consulta da caixa e leitura das futuras políticas de agendamento e entrega. A
+PWA somente solicita permissão por ação do aluno e apenas quando uma chave VAPID
+pública estiver configurada. Endpoint e chaves da inscrição permanecem somente
+na API e não são reapresentados ao cliente.
+
 ## Tarefas agendadas
 
 Supabase Cron pode executar SQL ou chamar Edge Functions. Jobs candidatos:

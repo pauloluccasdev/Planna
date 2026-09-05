@@ -20,6 +20,7 @@ import { SubjectsModule } from './subjects/subjects.module.js';
 import { StudyBlocksModule } from './study-blocks/study-blocks.module.js';
 import { StudySessionsModule } from './study-sessions/study-sessions.module.js';
 import { ReplanningModule } from './replanning/replanning.module.js';
+import { NotificationsModule } from './notifications/notifications.module.js';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { ReplanningModule } from './replanning/replanning.module.js';
     StudyBlocksModule,
     StudySessionsModule,
     ReplanningModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

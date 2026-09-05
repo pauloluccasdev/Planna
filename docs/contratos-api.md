@@ -334,6 +334,17 @@ POST   /notifications/{notification_id}/read
 
 Endpoint de push é segredo operacional e não deve ser reapresentado integralmente em telas administrativas.
 
+`POST /push-subscriptions` recebe o `endpoint`, `expirationTime` opcional e as
+chaves `p256dh` e `auth` produzidas pelo navegador. A resposta contém somente o
+identificador e metadados de estado; endpoint e chaves não são devolvidos.
+Reenviar a mesma inscrição para o mesmo aluno a reativa, mas ela nunca é
+transferida entre contas. `DELETE` faz revogação lógica.
+
+`GET /notifications` retorna `{ items, nextCursor }`, sempre limitado ao aluno
+autenticado. Marcar como lida é idempotente. A criação e a entrega das mensagens
+continuam dependentes das antecedências e da infraestrutura Web Push ainda
+registradas como pendências.
+
 ## Administração
 
 ```text

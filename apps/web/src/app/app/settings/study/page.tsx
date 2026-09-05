@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { authenticatedApi } from "../../../_lib/api";
 import { AvailabilityForm } from "./availability-form";
 import { PomodoroForm } from "./pomodoro-form";
+import { NotificationSettings } from "./notification-settings";
 
 export const metadata: Metadata = { title: "Configuração de estudo" };
 
@@ -69,6 +70,21 @@ export default async function StudySettingsPage() {
             focusSeconds={pomodoro?.focusSeconds ?? 1500}
             breakSeconds={pomodoro?.breakSeconds ?? 300}
           />
+        </article>
+        <article className="dashboard-card settings-card compact-settings">
+          <div className="settings-card-heading">
+            <div>
+              <span className="eyebrow">Neste dispositivo</span>
+              <h2>Notificações</h2>
+            </div>
+            <p>A permissão só será solicitada quando você escolher ativar.</p>
+          </div>
+          <NotificationSettings
+            publicKey={process.env.NEXT_PUBLIC_WEB_PUSH_PUBLIC_KEY ?? ""}
+          />
+          <Link className="back-link" href="/app/notifications">
+            Abrir caixa de notificações →
+          </Link>
         </article>
       </section>
     </main>
