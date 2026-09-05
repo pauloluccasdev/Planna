@@ -303,6 +303,7 @@ POST /study-blocks/{block_id}/sessions/start
 POST /study-sessions/unplanned/start
 POST /study-sessions/{session_id}/pause
 POST /study-sessions/{session_id}/switch-to-block/{block_id}
+POST /study-sessions/{session_id}/switch-to-content
 POST /study-sessions/{session_id}/resume
 POST /study-sessions/{session_id}/complete
 POST /study-sessions/retroactive
@@ -310,6 +311,11 @@ POST /study-sessions/{session_id}/reconcile
 ```
 
 Início ou retomada concorrente retorna `409 ACTIVE_STUDY_SESSION_EXISTS`.
+
+`switch-to-content` recebe `contentId` e observação opcional. Em uma única
+transação, encerra o segmento atual, pausa a sessão e o bloco de origem quando
+existir, e inicia uma sessão não planejada para o conteúdo escolhido. Se o novo
+conteúdo for inválido, a execução atual permanece inalterada.
 
 Na conclusão, o aluno envia partes confirmadas e observação opcional. O servidor calcula durações; totais enviados pelo cliente não são fonte confiável.
 

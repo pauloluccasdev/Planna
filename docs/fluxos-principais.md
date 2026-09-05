@@ -44,6 +44,10 @@
 7. O Planna salva tempos planejado, realizado, foco e pausa separadamente.
 8. Estados do bloco, partes e conteúdo são recalculados.
 
+O aluno também pode escolher qualquer outro conteúdo durante a execução. Nesse
+caso, o Planna pausa a sessão e o bloco atuais e inicia uma sessão não planejada
+para o novo conteúdo atomicamente, sem reescrever a agenda confirmada.
+
 Quando o estudo invade o próximo bloco, o aluno pode continuar, concluir ou
 trocar. Na troca, o Planna encerra o segmento em execução, mantém a sessão atual
 pausada e inicia ou retoma o próximo bloco em uma única transação. Uma falha não

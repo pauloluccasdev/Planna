@@ -78,6 +78,37 @@ export async function switchToStudyBlock(sessionId: string, blockId: string) {
   return result.data;
 }
 
+export type SwitchContentState = { message?: string };
+
+export async function switchStudyContent(
+  sessionId: string,
+  _previousState: SwitchContentState,
+  formData: FormData,
+): Promise<SwitchContentState> {
+  const contentId = String(formData.get("contentId") ?? "");
+  if (!contentId) return { message: "Selecione o novo conteúdo." };
+  try {
+    const result = await mutate<{ id: string }>(
+      `study-sessions/${sessionId}/switch-to-content`,
+      {
+        contentId,
+        note: String(formData.get("note") ?? ""),
+      },
+    );
+    revalidatePath("/app");
+    revalidatePath("/app/session");
+    redirect(`/app/session?id=${result.data.id}`);
+  } catch (error) {
+    if (error && typeof error === "object" && "digest" in error) throw error;
+    return {
+      message:
+        error instanceof Error
+          ? error.message
+          : "Não foi possível mudar o conteúdo.",
+    };
+  }
+}
+
 export async function startPomodoroBreak(sessionId: string) {
   const result = await mutate<SessionMutation>(
     `study-sessions/${sessionId}/pomodoro-break`,

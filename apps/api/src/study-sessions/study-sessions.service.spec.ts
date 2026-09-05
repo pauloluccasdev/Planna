@@ -131,6 +131,73 @@ describe('StudySessionsService', () => {
     expect(transaction.studySession.update).not.toHaveBeenCalled();
   });
 
+  it('pauses the current session and starts another content atomically', async () => {
+    transaction.studySession.findFirst.mockResolvedValue({
+      id: 'current-session',
+      contentId: 'current-content',
+      studyBlockId: 'current-block',
+    });
+    transaction.content.findFirst.mockResolvedValue({ id: 'other-content' });
+    transaction.studySession.create.mockResolvedValue({
+      id: 'unplanned-session',
+      contentId: 'other-content',
+      kind: 'UNPLANNED',
+      status: 'RUNNING',
+    });
+
+    await expect(
+      service.switchToContent('student-id', 'current-session', {
+        contentId: 'other-content',
+        note: 'Mudança necessária',
+      }),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        id: 'unplanned-session',
+        contentId: 'other-content',
+      }),
+    );
+    expect(transaction.studySession.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'current-session' },
+        data: expect.objectContaining({ status: 'PAUSED' }),
+      }),
+    );
+    expect(transaction.studyBlock.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'current-block' },
+        data: expect.objectContaining({ status: 'PAUSED' }),
+      }),
+    );
+    expect(transaction.studySession.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          contentId: 'other-content',
+          kind: 'UNPLANNED',
+          status: 'RUNNING',
+          note: 'Mudança necessária',
+        }),
+      }),
+    );
+  });
+
+  it('keeps the current session running when the other content is invalid', async () => {
+    transaction.studySession.findFirst.mockResolvedValue({
+      id: 'current-session',
+      contentId: 'current-content',
+      studyBlockId: 'current-block',
+    });
+    transaction.content.findFirst.mockResolvedValue(null);
+
+    await expect(
+      service.switchToContent('student-id', 'current-session', {
+        contentId: 'foreign-content',
+      }),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    expect(transaction.studySessionSegment.updateMany).not.toHaveBeenCalled();
+    expect(transaction.studySession.update).not.toHaveBeenCalled();
+    expect(transaction.studyBlock.update).not.toHaveBeenCalled();
+  });
+
   it('resumes the existing session when the selected block is paused', async () => {
     transaction.studySession.findFirst
       .mockResolvedValueOnce({

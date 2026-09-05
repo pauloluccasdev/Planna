@@ -1944,6 +1944,30 @@ a.resource-row:hover {
   border: 0;
   cursor: pointer;
 }
+.session-content-switcher {
+  margin-top: 28px;
+  padding-top: 22px;
+  border-top: 1px solid var(--line);
+}
+.session-content-switcher > summary {
+  cursor: pointer;
+  color: var(--green-800);
+  font-weight: 800;
+}
+.session-content-switcher form {
+  display: grid;
+  gap: 16px;
+  margin-top: 16px;
+}
+.session-content-switcher form > p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+.session-content-switcher .secondary-button {
+  justify-self: start;
+}
 .session-notice,
 .session-warning {
   display: grid;

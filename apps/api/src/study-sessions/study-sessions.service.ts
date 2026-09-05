@@ -387,6 +387,74 @@ export class StudySessionsService {
     });
   }
 
+  switchToContent(
+    studentId: string,
+    id: string,
+    input: StartUnplannedSessionDto,
+  ) {
+    return this.prisma.$transaction(async (transaction) => {
+      await this.lockStudent(transaction, studentId);
+      const currentSession = await transaction.studySession.findFirst({
+        where: { id, studentId, status: SessionStatus.RUNNING },
+        select: { id: true, contentId: true, studyBlockId: true },
+      });
+      if (!currentSession) {
+        this.throwInvalidTransition('A sessão atual não está em execução.');
+      }
+      if (currentSession.contentId === input.contentId) {
+        this.throwInvalidTransition('Este conteúdo já está em execução.');
+      }
+      const content = await transaction.content.findFirst({
+        where: { id: input.contentId, studentId, archivedAt: null },
+        select: { id: true },
+      });
+      if (!content) {
+        throw new NotFoundException({
+          error: {
+            code: 'CONTENT_NOT_FOUND',
+            message: 'Conteúdo não encontrado.',
+          },
+        });
+      }
+
+      const now = new Date();
+      await transaction.studySessionSegment.updateMany({
+        where: { studySessionId: currentSession.id, endedAt: null },
+        data: { endedAt: now },
+      });
+      await transaction.studySession.update({
+        where: { id: currentSession.id },
+        data: { status: SessionStatus.PAUSED, revision: { increment: 1 } },
+      });
+      if (currentSession.studyBlockId) {
+        await transaction.studyBlock.update({
+          where: { id: currentSession.studyBlockId },
+          data: { status: BlockStatus.PAUSED, revision: { increment: 1 } },
+        });
+      }
+      return transaction.studySession.create({
+        data: {
+          studentId,
+          contentId: content.id,
+          kind: SessionKind.UNPLANNED,
+          status: SessionStatus.RUNNING,
+          startedAt: now,
+          ...(input.note !== undefined
+            ? { note: input.note.trim() || null }
+            : {}),
+          segments: {
+            create: {
+              kind: SessionSegmentKind.FOCUS,
+              startedAt: now,
+              sequence: 1,
+            },
+          },
+        },
+        select: sessionSelection,
+      });
+    });
+  }
+
   startPomodoroBreak(studentId: string, id: string) {
     return this.switchRunningSegment(
       studentId,

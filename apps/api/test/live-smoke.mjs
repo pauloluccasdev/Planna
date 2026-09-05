@@ -979,6 +979,71 @@ try {
   );
   if (!focusSession.ok) throw new Error('Resuming Pomodoro focus failed');
 
+  const changedContentSession = await fetch(
+    `${apiUrl}/study-sessions/${sessionId}/switch-to-content`,
+    {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        contentId: planningContentId,
+        note: 'Mudança de conteúdo durante o estudo',
+      }),
+    },
+  );
+  const changedContentBody = await changedContentSession.json();
+  if (
+    !changedContentSession.ok ||
+    changedContentBody.data.kind !== 'UNPLANNED' ||
+    changedContentBody.data.status !== 'RUNNING' ||
+    changedContentBody.data.contentId !== planningContentId
+  ) {
+    throw new Error('Switching freely to another content failed');
+  }
+  const invalidContentSwitch = await fetch(
+    `${apiUrl}/study-sessions/${changedContentBody.data.id}/switch-to-content`,
+    {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ contentId: randomUUID() }),
+    },
+  );
+  if (invalidContentSwitch.status !== 404) {
+    throw new Error('Invalid content switch should return 404');
+  }
+  const runningAfterInvalidContent = await fetch(
+    `${apiUrl}/study-sessions/${changedContentBody.data.id}`,
+    { headers },
+  );
+  const runningAfterInvalidContentBody =
+    await runningAfterInvalidContent.json();
+  if (
+    !runningAfterInvalidContent.ok ||
+    runningAfterInvalidContentBody.data.status !== 'RUNNING'
+  ) {
+    throw new Error('Invalid content switch interrupted the current study');
+  }
+  const completedChangedContent = await fetch(
+    `${apiUrl}/study-sessions/${changedContentBody.data.id}/complete`,
+    {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ completedPartIds: [] }),
+    },
+  );
+  if (!completedChangedContent.ok) {
+    throw new Error('Completing the changed-content session failed');
+  }
+  const completedChangedContentBody = await completedChangedContent.json();
+  const changedContentRealizedSeconds =
+    completedChangedContentBody.data.realizedDurationSeconds;
+  const resumedOriginalSession = await fetch(
+    `${apiUrl}/study-sessions/${sessionId}/resume`,
+    { method: 'POST', headers },
+  );
+  if (!resumedOriginalSession.ok) {
+    throw new Error('Resuming the original session after a change failed');
+  }
+
   const switchedSession = await fetch(
     `${apiUrl}/study-sessions/${sessionId}/switch-to-block/${recurringBody.data[0].id}`,
     { method: 'POST', headers },
@@ -1088,7 +1153,8 @@ try {
     metricsBody.data.compliance.eligibleBlocks !== 5 ||
     metricsBody.data.compliance.completedBlocks !== 1 ||
     metricsBody.data.time.plannedCompletedSeconds !== 3600 ||
-    metricsBody.data.time.additionalUnplanned.realizedSeconds !== 3600 ||
+    metricsBody.data.time.additionalUnplanned.realizedSeconds !==
+      3600 + changedContentRealizedSeconds ||
     metricsBody.data.adaptation.currentOverdueBlocks !== 0 ||
     metricsBody.data.adaptation.replannedBlocks !== 1
   ) {
@@ -1372,6 +1438,8 @@ try {
       concurrentSessionRejected: true,
       pomodoroBreakRecorded: true,
       pomodoroFocusResumed: true,
+      studyContentSwitchedAtomically: true,
+      invalidContentSwitchPreservedCurrentSession: true,
       studyBlockSwitchedAtomically: true,
       pausedStudyBlockResumedBySwitch: true,
       sessionPaused: true,

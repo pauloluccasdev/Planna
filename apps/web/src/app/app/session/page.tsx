@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { authenticatedApi } from "../../_lib/api";
 import { CompletionForm } from "./completion-form";
+import { ContentSwitcher } from "./content-switcher";
 import { SessionTimer } from "./session-timer";
 
 export const metadata: Metadata = { title: "Sessão de estudo" };
@@ -40,6 +41,11 @@ type NextBlock = {
   status: string;
   startsAt: string;
   content: { name: string };
+};
+type ContentOption = {
+  id: string;
+  name: string;
+  subject: { name: string; course: { name: string } };
 };
 
 export default async function StudySessionPage({ searchParams }: Props) {
@@ -82,6 +88,13 @@ export default async function StudySessionPage({ searchParams }: Props) {
     session.completedParts.map((item) => item.contentPart.id),
   );
   let nextBlock: NextBlock | null = null;
+  const contentsResponse = await authenticatedApi("contents");
+  if (contentsResponse?.status === 401) redirect("/login");
+  const otherContents = contentsResponse?.ok
+    ? (
+        (await contentsResponse.json()) as { data: ContentOption[] }
+      ).data.filter((content) => content.id !== session.content.id)
+    : [];
   const currentBlock = session.studyBlock;
   if (currentBlock) {
     const nextBlocksResponse = await authenticatedApi(
@@ -129,6 +142,7 @@ export default async function StudySessionPage({ searchParams }: Props) {
             focusSeconds={session.studyBlock?.focusSeconds ?? 1500}
             breakSeconds={session.studyBlock?.breakSeconds ?? 300}
           />
+          <ContentSwitcher sessionId={session.id} contents={otherContents} />
         </article>
         <article
           className="dashboard-card completion-card"
