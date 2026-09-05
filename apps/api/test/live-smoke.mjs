@@ -166,6 +166,23 @@ try {
     throw new Error('GET /courses did not return the created course');
   }
 
+  const updatedCourse = await fetch(`${apiUrl}/courses/${courseId}`, {
+    method: 'PATCH',
+    headers,
+    body: JSON.stringify({
+      name: 'Curso de integração atualizado',
+      description: 'Descrição do curso de integração',
+    }),
+  });
+  const updatedCourseBody = await updatedCourse.json();
+  if (
+    !updatedCourse.ok ||
+    updatedCourseBody.data.name !== 'Curso de integração atualizado' ||
+    updatedCourseBody.data.description !== 'Descrição do curso de integração'
+  ) {
+    throw new Error('Course was not updated');
+  }
+
   const createdSubject = await fetch(`${apiUrl}/courses/${courseId}/subjects`, {
     method: 'POST',
     headers,
@@ -690,6 +707,7 @@ try {
       profileResolved: true,
       courseCreated: true,
       courseListed: true,
+      courseUpdated: true,
       subjectCreated: true,
       academicPeriodUpdated: true,
       subjectUpdatedWithAcademicPeriod: true,

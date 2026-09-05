@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { authenticatedApi } from "../../_lib/api";
+import { CourseEditor } from "./course-editor";
 import { CourseForm } from "./course-form";
 
 export const metadata: Metadata = { title: "Cursos" };
@@ -9,7 +10,9 @@ export const metadata: Metadata = { title: "Cursos" };
 type Course = {
   id: string;
   name: string;
+  description: string | null;
   status: "ACTIVE" | "ARCHIVED";
+  updatedAt: string;
   _count: { subjects: number };
 };
 
@@ -46,17 +49,25 @@ export default async function CoursesPage() {
             </div>
           ) : (
             courses.map((course) => (
-              <Link
-                className="dashboard-card resource-row"
-                href={`/app/courses/${course.id}`}
-                key={course.id}
-              >
-                <div>
-                  <span className="resource-status">Ativo</span>
-                  <h2>{course.name}</h2>
-                </div>
-                <span>{course._count.subjects} disciplinas →</span>
-              </Link>
+              <article className="dashboard-card course-row" key={course.id}>
+                <Link
+                  className="resource-row course-row-link"
+                  href={`/app/courses/${course.id}`}
+                >
+                  <div>
+                    <span className="resource-status">Ativo</span>
+                    <h2>{course.name}</h2>
+                    {course.description ? (
+                      <small>{course.description}</small>
+                    ) : null}
+                  </div>
+                  <span>{course._count.subjects} disciplinas →</span>
+                </Link>
+                <CourseEditor
+                  key={`${course.id}:${course.updatedAt}`}
+                  course={course}
+                />
+              </article>
             ))
           )}
         </div>

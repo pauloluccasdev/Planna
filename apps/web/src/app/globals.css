@@ -1485,6 +1485,32 @@ a.resource-row:hover {
   padding: 0;
   overflow: hidden;
 }
+.course-row {
+  padding: 0;
+  overflow: hidden;
+}
+.course-row-link {
+  padding: 1.25rem;
+}
+.course-editor {
+  border-top: 1px solid var(--line);
+  padding: 0 1.25rem;
+}
+.course-editor > summary {
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 700;
+  padding: 0.9rem 0;
+}
+.course-edit-form {
+  display: grid;
+  gap: 0.9rem;
+  padding: 0 0 1.25rem;
+}
+.course-edit-form > .secondary-button {
+  justify-self: start;
+}
 .subject-row-link {
   padding: 1.25rem;
 }
