@@ -27,6 +27,7 @@ export async function createStudyBlock(
   const breakMinutes = Number(formData.get("breakMinutes"));
   const repeatDaily = formData.get("repeatDaily") === "on";
   const repeatUntil = String(formData.get("repeatUntil") ?? "");
+  const idempotencyKey = String(formData.get("idempotencyKey") ?? "");
   const errors: NonNullable<BlockFormState["errors"]> = {};
   if (!startsAt) errors.startsAt = "Informe o início do bloco.";
   if (!endsAt) errors.endsAt = "Informe o término do bloco.";
@@ -60,7 +61,10 @@ export async function createStudyBlock(
     const weekdays = [...new Set(dates.map(calendarWeekday))];
     const response = await authenticatedApi("availability/expand", {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: {
+        "content-type": "application/json",
+        "idempotency-key": idempotencyKey,
+      },
       body: JSON.stringify({
         intervals: weekdays.map((weekday) => ({
           weekday,

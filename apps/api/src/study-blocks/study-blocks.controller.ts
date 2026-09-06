@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Headers,
   Param,
   ParseUUIDPipe,
   Patch,
@@ -35,17 +36,25 @@ export class StudyBlocksController {
   async create(
     @CurrentUser() user: AuthUser,
     @Body() input: CreateStudyBlockDto,
+    @Headers('idempotency-key') idempotencyKey?: string,
   ) {
-    return { data: await this.blocks.create(user.id, input) };
+    return {
+      data: await this.blocks.create(user.id, input, idempotencyKey),
+    };
   }
 
   @Post('recurring/daily')
   async createDailyRecurrence(
     @CurrentUser() user: AuthUser,
     @Body() input: CreateRecurringStudyBlockDto,
+    @Headers('idempotency-key') idempotencyKey?: string,
   ) {
     return {
-      data: await this.blocks.createDailyRecurrence(user.id, input),
+      data: await this.blocks.createDailyRecurrence(
+        user.id,
+        input,
+        idempotencyKey,
+      ),
     };
   }
 

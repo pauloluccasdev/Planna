@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AvailabilityService } from '../availability/availability.service.js';
+import { prepareIdempotency } from '../common/idempotency.js';
 import type { PrismaService } from '../database/prisma.service.js';
 import type { OverdueService } from '../overdue/overdue.service.js';
 import { StudyBlocksService } from './study-blocks.service.js';
@@ -86,6 +87,50 @@ describe('StudyBlocksService', () => {
     expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 
+  it('replays manual block creation without duplicating the block', async () => {
+    const input = {
+      contentId: 'content-id',
+      startsAt: '2026-09-20T20:00:00-03:00',
+      endsAt: '2026-09-20T21:00:00-03:00',
+      focusSeconds: 1500,
+      breakSeconds: 300,
+    };
+    const created = { id: 'block-id', status: 'CONFIRMED' };
+    const transaction = {
+      $executeRaw: vi.fn(),
+      idempotencyRecord: {
+        findUnique: vi.fn().mockResolvedValue(null),
+        create: vi.fn(),
+      },
+      studyBlock: {
+        findFirst: vi.fn().mockResolvedValueOnce(null),
+        create: vi.fn().mockResolvedValue(created),
+      },
+      academicEvent: { findFirst: vi.fn().mockResolvedValue(null) },
+      auditEvent: { create: vi.fn() },
+    };
+    prisma.$transaction.mockImplementation((callback) => callback(transaction));
+
+    await service.create('student-id', input, 'manual-block-key');
+    const requestHash = prepareIdempotency(
+      'manual-block-key',
+      'CREATE_MANUAL_STUDY_BLOCK',
+      input,
+    )!.requestHash;
+    transaction.idempotencyRecord.findUnique.mockResolvedValue({
+      requestHash,
+      resultReference: { blockId: 'block-id' },
+    });
+    transaction.studyBlock.findFirst.mockResolvedValue(created);
+
+    await expect(
+      service.create('student-id', input, 'manual-block-key'),
+    ).resolves.toBe(created);
+    expect(transaction.studyBlock.create).toHaveBeenCalledTimes(1);
+    expect(transaction.auditEvent.create).toHaveBeenCalledTimes(1);
+    expect(transaction.idempotencyRecord.create).toHaveBeenCalledTimes(1);
+  });
+
   it('does not expose foreign contents', async () => {
     prisma.content.findFirst.mockResolvedValue(null);
     await expect(
@@ -155,6 +200,68 @@ describe('StudyBlocksService', () => {
       }),
     ).rejects.toBeInstanceOf(ConflictException);
     expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+
+  it('replays daily recurrence creation without duplicating the series', async () => {
+    const input = {
+      contentId: 'content-id',
+      startsAt: '2026-09-20T20:00:00-03:00',
+      endsAt: '2026-09-20T21:00:00-03:00',
+      repeatUntil: '2026-09-21',
+      focusSeconds: 1500,
+      breakSeconds: 300,
+    };
+    const created = [
+      { id: 'first-block', recurrenceSeriesId: 'series-id' },
+      { id: 'second-block', recurrenceSeriesId: 'series-id' },
+    ];
+    const transaction = {
+      $executeRaw: vi.fn(),
+      idempotencyRecord: {
+        findUnique: vi.fn().mockResolvedValue(null),
+        create: vi.fn(),
+      },
+      recurrenceSeries: {
+        create: vi.fn().mockResolvedValue({ id: 'series-id' }),
+        findFirst: vi.fn().mockResolvedValue({ id: 'series-id' }),
+      },
+      studyBlock: {
+        findFirst: vi.fn().mockResolvedValue(null),
+        createMany: vi.fn(),
+        findMany: vi.fn().mockResolvedValue(created),
+      },
+      studyBlockPart: { createMany: vi.fn() },
+      academicEvent: { findFirst: vi.fn().mockResolvedValue(null) },
+      auditEvent: { create: vi.fn() },
+    };
+    prisma.$transaction.mockImplementation((callback) => callback(transaction));
+
+    await service.createDailyRecurrence(
+      'student-id',
+      input,
+      'daily-recurrence-key',
+    );
+    const requestHash = prepareIdempotency(
+      'daily-recurrence-key',
+      'CREATE_DAILY_STUDY_BLOCK_RECURRENCE',
+      input,
+    )!.requestHash;
+    transaction.idempotencyRecord.findUnique.mockResolvedValue({
+      requestHash,
+      resultReference: { recurrenceSeriesId: 'series-id' },
+    });
+
+    await expect(
+      service.createDailyRecurrence(
+        'student-id',
+        input,
+        'daily-recurrence-key',
+      ),
+    ).resolves.toEqual(created);
+    expect(transaction.recurrenceSeries.create).toHaveBeenCalledTimes(1);
+    expect(transaction.studyBlock.createMany).toHaveBeenCalledTimes(1);
+    expect(transaction.auditEvent.create).toHaveBeenCalledTimes(1);
+    expect(transaction.idempotencyRecord.create).toHaveBeenCalledTimes(1);
   });
 
   it('does not expose a recurrence owned by another student', async () => {

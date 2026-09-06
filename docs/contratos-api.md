@@ -291,6 +291,10 @@ DELETE /study-block-series/{series_id}
 
 Na criação, o payload do bloco recebe `repeatUntil` no formato `YYYY-MM-DD`. A operação é atômica: todas as ocorrências precisam estar dentro da disponibilidade e sem conflito, ou nenhuma é criada. Uma série diária aceita no máximo 366 blocos. O cancelamento individual usa a rota do bloco; o cancelamento da série altera apenas ocorrências ainda ativas e preserva as concluídas.
 
+`POST /study-blocks` e `POST /study-blocks/recurring/daily` aceitam
+`Idempotency-Key`. Repetir o mesmo comando com a mesma chave devolve o bloco ou
+a série original, sem recriar itens ou eventos de auditoria.
+
 O cancelamento de um bloco ou série inclui `warnings.uncoveredContents` com os
 conteúdos ainda incompletos que ficaram sem blocos futuros. A resposta permite
 que a interface cumpra o RF-STS-005 imediatamente, sem transformar o aviso em

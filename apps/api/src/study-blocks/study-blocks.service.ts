@@ -6,6 +6,13 @@ import {
 } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { AvailabilityService } from '../availability/availability.service.js';
+import {
+  findIdempotentResult,
+  prepareIdempotency,
+  recordIdempotentResult,
+  throwIdempotencyResultUnavailable,
+  type IdempotencyContext,
+} from '../common/idempotency.js';
 import { PrismaService } from '../database/prisma.service.js';
 import type { Prisma } from '../generated/prisma/client.js';
 import {
@@ -80,6 +87,10 @@ const brazilDate = new Intl.DateTimeFormat('sv-SE', {
   day: '2-digit',
 });
 
+type TransactionClient = Parameters<
+  Parameters<PrismaService['$transaction']>[0]
+>[0];
+
 @Injectable()
 export class StudyBlocksService {
   constructor(
@@ -117,7 +128,16 @@ export class StudyBlocksService {
     return block;
   }
 
-  async create(studentId: string, input: CreateStudyBlockDto) {
+  async create(
+    studentId: string,
+    input: CreateStudyBlockDto,
+    idempotencyKey?: string,
+  ) {
+    const idempotency = prepareIdempotency(
+      idempotencyKey,
+      'CREATE_MANUAL_STUDY_BLOCK',
+      input,
+    );
     const startsAt = new Date(input.startsAt);
     const endsAt = new Date(input.endsAt);
     if (startsAt >= endsAt) {
@@ -167,6 +187,12 @@ export class StudyBlocksService {
 
     return this.prisma.$transaction(async (transaction) => {
       await transaction.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${studentId}, 0))`;
+      const replay = await this.findIdempotentBlock(
+        transaction,
+        studentId,
+        idempotency,
+      );
+      if (replay) return replay;
       const [blockConflict, eventConflict] = await Promise.all([
         transaction.studyBlock.findFirst({
           where: {
@@ -206,7 +232,7 @@ export class StudyBlocksService {
         });
       }
 
-      return transaction.studyBlock.create({
+      const block = await transaction.studyBlock.create({
         data: {
           studentId,
           contentId: input.contentId,
@@ -225,13 +251,33 @@ export class StudyBlocksService {
         },
         select: blockSelection,
       });
+      await transaction.auditEvent.create({
+        data: {
+          actorUserId: studentId,
+          studentScopeId: studentId,
+          action: 'STUDY_BLOCK_CREATED',
+          entityType: 'STUDY_BLOCK',
+          entityId: block.id,
+          metadata: { recurring: false },
+        },
+      });
+      await recordIdempotentResult(transaction, studentId, idempotency, {
+        blockId: block.id,
+      });
+      return block;
     });
   }
 
   async createDailyRecurrence(
     studentId: string,
     input: CreateRecurringStudyBlockDto,
+    idempotencyKey?: string,
   ) {
+    const idempotency = prepareIdempotency(
+      idempotencyKey,
+      'CREATE_DAILY_STUDY_BLOCK_RECURRENCE',
+      input,
+    );
     const firstStart = new Date(input.startsAt);
     const firstEnd = new Date(input.endsAt);
     if (firstStart >= firstEnd) {
@@ -314,6 +360,12 @@ export class StudyBlocksService {
 
     return this.prisma.$transaction(async (transaction) => {
       await transaction.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${studentId}, 0))`;
+      const replay = await this.findIdempotentRecurrence(
+        transaction,
+        studentId,
+        idempotency,
+      );
+      if (replay) return replay;
       const overlapConditions = occurrences.map(({ startsAt, endsAt }) => ({
         startsAt: { lt: endsAt },
         endsAt: { gt: startsAt },
@@ -388,12 +440,78 @@ export class StudyBlocksService {
           ),
         });
       }
-      return transaction.studyBlock.findMany({
+      const createdBlocks = await transaction.studyBlock.findMany({
         where: { id: { in: blocks.map(({ id }) => id) } },
         select: blockSelection,
         orderBy: { startsAt: 'asc' },
       });
+      await transaction.auditEvent.create({
+        data: {
+          actorUserId: studentId,
+          studentScopeId: studentId,
+          action: 'STUDY_BLOCK_RECURRENCE_CREATED',
+          entityType: 'RECURRENCE_SERIES',
+          entityId: series.id,
+          metadata: { blockCount: createdBlocks.length },
+        },
+      });
+      await recordIdempotentResult(transaction, studentId, idempotency, {
+        recurrenceSeriesId: series.id,
+      });
+      return createdBlocks;
     });
+  }
+
+  private async findIdempotentBlock(
+    transaction: TransactionClient,
+    studentId: string,
+    context: IdempotencyContext | null,
+  ) {
+    const reference = await findIdempotentResult(
+      transaction,
+      studentId,
+      context,
+    );
+    if (!reference) return null;
+    const blockId =
+      typeof reference.blockId === 'string' ? reference.blockId : null;
+    if (!blockId) throwIdempotencyResultUnavailable();
+    const block = await transaction.studyBlock.findFirst({
+      where: { id: blockId, studentId },
+      select: blockSelection,
+    });
+    if (!block) throwIdempotencyResultUnavailable();
+    return block;
+  }
+
+  private async findIdempotentRecurrence(
+    transaction: TransactionClient,
+    studentId: string,
+    context: IdempotencyContext | null,
+  ) {
+    const reference = await findIdempotentResult(
+      transaction,
+      studentId,
+      context,
+    );
+    if (!reference) return null;
+    const recurrenceSeriesId =
+      typeof reference.recurrenceSeriesId === 'string'
+        ? reference.recurrenceSeriesId
+        : null;
+    if (!recurrenceSeriesId) throwIdempotencyResultUnavailable();
+    const series = await transaction.recurrenceSeries.findFirst({
+      where: { id: recurrenceSeriesId, studentId },
+      select: { id: true },
+    });
+    if (!series) throwIdempotencyResultUnavailable();
+    const blocks = await transaction.studyBlock.findMany({
+      where: { recurrenceSeriesId, studentId },
+      select: blockSelection,
+      orderBy: { startsAt: 'asc' },
+    });
+    if (blocks.length === 0) throwIdempotencyResultUnavailable();
+    return blocks;
   }
 
   async update(studentId: string, id: string, input: UpdateStudyBlockDto) {

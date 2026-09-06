@@ -803,14 +803,20 @@ try {
     );
   }
 
+  const manualBlockIdempotencyKey = randomUUID();
+  const manualBlockHeaders = {
+    ...headers,
+    'idempotency-key': manualBlockIdempotencyKey,
+  };
+  const manualBlockInput = {
+    contentId,
+    startsAt: '2099-08-03T19:00:00-03:00',
+    endsAt: '2099-08-03T20:00:00-03:00',
+  };
   const createdBlock = await fetch(`${apiUrl}/study-blocks`, {
     method: 'POST',
-    headers,
-    body: JSON.stringify({
-      contentId,
-      startsAt: '2099-08-03T19:00:00-03:00',
-      endsAt: '2099-08-03T20:00:00-03:00',
-    }),
+    headers: manualBlockHeaders,
+    body: JSON.stringify(manualBlockInput),
   });
   if (createdBlock.status !== 201) {
     throw new Error(
@@ -818,6 +824,15 @@ try {
     );
   }
   const blockId = (await createdBlock.json()).data.id;
+  const replayedBlock = await fetch(`${apiUrl}/study-blocks`, {
+    method: 'POST',
+    headers: manualBlockHeaders,
+    body: JSON.stringify(manualBlockInput),
+  });
+  const replayedBlockBody = await replayedBlock.json();
+  if (!replayedBlock.ok || replayedBlockBody.data.id !== blockId) {
+    throw new Error('Manual block creation was not replayed idempotently');
+  }
 
   const updatedBlock = await fetch(`${apiUrl}/study-blocks/${blockId}`, {
     method: 'PATCH',
@@ -891,17 +906,23 @@ try {
     );
   }
 
+  const recurrenceIdempotencyKey = randomUUID();
+  const recurrenceHeaders = {
+    ...headers,
+    'idempotency-key': recurrenceIdempotencyKey,
+  };
+  const recurrenceInput = {
+    contentId,
+    startsAt: '2099-08-04T19:00:00-03:00',
+    endsAt: '2099-08-04T20:00:00-03:00',
+    repeatUntil: '2099-08-06',
+  };
   const recurringBlocks = await fetch(
     `${apiUrl}/study-blocks/recurring/daily`,
     {
       method: 'POST',
-      headers,
-      body: JSON.stringify({
-        contentId,
-        startsAt: '2099-08-04T19:00:00-03:00',
-        endsAt: '2099-08-04T20:00:00-03:00',
-        repeatUntil: '2099-08-06',
-      }),
+      headers: recurrenceHeaders,
+      body: JSON.stringify(recurrenceInput),
     },
   );
   if (recurringBlocks.status !== 201) {
@@ -916,6 +937,24 @@ try {
       .size !== 1
   ) {
     throw new Error('Daily recurrence did not create one three-block series');
+  }
+  const replayedRecurrence = await fetch(
+    `${apiUrl}/study-blocks/recurring/daily`,
+    {
+      method: 'POST',
+      headers: recurrenceHeaders,
+      body: JSON.stringify(recurrenceInput),
+    },
+  );
+  const replayedRecurrenceBody = await replayedRecurrence.json();
+  if (
+    !replayedRecurrence.ok ||
+    replayedRecurrenceBody.data.length !== 3 ||
+    replayedRecurrenceBody.data.some(
+      (block, index) => block.id !== recurringBody.data[index].id,
+    )
+  ) {
+    throw new Error('Daily recurrence was not replayed idempotently');
   }
 
   const blocksBeforeRejectedRecurrence = await withDatabase(
@@ -1719,11 +1758,13 @@ try {
       planningConfirmationIdempotent: true,
       uncoveredContentDetectedAfterCancellation: true,
       studyBlockCreated: true,
+      manualBlockCreationIdempotent: true,
       studyBlockUpdatedWithHistory: true,
       studyBlockDetailsAvailable: true,
       staleStudyBlockUpdateRejected: true,
       overlappingBlockRejected: true,
       dailyRecurrenceCreated: true,
+      dailyRecurrenceCreationIdempotent: true,
       recurrenceSeriesPersisted: true,
       conflictingRecurrenceRejectedAtomically: true,
       expiredBlockMarkedOverdue: true,

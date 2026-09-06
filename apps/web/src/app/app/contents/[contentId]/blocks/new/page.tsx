@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { randomUUID } from "node:crypto";
 import { authenticatedApi } from "../../../../../_lib/api";
 import { BlockForm } from "./block-form";
 
@@ -65,6 +66,7 @@ export default async function NewBlockPage({ params }: Props) {
       </section>
       <section className="dashboard-card block-form-card">
         <BlockForm
+          createIdempotencyKey={randomUUID()}
           contentId={contentId}
           parts={parts}
           focusSeconds={pomodoro?.focusSeconds ?? 1500}

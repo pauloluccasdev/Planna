@@ -7,6 +7,7 @@ type Part = { id: string; name: string };
 const initialState: BlockFormState = {};
 
 export function BlockForm({
+  createIdempotencyKey,
   contentId,
   parts,
   focusSeconds,
@@ -14,6 +15,7 @@ export function BlockForm({
   defaultStartsAt,
   defaultEndsAt,
 }: {
+  createIdempotencyKey: string;
   contentId: string;
   parts: Part[];
   focusSeconds: number;
@@ -36,6 +38,7 @@ export function BlockForm({
   const [state, action, pending] = useActionState(boundAction, initialState);
   return (
     <form action={action} className="block-create-form">
+      <input name="idempotencyKey" type="hidden" value={createIdempotencyKey} />
       <div className="form-columns">
         <div className="field">
           <label htmlFor="block-start">Início</label>

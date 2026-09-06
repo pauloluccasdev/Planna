@@ -159,6 +159,9 @@ Persistência, fila e HTTP ficam fora do algoritmo, permitindo testes rápidos e
   não duplica texto acadêmico.
 - confirmação de proposta e aceite de replanejamento seguem a mesma garantia e
   devolvem o resultado original quando a PWA repete a ação com a mesma chave.
+- criação manual de bloco e criação de série diária também são idempotentes; a
+  série é referenciada pelo identificador próprio, sem repetir todos os blocos
+  no registro técnico.
 - a PWA recebe do servidor uma chave estável por ação crítica e a reenvia em
   novas tentativas do mesmo formulário ou comando.
 
