@@ -5,6 +5,13 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { AvailabilityService } from '../availability/availability.service.js';
+import {
+  findIdempotentResult,
+  prepareIdempotency,
+  recordIdempotentResult,
+  throwIdempotencyResultUnavailable,
+  type IdempotencyContext,
+} from '../common/idempotency.js';
 import { PrismaService } from '../database/prisma.service.js';
 import {
   BlockSource,
@@ -281,9 +288,20 @@ export class ReplanningService {
     });
   }
 
-  async accept(studentId: string, id: string) {
+  async accept(studentId: string, id: string, idempotencyKey?: string) {
+    const idempotency = prepareIdempotency(
+      idempotencyKey,
+      'ACCEPT_REPLANNING_SUGGESTION',
+      { suggestionId: id },
+    );
     return this.prisma.$transaction(async (transaction) => {
       await transaction.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${studentId}, 0))`;
+      const replay = await this.findIdempotentAcceptance(
+        transaction,
+        studentId,
+        idempotency,
+      );
+      if (replay) return replay;
       const suggestion = await transaction.replanningSuggestion.findFirst({
         where: { id, studentId, status: { in: openSuggestionStatuses } },
         include: {
@@ -395,8 +413,74 @@ export class ReplanningService {
         },
         select: suggestionSelection,
       });
+      await transaction.auditEvent.create({
+        data: {
+          actorUserId: studentId,
+          studentScopeId: studentId,
+          action: 'REPLANNING_SUGGESTION_ACCEPTED',
+          entityType: 'REPLANNING_SUGGESTION',
+          entityId: suggestion.id,
+          metadata: {
+            originalBlockId: original.id,
+            replacementBlockId: replacement.id,
+          },
+        },
+      });
+      await recordIdempotentResult(transaction, studentId, idempotency, {
+        suggestionId: suggestion.id,
+        originalBlockId: original.id,
+        replacementBlockId: replacement.id,
+      });
       return { suggestion: accepted, originalBlock: original, replacement };
     });
+  }
+
+  private async findIdempotentAcceptance(
+    transaction: Parameters<Parameters<PrismaService['$transaction']>[0]>[0],
+    studentId: string,
+    context: IdempotencyContext | null,
+  ) {
+    const reference = await findIdempotentResult(
+      transaction,
+      studentId,
+      context,
+    );
+    if (!reference) return null;
+    const suggestionId =
+      typeof reference.suggestionId === 'string'
+        ? reference.suggestionId
+        : null;
+    const originalBlockId =
+      typeof reference.originalBlockId === 'string'
+        ? reference.originalBlockId
+        : null;
+    const replacementBlockId =
+      typeof reference.replacementBlockId === 'string'
+        ? reference.replacementBlockId
+        : null;
+    if (!suggestionId || !originalBlockId || !replacementBlockId) {
+      throwIdempotencyResultUnavailable();
+    }
+    const [suggestion, originalBlock, replacement] = await Promise.all([
+      transaction.replanningSuggestion.findFirst({
+        where: {
+          id: suggestionId,
+          studentId,
+          status: SuggestionStatus.ACCEPTED,
+        },
+        select: suggestionSelection,
+      }),
+      transaction.studyBlock.findFirst({
+        where: { id: originalBlockId, studentId },
+      }),
+      transaction.studyBlock.findFirst({
+        where: { id: replacementBlockId, studentId },
+      }),
+    ]);
+    if (!suggestion || !originalBlock || !replacement) {
+      throwIdempotencyResultUnavailable();
+    }
+    return { suggestion, originalBlock, replacement };
   }
 
   private async generateAutomatic(studentId: string) {

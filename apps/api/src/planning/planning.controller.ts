@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Headers,
   Param,
   ParseUUIDPipe,
   Patch,
@@ -62,8 +63,11 @@ export class PlanningController {
   async confirm(
     @CurrentUser() user: AuthUser,
     @Param('id', new ParseUUIDPipe()) id: string,
+    @Headers('idempotency-key') idempotencyKey?: string,
   ) {
-    return { data: await this.planning.confirm(user.id, id) };
+    return {
+      data: await this.planning.confirm(user.id, id, idempotencyKey),
+    };
   }
 
   @Post(':id/discard')

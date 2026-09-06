@@ -4,6 +4,7 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { prepareIdempotency } from '../common/idempotency.js';
 import type { PrismaService } from '../database/prisma.service.js';
 import { ProposalStatus } from '../generated/prisma/enums.js';
 import {
@@ -86,6 +87,34 @@ describe('PlanningService', () => {
     await expect(
       service.confirm('student-id', 'proposal-id'),
     ).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it('replays a confirmed proposal without creating blocks again', async () => {
+    const confirmed = { id: 'proposal-id', status: ProposalStatus.CONFIRMED };
+    const requestHash = prepareIdempotency(
+      'replay-key',
+      'CONFIRM_PLANNING_PROPOSAL',
+      { proposalId: 'proposal-id' },
+    )!.requestHash;
+    const transaction = {
+      $executeRaw: vi.fn().mockResolvedValue(1),
+      idempotencyRecord: {
+        findUnique: vi.fn().mockResolvedValue({
+          requestHash,
+          resultReference: { proposalId: 'proposal-id' },
+        }),
+      },
+      planningProposal: { findFirst: vi.fn().mockResolvedValue(confirmed) },
+      studyBlock: { createMany: vi.fn() },
+      auditEvent: { create: vi.fn() },
+    };
+    prisma.$transaction.mockImplementation((callback) => callback(transaction));
+
+    await expect(
+      service.confirm('student-id', 'proposal-id', 'replay-key'),
+    ).resolves.toBe(confirmed);
+    expect(transaction.studyBlock.createMany).not.toHaveBeenCalled();
+    expect(transaction.auditEvent.create).not.toHaveBeenCalled();
   });
 
   it('audits a discarded proposal in the same transaction', async () => {

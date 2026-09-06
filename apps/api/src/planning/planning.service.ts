@@ -5,6 +5,13 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { createHash } from 'node:crypto';
+import {
+  findIdempotentResult,
+  prepareIdempotency,
+  recordIdempotentResult,
+  throwIdempotencyResultUnavailable,
+  type IdempotencyContext,
+} from '../common/idempotency.js';
 import { PrismaService } from '../database/prisma.service.js';
 import {
   BlockStatus,
@@ -798,9 +805,20 @@ export class PlanningService {
     });
   }
 
-  async confirm(studentId: string, id: string) {
+  async confirm(studentId: string, id: string, idempotencyKey?: string) {
+    const idempotency = prepareIdempotency(
+      idempotencyKey,
+      'CONFIRM_PLANNING_PROPOSAL',
+      { proposalId: id },
+    );
     return this.prisma.$transaction(async (transaction) => {
       await transaction.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${studentId}, 0))`;
+      const replay = await this.findIdempotentConfirmation(
+        transaction,
+        studentId,
+        idempotency,
+      );
+      if (replay) return replay;
       const proposal = await transaction.planningProposal.findFirst({
         where: { id, studentId },
         include: {
@@ -1046,7 +1064,7 @@ export class PlanningService {
           },
         },
       });
-      return transaction.planningProposal.findUniqueOrThrow({
+      const confirmed = await transaction.planningProposal.findUniqueOrThrow({
         where: { id },
         include: {
           blocks: { where: { removedAt: null }, orderBy: { startsAt: 'asc' } },
@@ -1054,7 +1072,37 @@ export class PlanningService {
           diagnostics: true,
         },
       });
+      await recordIdempotentResult(transaction, studentId, idempotency, {
+        proposalId: proposal.id,
+      });
+      return confirmed;
     });
+  }
+
+  private async findIdempotentConfirmation(
+    transaction: Parameters<Parameters<PrismaService['$transaction']>[0]>[0],
+    studentId: string,
+    context: IdempotencyContext | null,
+  ) {
+    const reference = await findIdempotentResult(
+      transaction,
+      studentId,
+      context,
+    );
+    if (!reference) return null;
+    const proposalId =
+      typeof reference.proposalId === 'string' ? reference.proposalId : null;
+    if (!proposalId) throwIdempotencyResultUnavailable();
+    const proposal = await transaction.planningProposal.findFirst({
+      where: { id: proposalId, studentId, status: ProposalStatus.CONFIRMED },
+      include: {
+        blocks: { where: { removedAt: null }, orderBy: { startsAt: 'asc' } },
+        confirmedBlocks: { orderBy: { startsAt: 'asc' } },
+        diagnostics: true,
+      },
+    });
+    if (!proposal) throwIdempotencyResultUnavailable();
+    return proposal;
   }
 
   async discard(studentId: string, id: string) {

@@ -11,10 +11,12 @@ const initialState: PlanningFormState = {};
 
 export function ProposalActions({
   proposalId,
+  confirmIdempotencyKey,
   canConfirm = true,
   blockedReason,
 }: {
   proposalId: string;
+  confirmIdempotencyKey: string;
   canConfirm?: boolean;
   blockedReason?: string;
 }) {
@@ -30,6 +32,11 @@ export function ProposalActions({
     <div className="proposal-decision">
       {canConfirm ? (
         <form action={confirmAction} className="proposal-confirm-form">
+          <input
+            name="idempotencyKey"
+            type="hidden"
+            value={confirmIdempotencyKey}
+          />
           <label className="check-row confirmation-check">
             <input name="confirmation" type="checkbox" value="confirmed" />
             <span>

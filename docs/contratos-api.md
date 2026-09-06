@@ -257,6 +257,9 @@ Confirmação exige idempotência e revisão atual. É tudo ou nada. Proposta ob
 retorna `409 PROPOSAL_STALE` sem criar blocos parciais. Quando um conteúdo possui
 partes ativas, cada bloco precisa ter ao menos uma associação salva; caso
 contrário, retorna `422 PROPOSAL_PARTS_REQUIRED` com os blocos pendentes.
+`POST /planning-proposals/{proposal_id}/confirm` aceita `Idempotency-Key` e uma
+repetição com a mesma chave devolve a confirmação original sem recriar blocos ou
+auditoria.
 
 ## Agenda e blocos
 
@@ -366,7 +369,8 @@ não realizada e pode ser editada sem reservar o horário. Aceitação revalida
 disponibilidade e conflitos dentro da operação transacional; em sucesso, retorna
 o bloco original como replanejado e o substituto confirmado. Após rejeição, a
 última rota representa a solicitação explícita necessária para gerar outra
-sugestão.
+sugestão. O aceite aceita `Idempotency-Key`; a repetição com a mesma chave
+devolve os mesmos blocos original e substituto sem aplicar a troca novamente.
 
 ## Indicadores e riscos
 

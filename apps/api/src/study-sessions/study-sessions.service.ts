@@ -4,7 +4,13 @@ import {
   NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
-import { createHash } from 'node:crypto';
+import {
+  findIdempotentResult,
+  prepareIdempotency,
+  recordIdempotentResult,
+  throwIdempotencyResultUnavailable,
+  type IdempotencyContext,
+} from '../common/idempotency.js';
 import { PrismaService } from '../database/prisma.service.js';
 import type { Prisma } from '../generated/prisma/client.js';
 import {
@@ -82,26 +88,6 @@ type TransactionClient = Parameters<
   Parameters<PrismaService['$transaction']>[0]
 >[0];
 
-type IdempotencyContext = {
-  key: string;
-  operation: string;
-  requestHash: string;
-};
-
-const idempotencyKeyPattern = /^[A-Za-z0-9_-]{8,128}$/;
-
-function canonicalize(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map(canonicalize);
-  if (value && typeof value === 'object') {
-    return Object.fromEntries(
-      Object.entries(value)
-        .sort(([left], [right]) => left.localeCompare(right))
-        .map(([key, item]) => [key, canonicalize(item)]),
-    );
-  }
-  return value;
-}
-
 @Injectable()
 export class StudySessionsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -156,7 +142,7 @@ export class StudySessionsService {
   }
 
   startPlanned(studentId: string, blockId: string, idempotencyKey?: string) {
-    const idempotency = this.prepareIdempotency(
+    const idempotency = prepareIdempotency(
       idempotencyKey,
       'START_PLANNED_STUDY_SESSION',
       { blockId },
@@ -228,7 +214,7 @@ export class StudySessionsService {
     input: StartUnplannedSessionDto,
     idempotencyKey?: string,
   ) {
-    const idempotency = this.prepareIdempotency(
+    const idempotency = prepareIdempotency(
       idempotencyKey,
       'START_UNPLANNED_STUDY_SESSION',
       input,
@@ -605,7 +591,7 @@ export class StudySessionsService {
     input: CompleteStudySessionDto,
     idempotencyKey?: string,
   ) {
-    const idempotency = this.prepareIdempotency(
+    const idempotency = prepareIdempotency(
       idempotencyKey,
       'COMPLETE_STUDY_SESSION',
       {
@@ -762,7 +748,7 @@ export class StudySessionsService {
         },
       });
     }
-    const idempotency = this.prepareIdempotency(
+    const idempotency = prepareIdempotency(
       idempotencyKey,
       'CREATE_RETROACTIVE_STUDY_SESSION',
       {
@@ -957,82 +943,28 @@ export class StudySessionsService {
     });
   }
 
-  private prepareIdempotency(
-    key: string | undefined,
-    operation: string,
-    payload: unknown,
-  ): IdempotencyContext | null {
-    if (key === undefined) return null;
-    if (!idempotencyKeyPattern.test(key)) {
-      throw new UnprocessableEntityException({
-        error: {
-          code: 'INVALID_IDEMPOTENCY_KEY',
-          message:
-            'A chave de idempotência deve ter de 8 a 128 caracteres seguros.',
-        },
-      });
-    }
-    return {
-      key,
-      operation,
-      requestHash: createHash('sha256')
-        .update(JSON.stringify(canonicalize(payload)))
-        .digest('hex'),
-    };
-  }
-
   private async findIdempotentSession(
     transaction: TransactionClient,
     studentId: string,
     context: IdempotencyContext | null,
   ) {
-    if (!context) return null;
-    const record = await transaction.idempotencyRecord.findUnique({
-      where: {
-        studentId_operation_idempotencyKey: {
-          studentId,
-          operation: context.operation,
-          idempotencyKey: context.key,
-        },
-      },
-      select: { requestHash: true, resultReference: true },
-    });
-    if (!record) return null;
-    if (record.requestHash !== context.requestHash) {
-      throw new ConflictException({
-        error: {
-          code: 'IDEMPOTENCY_KEY_REUSED',
-          message: 'Esta chave já foi utilizada com dados diferentes.',
-        },
-      });
-    }
-    const reference = record.resultReference;
+    const reference = await findIdempotentResult(
+      transaction,
+      studentId,
+      context,
+    );
+    if (!reference) return null;
     const sessionId =
-      reference &&
-      typeof reference === 'object' &&
-      !Array.isArray(reference) &&
-      typeof reference.sessionId === 'string'
-        ? reference.sessionId
-        : null;
+      typeof reference.sessionId === 'string' ? reference.sessionId : null;
     if (!sessionId) {
-      throw new ConflictException({
-        error: {
-          code: 'IDEMPOTENCY_RESULT_UNAVAILABLE',
-          message: 'O resultado anterior desta operação não está disponível.',
-        },
-      });
+      throwIdempotencyResultUnavailable();
     }
     const session = await transaction.studySession.findFirst({
       where: { id: sessionId, studentId },
       select: sessionSelection,
     });
     if (!session) {
-      throw new ConflictException({
-        error: {
-          code: 'IDEMPOTENCY_RESULT_UNAVAILABLE',
-          message: 'O resultado anterior desta operação não está disponível.',
-        },
-      });
+      throwIdempotencyResultUnavailable();
     }
     return session;
   }
@@ -1043,15 +975,8 @@ export class StudySessionsService {
     context: IdempotencyContext | null,
     sessionId: string,
   ) {
-    if (!context) return Promise.resolve();
-    return transaction.idempotencyRecord.create({
-      data: {
-        studentId,
-        operation: context.operation,
-        idempotencyKey: context.key,
-        requestHash: context.requestHash,
-        resultReference: { sessionId },
-      },
+    return recordIdempotentResult(transaction, studentId, context, {
+      sessionId,
     });
   }
 

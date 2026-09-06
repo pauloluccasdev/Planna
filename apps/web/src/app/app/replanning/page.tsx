@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { randomUUID } from "node:crypto";
 import { authenticatedApi } from "../../_lib/api";
 import { SuggestionCard } from "./suggestion-card";
 
@@ -50,7 +51,11 @@ export default async function ReplanningPage() {
         {open.length ? (
           <div className="replanning-list">
             {open.map((suggestion) => (
-              <SuggestionCard key={suggestion.id} suggestion={suggestion} />
+              <SuggestionCard
+                acceptIdempotencyKey={randomUUID()}
+                key={suggestion.id}
+                suggestion={suggestion}
+              />
             ))}
           </div>
         ) : (
@@ -69,7 +74,11 @@ export default async function ReplanningPage() {
           </div>
           <div className="replanning-list history">
             {history.map((suggestion) => (
-              <SuggestionCard key={suggestion.id} suggestion={suggestion} />
+              <SuggestionCard
+                acceptIdempotencyKey={randomUUID()}
+                key={suggestion.id}
+                suggestion={suggestion}
+              />
             ))}
           </div>
         </section>

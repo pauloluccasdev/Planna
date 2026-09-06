@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { randomUUID } from "node:crypto";
 import { authenticatedApi } from "../../../_lib/api";
 import { ProposalActions } from "./proposal-actions";
 import { ProposalBlockEditor } from "./proposal-block-editor";
@@ -204,6 +205,7 @@ export default async function PlanningReviewPage({ params }: Props) {
             proposal.blocks.length > 0 && blocksMissingParts.length === 0
           }
           proposalId={proposal.id}
+          confirmIdempotencyKey={randomUUID()}
         />
       ) : (
         <section className="dashboard-card proposal-finished">

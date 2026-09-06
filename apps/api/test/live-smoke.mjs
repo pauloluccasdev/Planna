@@ -744,9 +744,14 @@ try {
   if (!assignedRegeneratedPart.ok) {
     throw new Error('Assigning parts to the regenerated proposal failed');
   }
+  const planningConfirmationIdempotencyKey = randomUUID();
+  const planningConfirmationHeaders = {
+    ...headers,
+    'idempotency-key': planningConfirmationIdempotencyKey,
+  };
   const confirmedPlanning = await fetch(
     `${apiUrl}/planning-proposals/${planningBody.data.id}/confirm`,
-    { method: 'POST', headers },
+    { method: 'POST', headers: planningConfirmationHeaders },
   );
   const confirmedPlanningBody = await confirmedPlanning.json();
   if (
@@ -758,6 +763,20 @@ try {
     )
   ) {
     throw new Error('Confirming the regenerated automatic plan failed');
+  }
+  const replayedPlanningConfirmation = await fetch(
+    `${apiUrl}/planning-proposals/${planningBody.data.id}/confirm`,
+    { method: 'POST', headers: planningConfirmationHeaders },
+  );
+  const replayedPlanningConfirmationBody =
+    await replayedPlanningConfirmation.json();
+  if (
+    !replayedPlanningConfirmation.ok ||
+    replayedPlanningConfirmationBody.data.id !==
+      confirmedPlanningBody.data.id ||
+    replayedPlanningConfirmationBody.data.confirmedBlocks.length !== 2
+  ) {
+    throw new Error('Planning confirmation was not replayed idempotently');
   }
   const uncoveredAfterAutomaticCancellation = [];
   for (const automaticBlock of confirmedPlanningBody.data.confirmedBlocks) {
@@ -995,9 +1014,14 @@ try {
   ) {
     throw new Error('Requesting another replanning suggestion failed');
   }
+  const replanningAcceptanceIdempotencyKey = randomUUID();
+  const replanningAcceptanceHeaders = {
+    ...headers,
+    'idempotency-key': replanningAcceptanceIdempotencyKey,
+  };
   const acceptedSuggestion = await fetch(
     `${apiUrl}/replanning-suggestions/${requestedSuggestionBody.data.id}/accept`,
-    { method: 'POST', headers },
+    { method: 'POST', headers: replanningAcceptanceHeaders },
   );
   const acceptedSuggestionBody = await acceptedSuggestion.json();
   if (
@@ -1009,6 +1033,20 @@ try {
     acceptedSuggestionBody.data.replacement.plannedDurationSeconds !== 3600
   ) {
     throw new Error('Accepting replanning did not replace the overdue block');
+  }
+  const replayedSuggestionAcceptance = await fetch(
+    `${apiUrl}/replanning-suggestions/${requestedSuggestionBody.data.id}/accept`,
+    { method: 'POST', headers: replanningAcceptanceHeaders },
+  );
+  const replayedSuggestionAcceptanceBody =
+    await replayedSuggestionAcceptance.json();
+  if (
+    !replayedSuggestionAcceptance.ok ||
+    replayedSuggestionAcceptanceBody.data.replacement.id !==
+      acceptedSuggestionBody.data.replacement.id ||
+    replayedSuggestionAcceptanceBody.data.originalBlock.id !== expiredBlockId
+  ) {
+    throw new Error('Replanning acceptance was not replayed idempotently');
   }
 
   const startSessionIdempotencyKey = randomUUID();
@@ -1678,6 +1716,7 @@ try {
       futureEventChangeInvalidatedProposal: true,
       proposalPartsRequiredBeforeConfirmation: true,
       automaticPlanningConfirmedAtomically: true,
+      planningConfirmationIdempotent: true,
       uncoveredContentDetectedAfterCancellation: true,
       studyBlockCreated: true,
       studyBlockUpdatedWithHistory: true,
@@ -1692,6 +1731,7 @@ try {
       replanningRejectedWithoutChangingPlan: true,
       replanningRequestedAgain: true,
       replanningAcceptedAtomically: true,
+      replanningAcceptanceIdempotent: true,
       plannedSessionStarted: true,
       criticalSessionCommandsIdempotent: true,
       concurrentSessionRejected: true,

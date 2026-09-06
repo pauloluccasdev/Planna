@@ -65,9 +65,13 @@ export async function confirmPlanningProposal(
 ): Promise<PlanningFormState> {
   if (formData.get("confirmation") !== "confirmed")
     return { message: "Confirme que deseja adicionar os blocos à agenda." };
+  const idempotencyKey = String(formData.get("idempotencyKey") ?? "");
   const response = await authenticatedApi(
     `planning-proposals/${proposalId}/confirm`,
-    { method: "POST" },
+    {
+      method: "POST",
+      headers: { "idempotency-key": idempotencyKey },
+    },
   );
   if (!response || response.status === 401) redirect("/login");
   if (!response.ok)

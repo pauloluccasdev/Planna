@@ -59,7 +59,13 @@ function duration(seconds: number) {
   return `${hours ? `${hours}h` : ""}${hours && minutes ? " " : ""}${minutes ? `${minutes}min` : ""}`;
 }
 
-export function SuggestionCard({ suggestion }: { suggestion: Suggestion }) {
+export function SuggestionCard({
+  suggestion,
+  acceptIdempotencyKey,
+}: {
+  suggestion: Suggestion;
+  acceptIdempotencyKey: string;
+}) {
   const open = ["GENERATED", "EDITING"].includes(suggestion.status);
   const [editState, editAction, editing] = useActionState(
     updateSuggestion.bind(null, suggestion.id, suggestion.revision),
@@ -155,6 +161,11 @@ export function SuggestionCard({ suggestion }: { suggestion: Suggestion }) {
           </details>
           <div className="replanning-decisions">
             <form action={acceptAction}>
+              <input
+                name="idempotencyKey"
+                type="hidden"
+                value={acceptIdempotencyKey}
+              />
               <label className="confirmation-check">
                 <input name="confirmation" type="checkbox" value="confirmed" />
                 <span>Confirmo que desejo substituir o bloco atrasado.</span>

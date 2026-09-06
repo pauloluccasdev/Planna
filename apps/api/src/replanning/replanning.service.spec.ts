@@ -1,5 +1,6 @@
 import { UnprocessableEntityException } from '@nestjs/common';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { prepareIdempotency } from '../common/idempotency.js';
 import type { AvailabilityService } from '../availability/availability.service.js';
 import type { PrismaService } from '../database/prisma.service.js';
 import {
@@ -248,6 +249,7 @@ describe('ReplanningService', () => {
         ]),
       },
       studyBlockVersion: { create: vi.fn() },
+      auditEvent: { create: vi.fn() },
     };
     prisma.$transaction.mockImplementation((callback) => callback(transaction));
 
@@ -270,5 +272,61 @@ describe('ReplanningService', () => {
       }),
     );
     expect(result.replacement).toEqual({ id: 'replacement-id' });
+    expect(transaction.auditEvent.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        action: 'REPLANNING_SUGGESTION_ACCEPTED',
+        entityId: 'suggestion-id',
+      }),
+    });
+  });
+
+  it('replays an accepted suggestion without creating another block', async () => {
+    const requestHash = prepareIdempotency(
+      'replay-key',
+      'ACCEPT_REPLANNING_SUGGESTION',
+      { suggestionId: 'suggestion-id' },
+    )!.requestHash;
+    const accepted = {
+      id: 'suggestion-id',
+      status: SuggestionStatus.ACCEPTED,
+    };
+    const original = { id: 'block-id', status: BlockStatus.REPLANNED };
+    const replacement = {
+      id: 'replacement-id',
+      status: BlockStatus.CONFIRMED,
+    };
+    const transaction = {
+      $executeRaw: vi.fn(),
+      idempotencyRecord: {
+        findUnique: vi.fn().mockResolvedValue({
+          requestHash,
+          resultReference: {
+            suggestionId: 'suggestion-id',
+            originalBlockId: 'block-id',
+            replacementBlockId: 'replacement-id',
+          },
+        }),
+      },
+      replanningSuggestion: { findFirst: vi.fn().mockResolvedValue(accepted) },
+      studyBlock: {
+        findFirst: vi
+          .fn()
+          .mockResolvedValueOnce(original)
+          .mockResolvedValueOnce(replacement),
+        create: vi.fn(),
+      },
+      auditEvent: { create: vi.fn() },
+    };
+    prisma.$transaction.mockImplementation((callback) => callback(transaction));
+
+    await expect(
+      service.accept('student-id', 'suggestion-id', 'replay-key'),
+    ).resolves.toEqual({
+      suggestion: accepted,
+      originalBlock: original,
+      replacement,
+    });
+    expect(transaction.studyBlock.create).not.toHaveBeenCalled();
+    expect(transaction.auditEvent.create).not.toHaveBeenCalled();
   });
 });

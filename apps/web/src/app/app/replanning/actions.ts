@@ -59,9 +59,13 @@ export async function acceptSuggestion(
 ): Promise<ReplanningState> {
   if (formData.get("confirmation") !== "confirmed")
     return { message: "Confirme antes de alterar seu planejamento." };
+  const idempotencyKey = String(formData.get("idempotencyKey") ?? "");
   const response = await authenticatedApi(
     `replanning-suggestions/${suggestionId}/accept`,
-    { method: "POST" },
+    {
+      method: "POST",
+      headers: { "idempotency-key": idempotencyKey },
+    },
   );
   if (!response || response.status === 401) redirect("/login");
   if (!response.ok)

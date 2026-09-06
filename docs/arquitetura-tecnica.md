@@ -157,6 +157,8 @@ Persistência, fila e HTTP ficam fora do algoritmo, permitindo testes rápidos e
 - início planejado ou livre, conclusão e registro retroativo podem usar chave
   idempotente; a referência ao resultado é gravada atomicamente com o comando e
   não duplica texto acadêmico.
+- confirmação de proposta e aceite de replanejamento seguem a mesma garantia e
+  devolvem o resultado original quando a PWA repete a ação com a mesma chave.
 - a PWA recebe do servidor uma chave estável por ação crítica e a reenvia em
   novas tentativas do mesmo formulário ou comando.
 
