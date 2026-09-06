@@ -19,12 +19,18 @@ O Planna possui duas imagens independentes e não fica preso a um fornecedor:
 As variáveis obrigatórias são `DATABASE_URL`, `SUPABASE_URL`,
 `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`, `SUPABASE_JWKS_URL`,
 `PASSWORD_RECOVERY_REDIRECT_URL`, `WEB_ORIGIN`, `WEB_PUSH_PUBLIC_KEY`,
-`WEB_PUSH_PRIVATE_KEY` e `WEB_PUSH_SUBJECT`. `PORT`, limites do pool e timeout de
-transação possuem padrões documentados em `.env.example`.
+`WEB_PUSH_PRIVATE_KEY`, `WEB_PUSH_SUBJECT` e `CRON_SECRET`. `PORT`, limites do
+pool e timeout de transação possuem padrões documentados em `.env.example`.
 
 O trabalhador utiliza a mesma imagem e as mesmas variáveis da API. O agendador
 deve impedir sobreposição e executá-lo a cada cinco minutos; o processamento é
 idempotente e recupera uma reivindicação abandonada após quinze minutos.
+
+Na Vercel, a API usa `apps/api/server.ts` como entrada serverless. O agendador
+deve chamar `GET /api/v1/internal/notifications/dispatch` com o cabeçalho
+`Authorization: Bearer <CRON_SECRET>`. A frequência de cinco minutos requer um
+plano da Vercel que aceite Cron subdiário; em plano Hobby, use outro agendador
+compatível mantendo o mesmo endpoint protegido.
 
 ## Variáveis do frontend
 

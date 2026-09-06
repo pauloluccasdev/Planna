@@ -1,26 +1,12 @@
-import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
-import helmet from 'helmet';
 import { AppModule } from './app.module.js';
-import { getApiPort, getWebOrigins } from './config/environment.js';
+import { configureApplication } from './bootstrap.js';
+import { getApiPort } from './config/environment.js';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.enableShutdownHooks();
-  app.use(helmet());
-  app.enableCors({
-    origin: getWebOrigins(),
-    credentials: true,
-    exposedHeaders: ['x-request-id'],
-  });
-  app.setGlobalPrefix('api/v1');
-  app.useGlobalPipes(
-    new ValidationPipe({
-      forbidNonWhitelisted: true,
-      transform: true,
-      whitelist: true,
-    }),
-  );
+  configureApplication(app);
 
   await app.listen(getApiPort());
 }
