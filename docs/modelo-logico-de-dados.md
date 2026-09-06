@@ -45,6 +45,7 @@ users
 │   └── replanning_suggestions
 ├── push_subscriptions
 ├── notifications
+├── idempotency_records
 └── audit_events
 ```
 
@@ -463,6 +464,13 @@ Aceitação deve ocorrer em transação que revalida o horário, cria o substitu
 Uma tabela complementar de entregas por inscrição pode ser necessária se o aluno tiver vários dispositivos; decisão física posterior.
 
 ## Diagnóstico e auditoria
+
+### `idempotency_records`
+
+Registra por aluno, operação e chave segura a impressão SHA-256 da requisição e
+somente a referência opaca ao recurso resultante. A combinação é única e nasce
+na mesma transação da alteração protegida. O texto acadêmico e as observações do
+aluno não são duplicados nessa tabela.
 
 ### `risk_assessments`
 

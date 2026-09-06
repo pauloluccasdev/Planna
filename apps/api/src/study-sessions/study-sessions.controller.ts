@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Headers,
   Param,
   ParseUUIDPipe,
   Post,
@@ -52,16 +53,22 @@ export class StudySessionsController {
   async startPlanned(
     @CurrentUser() user: AuthUser,
     @Param('blockId', new ParseUUIDPipe()) blockId: string,
+    @Headers('idempotency-key') idempotencyKey?: string,
   ) {
-    return { data: await this.sessions.startPlanned(user.id, blockId) };
+    return {
+      data: await this.sessions.startPlanned(user.id, blockId, idempotencyKey),
+    };
   }
 
   @Post('study-sessions/unplanned/start')
   async startUnplanned(
     @CurrentUser() user: AuthUser,
     @Body() input: StartUnplannedSessionDto,
+    @Headers('idempotency-key') idempotencyKey?: string,
   ) {
-    return { data: await this.sessions.startUnplanned(user.id, input) };
+    return {
+      data: await this.sessions.startUnplanned(user.id, input, idempotencyKey),
+    };
   }
 
   @Post('study-sessions/:id/pause')
@@ -119,15 +126,25 @@ export class StudySessionsController {
     @CurrentUser() user: AuthUser,
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() input: CompleteStudySessionDto,
+    @Headers('idempotency-key') idempotencyKey?: string,
   ) {
-    return { data: await this.sessions.complete(user.id, id, input) };
+    return {
+      data: await this.sessions.complete(user.id, id, input, idempotencyKey),
+    };
   }
 
   @Post('study-sessions/retroactive')
   async retroactive(
     @CurrentUser() user: AuthUser,
     @Body() input: CreateRetroactiveSessionDto,
+    @Headers('idempotency-key') idempotencyKey?: string,
   ) {
-    return { data: await this.sessions.createRetroactive(user.id, input) };
+    return {
+      data: await this.sessions.createRetroactive(
+        user.id,
+        input,
+        idempotencyKey,
+      ),
+    };
   }
 }

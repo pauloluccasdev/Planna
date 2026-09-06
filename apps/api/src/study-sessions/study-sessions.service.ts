@@ -4,6 +4,7 @@ import {
   NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
+import { createHash } from 'node:crypto';
 import { PrismaService } from '../database/prisma.service.js';
 import type { Prisma } from '../generated/prisma/client.js';
 import {
@@ -77,6 +78,30 @@ const sessionSelection = {
   updatedAt: true,
 } as const;
 
+type TransactionClient = Parameters<
+  Parameters<PrismaService['$transaction']>[0]
+>[0];
+
+type IdempotencyContext = {
+  key: string;
+  operation: string;
+  requestHash: string;
+};
+
+const idempotencyKeyPattern = /^[A-Za-z0-9_-]{8,128}$/;
+
+function canonicalize(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(canonicalize);
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value)
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([key, item]) => [key, canonicalize(item)]),
+    );
+  }
+  return value;
+}
+
 @Injectable()
 export class StudySessionsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -130,9 +155,20 @@ export class StudySessionsService {
     });
   }
 
-  startPlanned(studentId: string, blockId: string) {
+  startPlanned(studentId: string, blockId: string, idempotencyKey?: string) {
+    const idempotency = this.prepareIdempotency(
+      idempotencyKey,
+      'START_PLANNED_STUDY_SESSION',
+      { blockId },
+    );
     return this.prisma.$transaction(async (transaction) => {
       await this.lockStudent(transaction, studentId);
+      const replay = await this.findIdempotentSession(
+        transaction,
+        studentId,
+        idempotency,
+      );
+      if (replay) return replay;
       await this.ensureNoRunningSession(transaction, studentId);
       const block = await transaction.studyBlock.findFirst({
         where: {
@@ -177,13 +213,34 @@ export class StudySessionsService {
         kind: SessionKind.PLANNED,
         linkedToBlock: true,
       });
+      await this.recordIdempotentSession(
+        transaction,
+        studentId,
+        idempotency,
+        session.id,
+      );
       return session;
     });
   }
 
-  startUnplanned(studentId: string, input: StartUnplannedSessionDto) {
+  startUnplanned(
+    studentId: string,
+    input: StartUnplannedSessionDto,
+    idempotencyKey?: string,
+  ) {
+    const idempotency = this.prepareIdempotency(
+      idempotencyKey,
+      'START_UNPLANNED_STUDY_SESSION',
+      input,
+    );
     return this.prisma.$transaction(async (transaction) => {
       await this.lockStudent(transaction, studentId);
+      const replay = await this.findIdempotentSession(
+        transaction,
+        studentId,
+        idempotency,
+      );
+      if (replay) return replay;
       await this.ensureNoRunningSession(transaction, studentId);
       const content = await transaction.content.findFirst({
         where: { id: input.contentId, studentId, archivedAt: null },
@@ -222,6 +279,12 @@ export class StudySessionsService {
         kind: SessionKind.UNPLANNED,
         linkedToBlock: false,
       });
+      await this.recordIdempotentSession(
+        transaction,
+        studentId,
+        idempotency,
+        session.id,
+      );
       return session;
     });
   }
@@ -536,9 +599,29 @@ export class StudySessionsService {
     );
   }
 
-  complete(studentId: string, id: string, input: CompleteStudySessionDto) {
+  complete(
+    studentId: string,
+    id: string,
+    input: CompleteStudySessionDto,
+    idempotencyKey?: string,
+  ) {
+    const idempotency = this.prepareIdempotency(
+      idempotencyKey,
+      'COMPLETE_STUDY_SESSION',
+      {
+        id,
+        ...input,
+        completedPartIds: [...(input.completedPartIds ?? [])].sort(),
+      },
+    );
     return this.prisma.$transaction(async (transaction) => {
       await this.lockStudent(transaction, studentId);
+      const replay = await this.findIdempotentSession(
+        transaction,
+        studentId,
+        idempotency,
+      );
+      if (replay) return replay;
       const session = await transaction.studySession.findFirst({
         where: {
           id,
@@ -638,14 +721,25 @@ export class StudySessionsService {
         realizedDurationSeconds: focusSeconds + breakSeconds,
         completedPartCount: partIds.length,
       });
-      return transaction.studySession.findUniqueOrThrow({
+      const completed = await transaction.studySession.findUniqueOrThrow({
         where: { id },
         select: sessionSelection,
       });
+      await this.recordIdempotentSession(
+        transaction,
+        studentId,
+        idempotency,
+        id,
+      );
+      return completed;
     });
   }
 
-  createRetroactive(studentId: string, input: CreateRetroactiveSessionDto) {
+  createRetroactive(
+    studentId: string,
+    input: CreateRetroactiveSessionDto,
+    idempotencyKey?: string,
+  ) {
     const startedAt = new Date(input.startedAt);
     const endedAt = new Date(input.endedAt);
     if (startedAt >= endedAt || endedAt > new Date()) {
@@ -668,9 +762,23 @@ export class StudySessionsService {
         },
       });
     }
+    const idempotency = this.prepareIdempotency(
+      idempotencyKey,
+      'CREATE_RETROACTIVE_STUDY_SESSION',
+      {
+        ...input,
+        completedPartIds: [...(input.completedPartIds ?? [])].sort(),
+      },
+    );
 
     return this.prisma.$transaction(async (transaction) => {
       await this.lockStudent(transaction, studentId);
+      const replay = await this.findIdempotentSession(
+        transaction,
+        studentId,
+        idempotency,
+      );
+      if (replay) return replay;
       const content = await transaction.content.findFirst({
         where: { id: input.contentId, studentId, archivedAt: null },
         select: { id: true },
@@ -764,6 +872,12 @@ export class StudySessionsService {
           completedPartCount: partIds.length,
         },
       );
+      await this.recordIdempotentSession(
+        transaction,
+        studentId,
+        idempotency,
+        session.id,
+      );
       return session;
     });
   }
@@ -820,15 +934,12 @@ export class StudySessionsService {
     });
   }
 
-  private lockStudent(
-    transaction: Parameters<Parameters<PrismaService['$transaction']>[0]>[0],
-    studentId: string,
-  ) {
+  private lockStudent(transaction: TransactionClient, studentId: string) {
     return transaction.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${studentId}, 0))`;
   }
 
   private auditSession(
-    transaction: Parameters<Parameters<PrismaService['$transaction']>[0]>[0],
+    transaction: TransactionClient,
     studentId: string,
     sessionId: string,
     transition: string,
@@ -846,8 +957,106 @@ export class StudySessionsService {
     });
   }
 
+  private prepareIdempotency(
+    key: string | undefined,
+    operation: string,
+    payload: unknown,
+  ): IdempotencyContext | null {
+    if (key === undefined) return null;
+    if (!idempotencyKeyPattern.test(key)) {
+      throw new UnprocessableEntityException({
+        error: {
+          code: 'INVALID_IDEMPOTENCY_KEY',
+          message:
+            'A chave de idempotência deve ter de 8 a 128 caracteres seguros.',
+        },
+      });
+    }
+    return {
+      key,
+      operation,
+      requestHash: createHash('sha256')
+        .update(JSON.stringify(canonicalize(payload)))
+        .digest('hex'),
+    };
+  }
+
+  private async findIdempotentSession(
+    transaction: TransactionClient,
+    studentId: string,
+    context: IdempotencyContext | null,
+  ) {
+    if (!context) return null;
+    const record = await transaction.idempotencyRecord.findUnique({
+      where: {
+        studentId_operation_idempotencyKey: {
+          studentId,
+          operation: context.operation,
+          idempotencyKey: context.key,
+        },
+      },
+      select: { requestHash: true, resultReference: true },
+    });
+    if (!record) return null;
+    if (record.requestHash !== context.requestHash) {
+      throw new ConflictException({
+        error: {
+          code: 'IDEMPOTENCY_KEY_REUSED',
+          message: 'Esta chave já foi utilizada com dados diferentes.',
+        },
+      });
+    }
+    const reference = record.resultReference;
+    const sessionId =
+      reference &&
+      typeof reference === 'object' &&
+      !Array.isArray(reference) &&
+      typeof reference.sessionId === 'string'
+        ? reference.sessionId
+        : null;
+    if (!sessionId) {
+      throw new ConflictException({
+        error: {
+          code: 'IDEMPOTENCY_RESULT_UNAVAILABLE',
+          message: 'O resultado anterior desta operação não está disponível.',
+        },
+      });
+    }
+    const session = await transaction.studySession.findFirst({
+      where: { id: sessionId, studentId },
+      select: sessionSelection,
+    });
+    if (!session) {
+      throw new ConflictException({
+        error: {
+          code: 'IDEMPOTENCY_RESULT_UNAVAILABLE',
+          message: 'O resultado anterior desta operação não está disponível.',
+        },
+      });
+    }
+    return session;
+  }
+
+  private recordIdempotentSession(
+    transaction: TransactionClient,
+    studentId: string,
+    context: IdempotencyContext | null,
+    sessionId: string,
+  ) {
+    if (!context) return Promise.resolve();
+    return transaction.idempotencyRecord.create({
+      data: {
+        studentId,
+        operation: context.operation,
+        idempotencyKey: context.key,
+        requestHash: context.requestHash,
+        resultReference: { sessionId },
+      },
+    });
+  }
+
   private async ensureNoRunningSession(
-    transaction: Parameters<Parameters<PrismaService['$transaction']>[0]>[0],
+    transaction: TransactionClient,
     studentId: string,
   ) {
     const active = await transaction.studySession.findFirst({

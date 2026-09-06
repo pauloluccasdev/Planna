@@ -64,7 +64,9 @@ Recursos críticos retornam `revision`. Alterações enviam a revisão conhecida
 
 Comandos críticos aceitam `Idempotency-Key`: cadastro, geração/confirmação de proposta, início/conclusão de sessão, registro retroativo, aceitação de replanejamento e recorrência.
 
-Mesma chave e payload retornam o resultado anterior; payload diferente retorna conflito.
+Mesma chave e payload retornam o mesmo recurso resultante; payload diferente
+retorna `409 IDEMPOTENCY_KEY_REUSED`. A chave é opcional, possui entre 8 e 128
+caracteres alfanuméricos, `_` ou `-` e é isolada por aluno e operação.
 
 ## Autenticação
 
@@ -337,6 +339,11 @@ conteúdo for inválido, a execução atual permanece inalterada.
 
 Na conclusão, o aluno envia partes confirmadas e observação opcional. O servidor calcula durações; totais enviados pelo cliente não são fonte confiável.
 
+Início planejado, início não planejado, conclusão e registro retroativo aceitam
+`Idempotency-Key`. A reserva da chave, a mutação, a auditoria e a referência ao
+resultado são persistidas na mesma transação e serializadas por aluno. Nenhum
+nome de conteúdo ou texto de observação é duplicado no registro idempotente.
+
 As transições críticas de sessão geram eventos de auditoria dentro da mesma
 transação. Os metadados registram somente identificadores opacos, tipo de
 transição, contagens e durações; nomes de conteúdo e observações não são
@@ -422,9 +429,11 @@ Respostas não incluem identificadores ou resumos acadêmicos.
 |  409 | `ACTIVE_STUDY_SESSION_EXISTS` | Cronômetro já em execução.             |
 |  409 | `ENTITY_HAS_HISTORY`          | Exclusão física não permitida.         |
 |  409 | `PROPOSAL_STALE`              | Entradas mudaram.                      |
+|  409 | `IDEMPOTENCY_KEY_REUSED`      | Chave repetida com payload diferente.  |
 |  422 | `CONTENT_MISSING_ESTIMATE`    | Inelegível à geração.                  |
 |  422 | `CONTENT_PART_MISMATCH`       | Parte não pertence ao conteúdo.        |
 |  422 | `PROPOSAL_PARTS_REQUIRED`     | Bloco proposto ainda sem partes.       |
+|  422 | `INVALID_IDEMPOTENCY_KEY`     | Chave idempotente fora do formato.     |
 |  429 | `RATE_LIMITED`                | Limite excedido.                       |
 |  500 | `INTERNAL_ERROR`              | Falha inesperada com `request_id`.     |
 

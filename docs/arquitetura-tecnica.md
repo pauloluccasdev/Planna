@@ -154,6 +154,9 @@ Persistência, fila e HTTP ficam fora do algoritmo, permitindo testes rápidos e
 - início, pausa, retomada, troca, mudança de ciclo, conclusão e registro
   retroativo geram auditoria na mesma transação, sem nomes de conteúdos ou
   observações do aluno.
+- início planejado ou livre, conclusão e registro retroativo podem usar chave
+  idempotente; a referência ao resultado é gravada atomicamente com o comando e
+  não duplica texto acadêmico.
 
 ## Confirmação de proposta
 

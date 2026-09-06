@@ -1011,9 +1011,14 @@ try {
     throw new Error('Accepting replanning did not replace the overdue block');
   }
 
+  const startSessionIdempotencyKey = randomUUID();
+  const startSessionHeaders = {
+    ...headers,
+    'idempotency-key': startSessionIdempotencyKey,
+  };
   const startedSession = await fetch(
     `${apiUrl}/study-blocks/${blockId}/sessions/start`,
-    { method: 'POST', headers },
+    { method: 'POST', headers: startSessionHeaders },
   );
   if (startedSession.status !== 201) {
     throw new Error(
@@ -1021,6 +1026,14 @@ try {
     );
   }
   const sessionId = (await startedSession.json()).data.id;
+  const replayedStart = await fetch(
+    `${apiUrl}/study-blocks/${blockId}/sessions/start`,
+    { method: 'POST', headers: startSessionHeaders },
+  );
+  const replayedStartBody = await replayedStart.json();
+  if (!replayedStart.ok || replayedStartBody.data.id !== sessionId) {
+    throw new Error('Planned session start was not replayed idempotently');
+  }
 
   const secondSession = await fetch(
     `${apiUrl}/study-sessions/unplanned/start`,
@@ -1204,18 +1217,53 @@ try {
   );
   if (!resumedSession.ok) throw new Error('Resuming session failed');
 
+  const completionIdempotencyKey = randomUUID();
+  const completionHeaders = {
+    ...headers,
+    'idempotency-key': completionIdempotencyKey,
+  };
+  const completionPayload = { note: 'Sessão de integração concluída' };
   const completedSession = await fetch(
     `${apiUrl}/study-sessions/${sessionId}/complete`,
     {
       method: 'POST',
-      headers,
-      body: JSON.stringify({ note: 'Sessão de integração concluída' }),
+      headers: completionHeaders,
+      body: JSON.stringify(completionPayload),
     },
   );
   if (!completedSession.ok) throw new Error('Completing session failed');
   const completedBody = await completedSession.json();
   if (completedBody.data.status !== 'COMPLETED') {
     throw new Error('Session did not transition to COMPLETED');
+  }
+  const replayedCompletion = await fetch(
+    `${apiUrl}/study-sessions/${sessionId}/complete`,
+    {
+      method: 'POST',
+      headers: completionHeaders,
+      body: JSON.stringify(completionPayload),
+    },
+  );
+  const replayedCompletionBody = await replayedCompletion.json();
+  if (
+    !replayedCompletion.ok ||
+    replayedCompletionBody.data.id !== sessionId ||
+    replayedCompletionBody.data.status !== 'COMPLETED'
+  ) {
+    throw new Error('Session completion was not replayed idempotently');
+  }
+  const reusedCompletionKey = await fetch(
+    `${apiUrl}/study-sessions/${sessionId}/complete`,
+    {
+      method: 'POST',
+      headers: completionHeaders,
+      body: JSON.stringify({ note: 'Payload diferente' }),
+    },
+  );
+  if (reusedCompletionKey.status !== 409) {
+    throw new Error(
+      'Reusing an idempotency key with another payload was allowed',
+    );
   }
 
   const retroactiveBlockDate = new Date();
@@ -1645,6 +1693,7 @@ try {
       replanningRequestedAgain: true,
       replanningAcceptedAtomically: true,
       plannedSessionStarted: true,
+      criticalSessionCommandsIdempotent: true,
       concurrentSessionRejected: true,
       pomodoroBreakRecorded: true,
       pomodoroFocusResumed: true,

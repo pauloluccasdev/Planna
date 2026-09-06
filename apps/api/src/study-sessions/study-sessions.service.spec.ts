@@ -28,6 +28,7 @@ describe('StudySessionsService', () => {
     content: { findFirst: vi.fn() },
     contentPart: { count: vi.fn() },
     auditEvent: { create: vi.fn() },
+    idempotencyRecord: { findUnique: vi.fn(), create: vi.fn() },
   };
   const prisma = {
     studySession: { findFirst: vi.fn(), findMany: vi.fn() },
@@ -37,7 +38,55 @@ describe('StudySessionsService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    transaction.idempotencyRecord.findUnique.mockResolvedValue(null);
     service = new StudySessionsService(prisma as unknown as PrismaService);
+  });
+
+  it('replays a planned session start with the same idempotency key', async () => {
+    const createdSession = { id: 'session-id', status: 'RUNNING' };
+    transaction.studySession.findFirst.mockResolvedValueOnce(null);
+    transaction.studyBlock.findFirst.mockResolvedValue({
+      id: 'block-id',
+      contentId: 'content-id',
+    });
+    transaction.studySession.create.mockResolvedValue(createdSession);
+
+    await service.startPlanned('student-id', 'block-id', 'planned-session-key');
+    const stored = transaction.idempotencyRecord.create.mock.calls[0][0].data;
+    transaction.idempotencyRecord.findUnique.mockResolvedValue({
+      requestHash: stored.requestHash,
+      resultReference: { sessionId: 'session-id' },
+    });
+    transaction.studySession.findFirst.mockResolvedValue(createdSession);
+
+    await expect(
+      service.startPlanned('student-id', 'block-id', 'planned-session-key'),
+    ).resolves.toEqual(createdSession);
+    expect(transaction.studySession.create).toHaveBeenCalledTimes(1);
+    expect(transaction.idempotencyRecord.create).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects an idempotency key reused with another payload', async () => {
+    transaction.idempotencyRecord.findUnique.mockResolvedValue({
+      requestHash: 'different-request-hash',
+      resultReference: { sessionId: 'session-id' },
+    });
+
+    await expect(
+      service.startPlanned(
+        'student-id',
+        'another-block-id',
+        'planned-session-key',
+      ),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(transaction.studySession.create).not.toHaveBeenCalled();
+  });
+
+  it('rejects unsafe idempotency keys before opening a transaction', () => {
+    expect(() =>
+      service.startPlanned('student-id', 'block-id', 'short'),
+    ).toThrow(UnprocessableEntityException);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 
   it('prioritizes a running session over paused sessions', async () => {
