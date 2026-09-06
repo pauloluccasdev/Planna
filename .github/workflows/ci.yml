@@ -32,10 +32,10 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
           cache: npm
@@ -45,6 +45,9 @@ jobs:
 
       - name: Validate database schema
         run: npm run db:validate
+
+      - name: Generate Prisma client
+        run: npm run db:generate
 
       - name: Check types
         run: npm run typecheck
