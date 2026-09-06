@@ -7,8 +7,12 @@ const application = await NestFactory.createApplicationContext(AppModule, {
 });
 
 try {
-  const result = await application.get(NotificationsService).dispatchDue();
-  console.log(JSON.stringify({ event: 'notifications.dispatch', ...result }));
+  const notifications = application.get(NotificationsService);
+  const scheduled = await notifications.synchronizeReminders();
+  const delivered = await notifications.dispatchDue();
+  console.log(
+    JSON.stringify({ event: 'notifications.worker', scheduled, delivered }),
+  );
 } finally {
   await application.close();
 }

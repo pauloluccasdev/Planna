@@ -147,6 +147,11 @@ Frequência do disparo será definida conforme regras de antecedência e custo. 
 concorrência entre executores é protegida pela transição atômica de `scheduled`
 para `processing`.
 
+Antes da entrega, o mesmo trabalhador reconcilia lembretes de blocos confirmados
+e eventos futuros. A chave única composta pelo aluno, tipo, vínculo e horário
+torna a criação idempotente. Lembretes ainda pendentes são cancelados quando o
+item é removido ou tem seu horário alterado.
+
 ## Motor de planejamento
 
 O núcleo deve permanecer uma função de domínio pura:

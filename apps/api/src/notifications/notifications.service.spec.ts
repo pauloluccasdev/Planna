@@ -7,6 +7,8 @@ import type { WebPushTransport } from './web-push.transport.js';
 
 describe('NotificationsService', () => {
   const prisma = {
+    studyBlock: { findMany: vi.fn() },
+    academicEvent: { findMany: vi.fn() },
     pushSubscription: {
       findUnique: vi.fn(),
       findMany: vi.fn(),
@@ -15,6 +17,7 @@ describe('NotificationsService', () => {
       updateMany: vi.fn(),
     },
     notification: {
+      createMany: vi.fn(),
       findFirst: vi.fn(),
       findMany: vi.fn(),
       findUniqueOrThrow: vi.fn(),
@@ -59,6 +62,99 @@ describe('NotificationsService', () => {
       }),
     );
     expect(result).not.toHaveProperty('endpoint');
+  });
+
+  it('schedules block and academic event reminders idempotently', async () => {
+    const now = new Date('2026-09-06T12:00:00.000Z');
+    prisma.studyBlock.findMany.mockResolvedValue([
+      {
+        id: 'block-id',
+        studentId: 'student-id',
+        startsAt: new Date('2026-09-06T15:00:00.000Z'),
+      },
+    ]);
+    prisma.academicEvent.findMany.mockResolvedValue([
+      {
+        id: 'event-id',
+        studentId: 'student-id',
+        startsAt: new Date('2026-09-20T15:00:00.000Z'),
+      },
+    ]);
+    prisma.notification.createMany.mockResolvedValue({ count: 3 });
+    prisma.notification.findMany.mockResolvedValue([]);
+
+    const result = await service.synchronizeReminders(now);
+
+    expect(result).toEqual({
+      studyBlockReminders: 1,
+      academicEventReminders: 2,
+      cancelled: 0,
+    });
+    expect(prisma.notification.createMany).toHaveBeenCalledWith({
+      data: [
+        expect.objectContaining({
+          kind: 'STUDY_BLOCK_REMINDER',
+          relatedId: 'block-id',
+          scheduledFor: new Date('2026-09-06T14:45:00.000Z'),
+        }),
+        expect.objectContaining({
+          kind: 'ACADEMIC_EVENT_REMINDER',
+          relatedId: 'event-id',
+          scheduledFor: new Date('2026-09-13T15:00:00.000Z'),
+        }),
+        expect.objectContaining({
+          kind: 'ACADEMIC_EVENT_REMINDER',
+          relatedId: 'event-id',
+          scheduledFor: new Date('2026-09-19T15:00:00.000Z'),
+        }),
+      ],
+      skipDuplicates: true,
+    });
+  });
+
+  it('cancels a pending reminder after its related schedule changes', async () => {
+    prisma.studyBlock.findMany.mockResolvedValue([]);
+    prisma.academicEvent.findMany.mockResolvedValue([]);
+    prisma.notification.findMany.mockResolvedValue([
+      {
+        id: 'obsolete-id',
+        kind: 'STUDY_BLOCK_REMINDER',
+        relatedId: 'block-id',
+        scheduledFor: new Date('2026-09-06T14:45:00.000Z'),
+      },
+    ]);
+    prisma.notification.updateMany.mockResolvedValue({ count: 1 });
+
+    const result = await service.synchronizeReminders(new Date());
+
+    expect(result.cancelled).toBe(1);
+    expect(prisma.notification.updateMany).toHaveBeenCalledWith({
+      where: {
+        id: { in: ['obsolete-id'] },
+        status: NotificationStatus.SCHEDULED,
+      },
+      data: {
+        status: NotificationStatus.CANCELLED,
+        failureCode: 'RELATED_SCHEDULE_CHANGED',
+      },
+    });
+  });
+
+  it('does not create reminders whose standard lead time already passed', async () => {
+    const now = new Date('2026-09-06T12:00:00.000Z');
+    prisma.studyBlock.findMany.mockResolvedValue([
+      {
+        id: 'soon-block-id',
+        studentId: 'student-id',
+        startsAt: new Date('2026-09-06T12:10:00.000Z'),
+      },
+    ]);
+    prisma.academicEvent.findMany.mockResolvedValue([]);
+    prisma.notification.findMany.mockResolvedValue([]);
+
+    await service.synchronizeReminders(now);
+
+    expect(prisma.notification.createMany).not.toHaveBeenCalled();
   });
 
   it('reactivates the same student subscription', async () => {

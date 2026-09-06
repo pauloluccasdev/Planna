@@ -10,7 +10,6 @@ Estes pontos não bloqueiam a consolidação inicial, mas devem ser decididos an
 - Comportamento de uma parte associada a vários blocos.
 - Validação de sobreposição em registros retroativos.
 - Limites para séries recorrentes e geração de planejamento semestral.
-- Antecedências e categorias exatas das notificações.
 - Tratamento quando a permissão de notificação for negada.
 - Política de manter ou revogar a inscrição de notificação ao sair da conta em dispositivo compartilhado.
 - Política de sessão interrompida, frequência de confirmação de atividade e correção de horário.

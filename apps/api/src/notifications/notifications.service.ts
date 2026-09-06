@@ -10,6 +10,8 @@ import type { ListNotificationsQueryDto } from './dto/list-notifications-query.d
 import { WebPushTransport } from './web-push.transport.js';
 
 const pageSize = 20;
+const studyBlockReminderOffsetMs = 15 * 60_000;
+const academicEventReminderOffsetsMs = [7 * 24 * 60 * 60_000, 24 * 60 * 60_000];
 const subscriptionSelection = {
   id: true,
   expiresAt: true,
@@ -24,6 +26,88 @@ export class NotificationsService {
     private readonly prisma: PrismaService,
     private readonly push: WebPushTransport,
   ) {}
+
+  async synchronizeReminders(now = new Date()) {
+    const [blocks, events] = await Promise.all([
+      this.prisma.studyBlock.findMany({
+        where: { status: 'CONFIRMED', startsAt: { gt: now } },
+        select: { id: true, studentId: true, startsAt: true },
+      }),
+      this.prisma.academicEvent.findMany({
+        where: { deletedAt: null, startsAt: { gt: now } },
+        select: { id: true, studentId: true, startsAt: true },
+      }),
+    ]);
+    const desired = [
+      ...blocks.map((block) => ({
+        studentId: block.studentId,
+        kind: 'STUDY_BLOCK_REMINDER' as const,
+        relatedType: 'study_block',
+        relatedId: block.id,
+        scheduledFor: new Date(
+          block.startsAt.getTime() - studyBlockReminderOffsetMs,
+        ),
+      })),
+      ...events.flatMap((event) =>
+        academicEventReminderOffsetsMs.map((offset) => ({
+          studentId: event.studentId,
+          kind: 'ACADEMIC_EVENT_REMINDER' as const,
+          relatedType: 'academic_event',
+          relatedId: event.id,
+          scheduledFor: new Date(event.startsAt.getTime() - offset),
+        })),
+      ),
+    ];
+    const futureReminders = desired.filter(
+      (item) => item.scheduledFor.getTime() > now.getTime(),
+    );
+    if (futureReminders.length > 0) {
+      await this.prisma.notification.createMany({
+        data: futureReminders,
+        skipDuplicates: true,
+      });
+    }
+
+    const desiredKeys = new Set(
+      desired.map((item) =>
+        this.reminderKey(item.kind, item.relatedId, item.scheduledFor),
+      ),
+    );
+    const scheduled = await this.prisma.notification.findMany({
+      where: {
+        status: NotificationStatus.SCHEDULED,
+        kind: { in: ['STUDY_BLOCK_REMINDER', 'ACADEMIC_EVENT_REMINDER'] },
+      },
+      select: { id: true, kind: true, relatedId: true, scheduledFor: true },
+    });
+    const obsoleteIds = scheduled
+      .filter(
+        (item) =>
+          !item.relatedId ||
+          !desiredKeys.has(
+            this.reminderKey(item.kind, item.relatedId, item.scheduledFor),
+          ),
+      )
+      .map((item) => item.id);
+    if (obsoleteIds.length > 0) {
+      await this.prisma.notification.updateMany({
+        where: {
+          id: { in: obsoleteIds },
+          status: NotificationStatus.SCHEDULED,
+        },
+        data: {
+          status: NotificationStatus.CANCELLED,
+          failureCode: 'RELATED_SCHEDULE_CHANGED',
+        },
+      });
+    }
+    return {
+      studyBlockReminders: blocks.length,
+      academicEventReminders:
+        events.length * academicEventReminderOffsetsMs.length,
+      cancelled: obsoleteIds.length,
+    };
+  }
 
   async dispatchDue(now = new Date()) {
     const staleBefore = new Date(now.getTime() - 15 * 60_000);
@@ -322,10 +406,11 @@ export class NotificationsService {
     if (relatedType === 'study_block' && relatedId) {
       return `/app/blocks/${relatedId}`;
     }
-    if (relatedType === 'academic_event' && relatedId) {
-      return `/app/events/${relatedId}`;
-    }
     return '/app/notifications';
+  }
+
+  private reminderKey(kind: string, relatedId: string, scheduledFor: Date) {
+    return `${kind}:${relatedId}:${scheduledFor.toISOString()}`;
   }
 
   private async finishDispatch(

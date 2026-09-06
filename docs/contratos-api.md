@@ -411,8 +411,10 @@ autenticado. Marcar como lida é idempotente. A entrega não é exposta como
 endpoint público: o trabalhador operacional consome até 100 notificações
 vencidas por execução e usa credenciais VAPID mantidas somente no backend. O
 payload contém uma mensagem genérica e uma rota interna, sem texto acadêmico
-privado. A criação das mensagens continua dependente das antecedências ainda
-registradas como pendência.
+privado. A criação das mensagens segue as antecedências definidas nas regras de
+negócio: 15 minutos para blocos e 7 dias/1 dia para
+eventos acadêmicos. Lembretes cujo instante de criação já passou não são criados
+retroativamente.
 
 ## Administração
 

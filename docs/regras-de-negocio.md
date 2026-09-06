@@ -122,4 +122,5 @@ Este documento registra somente decisões confirmadas. As identificações devem
 ## Notificações
 
 - **RN-NTF-001** — O MVP usa notificações do navegador/PWA quando houver permissão e suporte.
-- **RN-NTF-002** — O Planna define as antecedências padrão das notificações.
+- **RN-NTF-002** — O Planna lembra blocos de estudo 15 minutos antes e eventos acadêmicos 7 dias e 1 dia antes. Um lembrete cujo horário já passou antes de ser criado não é enviado retroativamente.
+- **RN-NTF-003** — Editar, cancelar, concluir, replanejar ou excluir o item relacionado cancela lembretes pendentes que deixaram de corresponder ao horário vigente.

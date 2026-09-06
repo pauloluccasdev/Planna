@@ -624,6 +624,7 @@ model Notification {
   updatedAt     DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
   student       UserAccount        @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
+  @@unique([studentId, kind, relatedType, relatedId, scheduledFor])
   @@index([studentId, status, scheduledFor])
   @@index([status, nextAttemptAt, scheduledFor])
   @@map("notifications")

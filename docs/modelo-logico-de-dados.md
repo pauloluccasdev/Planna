@@ -479,6 +479,10 @@ resposta definitiva `404` ou `410` revoga somente a inscrição correspondente.
 O conteúdo enviado é genérico e não inclui nomes de disciplinas, conteúdos ou
 observações acadêmicas na carga Web Push.
 
+A combinação `(student_id, kind, related_type, related_id, scheduled_for)` é
+única para impedir duplicação quando o trabalhador reconcilia a agenda mais de
+uma vez.
+
 ## Diagnóstico e auditoria
 
 ### `idempotency_records`
