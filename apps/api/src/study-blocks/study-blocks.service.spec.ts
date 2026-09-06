@@ -56,6 +56,22 @@ describe('StudyBlocksService', () => {
     ).rejects.toBeInstanceOf(UnprocessableEntityException);
   });
 
+  it('lists only blocks eligible for a retroactive session when requested', async () => {
+    prisma.studyBlock.findMany.mockResolvedValue([]);
+
+    await service.list('student-id', { retroactiveEligible: 'true' });
+
+    expect(prisma.studyBlock.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          studentId: 'student-id',
+          status: { in: ['CONFIRMED', 'OVERDUE'] },
+          sessions: { none: {} },
+        }),
+      }),
+    );
+  });
+
   it('rejects blocks outside weekly availability', async () => {
     availability.coversInterval.mockResolvedValue(false);
     await expect(

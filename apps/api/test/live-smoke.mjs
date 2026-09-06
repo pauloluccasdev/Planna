@@ -1113,6 +1113,73 @@ try {
     throw new Error('Session did not transition to COMPLETED');
   }
 
+  const retroactiveBlockDate = new Date();
+  retroactiveBlockDate.setDate(retroactiveBlockDate.getDate() - 1);
+  const retroactiveBlockDay = new Intl.DateTimeFormat('sv-SE', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(retroactiveBlockDate);
+  const retroactiveBlock = await fetch(`${apiUrl}/study-blocks`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      contentId,
+      startsAt: `${retroactiveBlockDay}T10:00:00-03:00`,
+      endsAt: `${retroactiveBlockDay}T11:00:00-03:00`,
+    }),
+  });
+  if (retroactiveBlock.status !== 201) {
+    throw new Error('Creating a block for retroactive linking failed');
+  }
+  const retroactiveBlockBody = await retroactiveBlock.json();
+  const retroactiveOptions = await fetch(
+    `${apiUrl}/study-blocks?retroactiveEligible=true`,
+    { headers },
+  );
+  const retroactiveOptionsBody = await retroactiveOptions.json();
+  if (
+    !retroactiveOptions.ok ||
+    !retroactiveOptionsBody.data.some(
+      ({ id }) => id === retroactiveBlockBody.data.id,
+    )
+  ) {
+    throw new Error('Eligible retroactive block was not listed');
+  }
+  const linkedRetroactiveSession = await fetch(
+    `${apiUrl}/study-sessions/retroactive`,
+    {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        contentId,
+        studyBlockId: retroactiveBlockBody.data.id,
+        startedAt: `${retroactiveBlockDay}T10:00:00-03:00`,
+        endedAt: `${retroactiveBlockDay}T11:00:00-03:00`,
+        note: 'Registro retroativo vinculado ao planejamento',
+      }),
+    },
+  );
+  const linkedRetroactiveBody = await linkedRetroactiveSession.json();
+  if (
+    linkedRetroactiveSession.status !== 201 ||
+    linkedRetroactiveBody.data.studyBlockId !== retroactiveBlockBody.data.id
+  ) {
+    throw new Error('Linking a retroactive session to its block failed');
+  }
+  const linkedBlockAfterSession = await fetch(
+    `${apiUrl}/study-blocks/${retroactiveBlockBody.data.id}`,
+    { headers },
+  );
+  const linkedBlockAfterSessionBody = await linkedBlockAfterSession.json();
+  if (
+    !linkedBlockAfterSession.ok ||
+    linkedBlockAfterSessionBody.data.status !== 'COMPLETED'
+  ) {
+    throw new Error('Linked retroactive session did not complete its block');
+  }
+
   const retroactiveSession = await fetch(
     `${apiUrl}/study-sessions/retroactive`,
     {
@@ -1150,9 +1217,9 @@ try {
     throw new Error(`GET /metrics/summary failed with ${metrics.status}`);
   const metricsBody = await metrics.json();
   if (
-    metricsBody.data.compliance.eligibleBlocks !== 5 ||
-    metricsBody.data.compliance.completedBlocks !== 1 ||
-    metricsBody.data.time.plannedCompletedSeconds !== 3600 ||
+    metricsBody.data.compliance.eligibleBlocks !== 6 ||
+    metricsBody.data.compliance.completedBlocks !== 2 ||
+    metricsBody.data.time.plannedCompletedSeconds !== 7200 ||
     metricsBody.data.time.additionalUnplanned.realizedSeconds !==
       3600 + changedContentRealizedSeconds ||
     metricsBody.data.adaptation.currentOverdueBlocks !== 0 ||
@@ -1446,6 +1513,7 @@ try {
       sessionResumed: true,
       sessionCompleted: true,
       retroactiveSessionCreated: true,
+      retroactiveSessionLinkedToBlock: true,
       metricsCalculated: true,
       calendarListed: true,
       recurrenceCancelled: true,

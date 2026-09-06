@@ -310,6 +310,13 @@ POST /study-sessions/retroactive
 POST /study-sessions/{session_id}/reconcile
 ```
 
+`GET /study-blocks?retroactiveEligible=true` lista somente blocos confirmados ou
+atrasados que ainda não possuem nenhuma sessão para serem escolhidos no registro
+retroativo. Ao informar `studyBlockId`, o bloco precisa pertencer ao conteúdo
+selecionado e ainda estar em estado válido; o registro e a conclusão do bloco
+acontecem na mesma transação. Blocos em andamento ou pausados não são elegíveis,
+evitando duas sessões para o mesmo bloco.
+
 Início ou retomada concorrente retorna `409 ACTIVE_STUDY_SESSION_EXISTS`.
 
 `switch-to-content` recebe `contentId` e observação opcional. Em uma única

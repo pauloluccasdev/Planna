@@ -13,6 +13,23 @@ type Content = {
   subject: { name: string; course: { name: string } };
   parts: Array<{ id: string; name: string }>;
 };
+type StudyBlock = {
+  id: string;
+  contentId: string;
+  startsAt: string;
+  status: string;
+};
+
+const dateTime = new Intl.DateTimeFormat("pt-BR", {
+  timeZone: "America/Sao_Paulo",
+  dateStyle: "short",
+  timeStyle: "short",
+});
+
+const statusLabels: Record<string, string> = {
+  CONFIRMED: "confirmado",
+  OVERDUE: "atrasado",
+};
 
 function ContentOptions({ contents }: { contents: Content[] }) {
   return (
@@ -30,11 +47,25 @@ function ContentOptions({ contents }: { contents: Content[] }) {
   );
 }
 
-export function StudyForms({ contents }: { contents: Content[] }) {
+export function StudyForms({
+  contents,
+  retroactiveBlocks,
+}: {
+  contents: Content[];
+  retroactiveBlocks: StudyBlock[];
+}) {
   const [selectedContentId, setSelectedContentId] = useState("");
+  const [studyBlockId, setStudyBlockId] = useState("");
   const selectedContent = useMemo(
     () => contents.find((content) => content.id === selectedContentId),
     [contents, selectedContentId],
+  );
+  const selectedContentBlocks = useMemo(
+    () =>
+      retroactiveBlocks.filter(
+        (block) => block.contentId === selectedContentId,
+      ),
+    [retroactiveBlocks, selectedContentId],
   );
   const [liveState, liveAction, livePending] = useActionState<
     StudyFormState,
@@ -84,7 +115,10 @@ export function StudyForms({ contents }: { contents: Content[] }) {
               name="contentId"
               required
               value={selectedContentId}
-              onChange={(event) => setSelectedContentId(event.target.value)}
+              onChange={(event) => {
+                setSelectedContentId(event.target.value);
+                setStudyBlockId("");
+              }}
             >
               <ContentOptions contents={contents} />
             </select>
@@ -99,6 +133,27 @@ export function StudyForms({ contents }: { contents: Content[] }) {
               <input name="endedAt" type="datetime-local" required />
             </label>
           </div>
+          <label className="field">
+            <span>Como este estudo deve ser classificado?</span>
+            <select
+              name="studyBlockId"
+              value={studyBlockId}
+              onChange={(event) => setStudyBlockId(event.target.value)}
+            >
+              <option value="">Fora do planejamento</option>
+              {selectedContentBlocks.map((block) => (
+                <option key={block.id} value={block.id}>
+                  Bloco de {dateTime.format(new Date(block.startsAt))} ·{" "}
+                  {statusLabels[block.status] ?? block.status.toLowerCase()}
+                </option>
+              ))}
+            </select>
+            <small>
+              Ao escolher um bloco, o registro será associado a ele e o bloco
+              será concluído. Só aparecem blocos válidos do conteúdo
+              selecionado.
+            </small>
+          </label>
           <label className="field">
             <span>Tempo de pausas (minutos)</span>
             <input

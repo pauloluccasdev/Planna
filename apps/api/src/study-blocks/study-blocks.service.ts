@@ -25,6 +25,10 @@ const activeBlockStatuses = [
   BlockStatus.PAUSED,
   BlockStatus.OVERDUE,
 ];
+const retroactiveEligibleBlockStatuses = [
+  BlockStatus.CONFIRMED,
+  BlockStatus.OVERDUE,
+];
 const finalBlockStatuses = new Set<BlockStatus>([
   BlockStatus.COMPLETED,
   BlockStatus.CANCELLED,
@@ -91,6 +95,12 @@ export class StudyBlocksService {
         studentId,
         ...(query.from ? { endsAt: { gte: new Date(query.from) } } : {}),
         ...(query.to ? { startsAt: { lte: new Date(query.to) } } : {}),
+        ...(query.retroactiveEligible === 'true'
+          ? {
+              status: { in: retroactiveEligibleBlockStatuses },
+              sessions: { none: {} },
+            }
+          : {}),
       },
       select: blockSelection,
       orderBy: { startsAt: 'asc' },

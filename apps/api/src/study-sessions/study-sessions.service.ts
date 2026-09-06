@@ -620,13 +620,9 @@ export class StudySessionsService {
               studentId,
               contentId: input.contentId,
               status: {
-                in: [
-                  BlockStatus.CONFIRMED,
-                  BlockStatus.IN_PROGRESS,
-                  BlockStatus.PAUSED,
-                  BlockStatus.OVERDUE,
-                ],
+                in: [BlockStatus.CONFIRMED, BlockStatus.OVERDUE],
               },
+              sessions: { none: {} },
             },
             select: { id: true },
           })

@@ -1,4 +1,4 @@
-import { IsISO8601, IsOptional } from 'class-validator';
+import { IsBooleanString, IsISO8601, IsOptional } from 'class-validator';
 
 export class ListStudyBlocksQueryDto {
   @IsOptional()
@@ -8,4 +8,8 @@ export class ListStudyBlocksQueryDto {
   @IsOptional()
   @IsISO8601({ strict: true })
   to?: string;
+
+  @IsOptional()
+  @IsBooleanString()
+  retroactiveEligible?: string;
 }

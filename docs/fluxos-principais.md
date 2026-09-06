@@ -48,6 +48,11 @@ O aluno também pode escolher qualquer outro conteúdo durante a execução. Nes
 caso, o Planna pausa a sessão e o bloco atuais e inicia uma sessão não planejada
 para o novo conteúdo atomicamente, sem reescrever a agenda confirmada.
 
+No registro retroativo, o aluno escolhe explicitamente entre classificar o
+estudo como fora do planejamento ou vinculá-lo a um bloco elegível do mesmo
+conteúdo e ainda sem sessão. Quando há vínculo, salvar o registro também conclui
+o bloco.
+
 Quando o estudo invade o próximo bloco, o aluno pode continuar, concluir ou
 trocar. Na troca, o Planna encerra o segmento em execução, mantém a sessão atual
 pausada e inicia ou retoma o próximo bloco em uma única transação. Uma falha não

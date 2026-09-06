@@ -261,4 +261,74 @@ describe('StudySessionsService', () => {
       }),
     ).toThrow(UnprocessableEntityException);
   });
+
+  it('links a retroactive session to a valid block and completes it atomically', async () => {
+    transaction.content.findFirst.mockResolvedValue({ id: 'content-id' });
+    transaction.studyBlock.findFirst.mockResolvedValue({ id: 'block-id' });
+    transaction.studySession.create.mockResolvedValue({
+      id: 'retroactive-session',
+      studyBlockId: 'block-id',
+      status: 'COMPLETED',
+    });
+
+    await expect(
+      service.createRetroactive('student-id', {
+        contentId: 'content-id',
+        studyBlockId: 'block-id',
+        startedAt: '2020-01-01T19:00:00-03:00',
+        endedAt: '2020-01-01T20:00:00-03:00',
+        pomodoroBreakDurationSeconds: 600,
+      }),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        id: 'retroactive-session',
+        studyBlockId: 'block-id',
+      }),
+    );
+    expect(transaction.studySession.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          studyBlockId: 'block-id',
+          focusDurationSeconds: 3000,
+          pomodoroBreakDurationSeconds: 600,
+          realizedDurationSeconds: 3600,
+        }),
+      }),
+    );
+    expect(transaction.studyBlock.update).toHaveBeenCalledWith({
+      where: { id: 'block-id' },
+      data: {
+        status: 'COMPLETED',
+        completedAt: expect.any(Date),
+        revision: { increment: 1 },
+      },
+    });
+  });
+
+  it('rejects linking a retroactive session to an invalid block', async () => {
+    transaction.content.findFirst.mockResolvedValue({ id: 'content-id' });
+    transaction.studyBlock.findFirst.mockResolvedValue(null);
+
+    await expect(
+      service.createRetroactive('student-id', {
+        contentId: 'content-id',
+        studyBlockId: 'foreign-or-final-block',
+        startedAt: '2020-01-01T19:00:00-03:00',
+        endedAt: '2020-01-01T20:00:00-03:00',
+      }),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(transaction.studyBlock.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          id: 'foreign-or-final-block',
+          studentId: 'student-id',
+          contentId: 'content-id',
+          status: { in: ['CONFIRMED', 'OVERDUE'] },
+          sessions: { none: {} },
+        }),
+      }),
+    );
+    expect(transaction.studySession.create).not.toHaveBeenCalled();
+    expect(transaction.studyBlock.update).not.toHaveBeenCalled();
+  });
 });

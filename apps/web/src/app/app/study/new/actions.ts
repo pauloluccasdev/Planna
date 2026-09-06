@@ -46,6 +46,7 @@ export async function registerRetroactiveStudy(
   const startedAt = brazilInstant(String(formData.get("startedAt") ?? ""));
   const endedAt = brazilInstant(String(formData.get("endedAt") ?? ""));
   const breakMinutes = Number(formData.get("breakMinutes") ?? 0);
+  const studyBlockId = String(formData.get("studyBlockId") ?? "");
   if (!contentId || !startedAt || !endedAt)
     return { message: "Selecione o conteúdo e informe início e término." };
   if (new Date(startedAt) >= new Date(endedAt))
@@ -60,6 +61,7 @@ export async function registerRetroactiveStudy(
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
       contentId,
+      ...(studyBlockId ? { studyBlockId } : {}),
       startedAt,
       endedAt,
       pomodoroBreakDurationSeconds: breakMinutes * 60,

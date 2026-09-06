@@ -12,12 +12,24 @@ type Content = {
   subject: { name: string; course: { name: string } };
   parts: Array<{ id: string; name: string }>;
 };
+type StudyBlock = {
+  id: string;
+  contentId: string;
+  startsAt: string;
+  status: string;
+};
 
 export default async function NewStudyPage() {
-  const response = await authenticatedApi("contents");
-  if (!response || response.status === 401) redirect("/login");
-  const contents = response.ok
-    ? ((await response.json()) as { data: Content[] }).data
+  const [contentsResponse, blocksResponse] = await Promise.all([
+    authenticatedApi("contents"),
+    authenticatedApi("study-blocks?retroactiveEligible=true"),
+  ]);
+  if (!contentsResponse || contentsResponse.status === 401) redirect("/login");
+  const contents = contentsResponse.ok
+    ? ((await contentsResponse.json()) as { data: Content[] }).data
+    : [];
+  const blocks = blocksResponse?.ok
+    ? ((await blocksResponse.json()) as { data: StudyBlock[] }).data
     : [];
   return (
     <main className="dashboard-shell study-entry-shell">
@@ -40,7 +52,7 @@ export default async function NewStudyPage() {
         </div>
       </section>
       {contents.length ? (
-        <StudyForms contents={contents} />
+        <StudyForms contents={contents} retroactiveBlocks={blocks} />
       ) : (
         <section className="dashboard-card resource-empty">
           <h2>Cadastre um conteúdo primeiro.</h2>
