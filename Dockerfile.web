@@ -4,7 +4,7 @@ COPY package.json package-lock.json ./
 COPY apps/api/package.json apps/api/package.json
 COPY apps/web/package.json apps/web/package.json
 RUN --mount=type=cache,target=/root/.npm \
-  npm ci --workspace @planna/web --include-workspace-root \
+  npm ci --workspace @planna/web \
   --fetch-retries=5 --fetch-retry-mintimeout=20000 --fetch-retry-maxtimeout=120000
 
 FROM dependencies AS builder

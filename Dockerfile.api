@@ -4,11 +4,12 @@ COPY package.json package-lock.json ./
 COPY apps/api/package.json apps/api/package.json
 COPY apps/web/package.json apps/web/package.json
 RUN --mount=type=cache,target=/root/.npm \
-  npm ci --workspace @planna/api --include-workspace-root \
+  npm ci --workspace @planna/api \
   --fetch-retries=5 --fetch-retry-mintimeout=20000 --fetch-retry-maxtimeout=120000
 
 FROM dependencies AS builder
 COPY apps/api apps/api
+ENV DIRECT_URL=postgresql://build:build@localhost:5432/build
 RUN npm run build --workspace @planna/api
 RUN npm prune --omit=dev
 
