@@ -14,6 +14,7 @@ type Props = {
   recurrenceSeriesId: string | null;
   canStart: boolean;
   canEdit: boolean;
+  startIdempotencyKey: string;
 };
 
 export function BlockActions({
@@ -21,6 +22,7 @@ export function BlockActions({
   recurrenceSeriesId,
   canStart,
   canEdit,
+  startIdempotencyKey,
 }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -41,7 +43,7 @@ export function BlockActions({
   function start() {
     setError("");
     startTransition(async () => {
-      await startStudySession(blockId);
+      await startStudySession(blockId, startIdempotencyKey);
     });
   }
 

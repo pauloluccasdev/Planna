@@ -13,6 +13,7 @@ export function CompletionForm({
   completedPartIds,
   note,
   plannedEndsAt,
+  idempotencyKey,
 }: {
   sessionId: string;
   sessionStatus: "RUNNING" | "PAUSED";
@@ -20,6 +21,7 @@ export function CompletionForm({
   completedPartIds: string[];
   note: string;
   plannedEndsAt: string | null;
+  idempotencyKey: string;
 }) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
@@ -63,6 +65,7 @@ export function CompletionForm({
         action={completeStudySession.bind(null, sessionId)}
         onSubmit={submit}
       >
+        <input type="hidden" name="idempotencyKey" value={idempotencyKey} />
         {parts.length > 0 ? (
           <fieldset className="completion-parts">
             <legend>Partes do bloco</legend>

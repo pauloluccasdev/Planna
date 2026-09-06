@@ -6,13 +6,23 @@ import { authenticatedApi } from "../../_lib/api";
 
 type ApiError = { error?: { message?: string } };
 
-async function mutate<T>(path: string, body?: unknown) {
+async function mutate<T>(
+  path: string,
+  body?: unknown,
+  idempotencyKey?: string,
+) {
   const response = await authenticatedApi(path, {
     method: "POST",
+    ...(idempotencyKey
+      ? { headers: { "idempotency-key": idempotencyKey } }
+      : {}),
     ...(body === undefined
       ? {}
       : {
-          headers: { "content-type": "application/json" },
+          headers: {
+            "content-type": "application/json",
+            ...(idempotencyKey ? { "idempotency-key": idempotencyKey } : {}),
+          },
           body: JSON.stringify(body),
         }),
   });
@@ -28,9 +38,14 @@ async function mutate<T>(path: string, body?: unknown) {
   return (await response.json()) as { data: T };
 }
 
-export async function startStudySession(blockId: string) {
+export async function startStudySession(
+  blockId: string,
+  idempotencyKey: string,
+) {
   const result = await mutate<{ id: string }>(
     `study-blocks/${blockId}/sessions/start`,
+    undefined,
+    idempotencyKey,
   );
   revalidatePath("/app");
   revalidatePath("/app/session");
@@ -129,10 +144,14 @@ export async function completeStudySession(
   sessionId: string,
   formData: FormData,
 ) {
-  await mutate<{ id: string }>(`study-sessions/${sessionId}/complete`, {
-    completedPartIds: formData.getAll("completedPartIds").map(String),
-    note: String(formData.get("note") ?? ""),
-  });
+  await mutate<{ id: string }>(
+    `study-sessions/${sessionId}/complete`,
+    {
+      completedPartIds: formData.getAll("completedPartIds").map(String),
+      note: String(formData.get("note") ?? ""),
+    },
+    String(formData.get("idempotencyKey") ?? ""),
+  );
   revalidatePath("/app");
   revalidatePath("/app/session");
   redirect("/app");

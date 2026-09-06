@@ -20,7 +20,10 @@ export async function startUnplannedStudy(
   if (!contentId) return { message: "Selecione o conteúdo estudado." };
   const response = await authenticatedApi("study-sessions/unplanned/start", {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: {
+      "content-type": "application/json",
+      "idempotency-key": String(formData.get("idempotencyKey") ?? ""),
+    },
     body: JSON.stringify({
       contentId,
       note: String(formData.get("note") ?? "").trim(),
@@ -58,7 +61,10 @@ export async function registerRetroactiveStudy(
 
   const response = await authenticatedApi("study-sessions/retroactive", {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers: {
+      "content-type": "application/json",
+      "idempotency-key": String(formData.get("idempotencyKey") ?? ""),
+    },
     body: JSON.stringify({
       contentId,
       ...(studyBlockId ? { studyBlockId } : {}),

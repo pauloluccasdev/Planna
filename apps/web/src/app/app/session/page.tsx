@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { randomUUID } from "node:crypto";
 import { notFound, redirect } from "next/navigation";
 import { authenticatedApi } from "../../_lib/api";
 import { CompletionForm } from "./completion-form";
@@ -179,6 +180,7 @@ export default async function StudySessionPage({ searchParams }: Props) {
             completedPartIds={[...alreadyCompleted]}
             note={session.note ?? ""}
             plannedEndsAt={session.studyBlock?.endsAt ?? null}
+            idempotencyKey={randomUUID()}
           />
         </article>
       </div>

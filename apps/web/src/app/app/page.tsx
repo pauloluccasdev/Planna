@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { randomUUID } from "node:crypto";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { authenticatedApi } from "../_lib/api";
@@ -449,6 +450,7 @@ export default async function DashboardPage({ searchParams }: Props) {
                                 blockId={item.id}
                                 recurrenceSeriesId={item.recurrenceSeriesId}
                                 canStart={!runningSession}
+                                startIdempotencyKey={randomUUID()}
                                 canEdit={
                                   item.status === "CONFIRMED" &&
                                   new Date(item.startsAt) > new Date()

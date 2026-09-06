@@ -50,9 +50,13 @@ function ContentOptions({ contents }: { contents: Content[] }) {
 export function StudyForms({
   contents,
   retroactiveBlocks,
+  liveIdempotencyKey,
+  retroactiveIdempotencyKey,
 }: {
   contents: Content[];
   retroactiveBlocks: StudyBlock[];
+  liveIdempotencyKey: string;
+  retroactiveIdempotencyKey: string;
 }) {
   const [selectedContentId, setSelectedContentId] = useState("");
   const [studyBlockId, setStudyBlockId] = useState("");
@@ -85,6 +89,11 @@ export function StudyForms({
           O cronômetro começa agora, mesmo que o conteúdo não esteja na agenda.
         </p>
         <form action={liveAction}>
+          <input
+            type="hidden"
+            name="idempotencyKey"
+            value={liveIdempotencyKey}
+          />
           <label className="field">
             <span>Conteúdo</span>
             <select name="contentId" required defaultValue="">
@@ -109,6 +118,11 @@ export function StudyForms({
         <h2>Estudo retroativo</h2>
         <p>Use quando você estudou sem abrir o Planna.</p>
         <form action={pastAction}>
+          <input
+            type="hidden"
+            name="idempotencyKey"
+            value={retroactiveIdempotencyKey}
+          />
           <label className="field">
             <span>Conteúdo</span>
             <select

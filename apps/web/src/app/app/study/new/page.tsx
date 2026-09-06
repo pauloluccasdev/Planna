@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { randomUUID } from "node:crypto";
 import { redirect } from "next/navigation";
 import { authenticatedApi } from "../../../_lib/api";
 import { StudyForms } from "./study-forms";
@@ -52,7 +53,12 @@ export default async function NewStudyPage() {
         </div>
       </section>
       {contents.length ? (
-        <StudyForms contents={contents} retroactiveBlocks={blocks} />
+        <StudyForms
+          contents={contents}
+          retroactiveBlocks={blocks}
+          liveIdempotencyKey={randomUUID()}
+          retroactiveIdempotencyKey={randomUUID()}
+        />
       ) : (
         <section className="dashboard-card resource-empty">
           <h2>Cadastre um conteúdo primeiro.</h2>
