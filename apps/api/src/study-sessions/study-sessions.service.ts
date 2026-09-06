@@ -103,12 +103,27 @@ export class StudySessionsService {
     return session;
   }
 
-  active(studentId: string) {
-    return this.prisma.studySession.findFirst({
+  async active(studentId: string) {
+    const running = await this.prisma.studySession.findFirst({
       where: {
         studentId,
-        status: { in: [SessionStatus.RUNNING, SessionStatus.PAUSED] },
+        status: SessionStatus.RUNNING,
       },
+      select: sessionSelection,
+      orderBy: { updatedAt: 'desc' },
+    });
+    if (running) return running;
+
+    return this.prisma.studySession.findFirst({
+      where: { studentId, status: SessionStatus.PAUSED },
+      select: sessionSelection,
+      orderBy: { updatedAt: 'desc' },
+    });
+  }
+
+  listPaused(studentId: string) {
+    return this.prisma.studySession.findMany({
+      where: { studentId, status: SessionStatus.PAUSED },
       select: sessionSelection,
       orderBy: { updatedAt: 'desc' },
     });

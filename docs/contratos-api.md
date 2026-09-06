@@ -292,9 +292,15 @@ uma alteração automática do planejamento.
 
 ```text
 GET /study-sessions/active
+GET /study-sessions/paused
 GET /study-sessions?from=&to=&content_id=&kind=
 GET /study-sessions/{session_id}
 ```
+
+`GET /study-sessions/active` sempre retorna primeiro a sessão com cronômetro em
+execução. Quando não existe uma sessão em execução, retorna a sessão pausada
+mais recentemente atualizada. `GET /study-sessions/paused` retorna todas as
+sessões pausadas do aluno para que nenhuma fique oculta ao alternar conteúdos.
 
 ### Comandos
 

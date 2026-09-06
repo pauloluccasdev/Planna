@@ -88,13 +88,31 @@ export default async function StudySessionPage({ searchParams }: Props) {
     session.completedParts.map((item) => item.contentPart.id),
   );
   let nextBlock: NextBlock | null = null;
-  const contentsResponse = await authenticatedApi("contents");
+  const [contentsResponse, activeResponse] = await Promise.all([
+    authenticatedApi("contents"),
+    authenticatedApi("study-sessions/active"),
+  ]);
   if (contentsResponse?.status === 401) redirect("/login");
   const otherContents = contentsResponse?.ok
     ? (
         (await contentsResponse.json()) as { data: ContentOption[] }
       ).data.filter((content) => content.id !== session.content.id)
     : [];
+  const activeSession = activeResponse?.ok
+    ? (
+        (await activeResponse.json()) as {
+          data: {
+            id: string;
+            status: string;
+            content: { name: string };
+          } | null;
+        }
+      ).data
+    : null;
+  const runningOtherSession =
+    activeSession?.status === "RUNNING" && activeSession.id !== session.id
+      ? activeSession
+      : null;
   const currentBlock = session.studyBlock;
   if (currentBlock) {
     const nextBlocksResponse = await authenticatedApi(
@@ -141,6 +159,7 @@ export default async function StudySessionPage({ searchParams }: Props) {
             nextBlock={nextBlock}
             focusSeconds={session.studyBlock?.focusSeconds ?? 1500}
             breakSeconds={session.studyBlock?.breakSeconds ?? 300}
+            resumeBlockedBy={runningOtherSession?.content.name ?? null}
           />
           <ContentSwitcher sessionId={session.id} contents={otherContents} />
         </article>

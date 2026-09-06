@@ -63,6 +63,11 @@ trocar. Na troca, o Planna encerra o segmento em execução, mantém a sessão a
 pausada e inicia ou retoma o próximo bloco em uma única transação. Uma falha não
 interrompe a sessão atual.
 
+Várias sessões podem permanecer pausadas e aparecem juntas na agenda. A sessão
+com cronômetro em execução sempre recebe destaque e impede somente a retomada de
+outra sessão; um bloco diferente ainda pode ser iniciado quando não há nenhum
+cronômetro rodando.
+
 ## Atraso e replanejamento
 
 1. O horário completo do bloco termina sem conclusão.

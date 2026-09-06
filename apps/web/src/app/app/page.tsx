@@ -132,6 +132,7 @@ export default async function DashboardPage({ searchParams }: Props) {
     meResponse,
     calendarResponse,
     activeSessionResponse,
+    pausedSessionsResponse,
     metricsResponse,
     replanningResponse,
   ] = await Promise.all([
@@ -140,6 +141,7 @@ export default async function DashboardPage({ searchParams }: Props) {
       `calendar?from=${encodeURIComponent(range.from)}&to=${encodeURIComponent(range.to)}`,
     ),
     authenticatedApi("study-sessions/active"),
+    authenticatedApi("study-sessions/paused"),
     authenticatedApi(
       `metrics/summary?from=${encodeURIComponent(range.from)}&to=${encodeURIComponent(range.to)}`,
     ),
@@ -161,9 +163,22 @@ export default async function DashboardPage({ searchParams }: Props) {
         }
       ).data
     : null;
+  const runningSession =
+    activeSession?.status === "RUNNING" ? activeSession : null;
   const metrics = metricsResponse?.ok
     ? ((await metricsResponse.json()) as { data: MetricsSummary }).data
     : null;
+  const pausedSessions = pausedSessionsResponse?.ok
+    ? (
+        (await pausedSessionsResponse.json()) as {
+          data: Array<{
+            id: string;
+            content: { name: string };
+            studyBlock: { endsAt: string } | null;
+          }>;
+        }
+      ).data
+    : [];
   const replanningSuggestions = replanningResponse?.ok
     ? (
         (await replanningResponse.json()) as {
@@ -221,21 +236,53 @@ export default async function DashboardPage({ searchParams }: Props) {
           </Link>
         </div>
       </section>
-      {activeSession ? (
+      {runningSession ? (
         <section className="active-session-banner">
           <div>
-            <span>
-              {activeSession.status === "PAUSED"
-                ? "Sessão pausada"
-                : "Sessão em andamento"}
-            </span>
-            <b>{activeSession.content.name}</b>
+            <span>Sessão em andamento</span>
+            <b>{runningSession.content.name}</b>
           </div>
-          <Link className="button" href={`/app/session?id=${activeSession.id}`}>
-            {activeSession.status === "PAUSED"
-              ? "Continuar sessão"
-              : "Abrir cronômetro"}
+          <Link
+            className="button"
+            href={`/app/session?id=${runningSession.id}`}
+          >
+            Abrir cronômetro
           </Link>
+        </section>
+      ) : null}
+      {pausedSessions.length ? (
+        <section className="paused-sessions dashboard-card">
+          <div className="paused-sessions-heading">
+            <div>
+              <span className="eyebrow">Estudos pausados</span>
+              <h2>Continue de onde parou</h2>
+            </div>
+            <span>{pausedSessions.length}</span>
+          </div>
+          <div className="paused-sessions-list">
+            {pausedSessions.map((session) => (
+              <article key={session.id}>
+                <div>
+                  <b>{session.content.name}</b>
+                  <span>
+                    {session.studyBlock
+                      ? `Bloco de ${new Intl.DateTimeFormat("pt-BR", {
+                          dateStyle: "short",
+                          timeStyle: "short",
+                          timeZone: "America/Sao_Paulo",
+                        }).format(new Date(session.studyBlock.endsAt))}`
+                      : "Estudo não planejado"}
+                  </span>
+                </div>
+                <Link
+                  className="secondary-button"
+                  href={`/app/session?id=${session.id}`}
+                >
+                  Abrir
+                </Link>
+              </article>
+            ))}
+          </div>
         </section>
       ) : null}
       {cancellation === "success" || cancellation === "uncovered" ? (
@@ -401,7 +448,7 @@ export default async function DashboardPage({ searchParams }: Props) {
                               <BlockActions
                                 blockId={item.id}
                                 recurrenceSeriesId={item.recurrenceSeriesId}
-                                canStart={!activeSession}
+                                canStart={!runningSession}
                                 canEdit={
                                   item.status === "CONFIRMED" &&
                                   new Date(item.startsAt) > new Date()

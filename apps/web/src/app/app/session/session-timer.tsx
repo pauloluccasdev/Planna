@@ -25,6 +25,7 @@ type Props = {
   nextBlock: { id: string; startsAt: string; content: { name: string } } | null;
   focusSeconds: number;
   breakSeconds: number;
+  resumeBlockedBy: string | null;
 };
 
 function formatDuration(seconds: number) {
@@ -45,6 +46,7 @@ export function SessionTimer({
   nextBlock,
   focusSeconds,
   breakSeconds,
+  resumeBlockedBy,
 }: Props) {
   const router = useRouter();
   const [liveSession, setLiveSession] = useState({ status, segments });
@@ -100,10 +102,19 @@ export function SessionTimer({
   const updateSession = (
     action: (id: string) => Promise<{ status: string; segments: Segment[] }>,
   ) => {
+    setActionError("");
     startTransition(async () => {
-      const updated = await action(sessionId);
-      setLiveSession(updated);
-      setNow(Date.now());
+      try {
+        const updated = await action(sessionId);
+        setLiveSession(updated);
+        setNow(Date.now());
+      } catch (error) {
+        setActionError(
+          error instanceof Error
+            ? error.message
+            : "Não foi possível atualizar a sessão.",
+        );
+      }
     });
   };
   const pauseAndStartNext = () => {
@@ -192,12 +203,21 @@ export function SessionTimer({
         </p>
       ) : null}
 
+      {liveSession.status === "PAUSED" && resumeBlockedBy ? (
+        <div className="session-notice">
+          <b>Outro estudo está em andamento.</b>
+          <span>
+            Pause ou conclua “{resumeBlockedBy}” antes de retomar esta sessão.
+          </span>
+        </div>
+      ) : null}
+
       <div className="session-controls">
         {liveSession.status === "PAUSED" ? (
           <button
             className="button"
             type="button"
-            disabled={isPending}
+            disabled={isPending || Boolean(resumeBlockedBy)}
             onClick={() => updateSession(resumeStudySession)}
           >
             Retomar

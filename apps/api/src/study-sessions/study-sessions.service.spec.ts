@@ -39,6 +39,55 @@ describe('StudySessionsService', () => {
     service = new StudySessionsService(prisma as unknown as PrismaService);
   });
 
+  it('prioritizes a running session over paused sessions', async () => {
+    prisma.studySession.findFirst.mockResolvedValue({
+      id: 'running-session',
+      status: 'RUNNING',
+    });
+
+    await expect(service.active('student-id')).resolves.toEqual({
+      id: 'running-session',
+      status: 'RUNNING',
+    });
+    expect(prisma.studySession.findFirst).toHaveBeenCalledTimes(1);
+    expect(prisma.studySession.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { studentId: 'student-id', status: 'RUNNING' },
+      }),
+    );
+  });
+
+  it('returns the most recently updated paused session when none is running', async () => {
+    prisma.studySession.findFirst
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ id: 'paused-session', status: 'PAUSED' });
+
+    await expect(service.active('student-id')).resolves.toEqual({
+      id: 'paused-session',
+      status: 'PAUSED',
+    });
+    expect(prisma.studySession.findFirst).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        where: { studentId: 'student-id', status: 'PAUSED' },
+        orderBy: { updatedAt: 'desc' },
+      }),
+    );
+  });
+
+  it('lists every paused session owned by the student', async () => {
+    prisma.studySession.findMany.mockResolvedValue([]);
+
+    await service.listPaused('student-id');
+
+    expect(prisma.studySession.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { studentId: 'student-id', status: 'PAUSED' },
+        orderBy: { updatedAt: 'desc' },
+      }),
+    );
+  });
+
   it('does not expose another student session', async () => {
     prisma.studySession.findFirst.mockResolvedValue(null);
     await expect(

@@ -35,6 +35,11 @@ export class StudySessionsController {
     return { data: await this.sessions.active(user.id) };
   }
 
+  @Get('study-sessions/paused')
+  async paused(@CurrentUser() user: AuthUser) {
+    return { data: await this.sessions.listPaused(user.id) };
+  }
+
   @Get('study-sessions/:id')
   async get(
     @CurrentUser() user: AuthUser,

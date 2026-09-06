@@ -1052,6 +1052,33 @@ try {
   ) {
     throw new Error('Switching freely to another content failed');
   }
+  const activeAfterContentSwitch = await fetch(
+    `${apiUrl}/study-sessions/active`,
+    { headers },
+  );
+  const activeAfterContentSwitchBody = await activeAfterContentSwitch.json();
+  if (
+    !activeAfterContentSwitch.ok ||
+    activeAfterContentSwitchBody.data.id !== changedContentBody.data.id ||
+    activeAfterContentSwitchBody.data.status !== 'RUNNING'
+  ) {
+    throw new Error(
+      'Active session lookup did not prioritize the running timer',
+    );
+  }
+  const pausedAfterContentSwitch = await fetch(
+    `${apiUrl}/study-sessions/paused`,
+    { headers },
+  );
+  const pausedAfterContentSwitchBody = await pausedAfterContentSwitch.json();
+  if (
+    !pausedAfterContentSwitch.ok ||
+    !pausedAfterContentSwitchBody.data.some(
+      (session) => session.id === sessionId && session.status === 'PAUSED',
+    )
+  ) {
+    throw new Error('Paused session lookup omitted the original study');
+  }
   const invalidContentSwitch = await fetch(
     `${apiUrl}/study-sessions/${changedContentBody.data.id}/switch-to-content`,
     {
@@ -1119,7 +1146,9 @@ try {
     switchedBackBody.data.id !== sessionId ||
     switchedBackBody.data.status !== 'RUNNING'
   ) {
-    throw new Error('Switching back did not resume the paused session');
+    throw new Error(
+      `Switching back did not resume the paused session: ${switchedBackSession.status} ${JSON.stringify(switchedBackBody)}`,
+    );
   }
   const runningAfterSwitch = await withDatabase(async (database) => {
     const result = await database.query(
