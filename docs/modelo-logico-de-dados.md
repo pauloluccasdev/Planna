@@ -459,19 +459,25 @@ Aceitação deve ocorrer em transação que revalida o horário, cria o substitu
 
 ### `notifications`
 
-| Campo           | Obrigatório | Descrição                                     |
-| --------------- | ----------: | --------------------------------------------- |
-| `id`            |         Sim | Notificação lógica.                           |
-| `student_id`    |         Sim | Destinatário.                                 |
-| `kind`          |         Sim | Lembrete, risco, atraso ou sugestão.          |
-| `related_type`  |         Não | Tipo seguro do objeto relacionado.            |
-| `related_id`    |         Não | Identificador do contexto.                    |
-| `scheduled_for` |         Sim | Horário planejado.                            |
-| `status`        |         Sim | `scheduled`, `sent`, `failed` ou `cancelled`. |
-| `sent_at`       |         Não | Envio.                                        |
-| `failure_code`  |         Não | Falha sem segredo.                            |
+| Campo             | Obrigatório | Descrição                                     |
+| ----------------- | ----------: | --------------------------------------------- |
+| `id`              |         Sim | Notificação lógica.                           |
+| `student_id`      |         Sim | Destinatário.                                 |
+| `kind`            |         Sim | Lembrete, risco, atraso ou sugestão.          |
+| `related_type`    |         Não | Tipo seguro do objeto relacionado.            |
+| `related_id`      |         Não | Identificador do contexto.                    |
+| `scheduled_for`   |         Sim | Horário planejado.                            |
+| `status`          |         Sim | Inclui fila, processamento e resultado final. |
+| `sent_at`         |         Não | Envio.                                        |
+| `failure_code`    |         Não | Falha sem segredo.                            |
+| `attempt_count`   |         Sim | Quantidade de tentativas de entrega.          |
+| `next_attempt_at` |         Não | Próxima tentativa após falha transitória.     |
 
-Uma tabela complementar de entregas por inscrição pode ser necessária se o aluno tiver vários dispositivos; decisão física posterior.
+No MVP, uma notificação lógica é enviada a todos os dispositivos ativos do aluno.
+O sucesso em pelo menos um dispositivo encerra a notificação como enviada; uma
+resposta definitiva `404` ou `410` revoga somente a inscrição correspondente.
+O conteúdo enviado é genérico e não inclui nomes de disciplinas, conteúdos ou
+observações acadêmicas na carga Web Push.
 
 ## Diagnóstico e auditoria
 

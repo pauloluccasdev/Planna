@@ -98,6 +98,7 @@ enum NotificationKind {
 
 enum NotificationStatus {
   SCHEDULED
+  PROCESSING
   SENT
   FAILED
   CANCELLED
@@ -608,20 +609,23 @@ model PushSubscription {
 }
 
 model Notification {
-  id           String             @id @default(uuid()) @db.Uuid
-  studentId    String             @map("student_id") @db.Uuid
-  kind         NotificationKind
-  relatedType  String?            @map("related_type") @db.VarChar(80)
-  relatedId    String?            @map("related_id") @db.Uuid
-  scheduledFor DateTime           @map("scheduled_for") @db.Timestamptz(6)
-  status       NotificationStatus @default(SCHEDULED)
-  sentAt       DateTime?          @map("sent_at") @db.Timestamptz(6)
-  failureCode  String?            @map("failure_code") @db.VarChar(80)
-  createdAt    DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt    DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
-  student      UserAccount        @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  id            String             @id @default(uuid()) @db.Uuid
+  studentId     String             @map("student_id") @db.Uuid
+  kind          NotificationKind
+  relatedType   String?            @map("related_type") @db.VarChar(80)
+  relatedId     String?            @map("related_id") @db.Uuid
+  scheduledFor  DateTime           @map("scheduled_for") @db.Timestamptz(6)
+  status        NotificationStatus @default(SCHEDULED)
+  sentAt        DateTime?          @map("sent_at") @db.Timestamptz(6)
+  failureCode   String?            @map("failure_code") @db.VarChar(80)
+  attemptCount  Int                @default(0) @map("attempt_count")
+  nextAttemptAt DateTime?          @map("next_attempt_at") @db.Timestamptz(6)
+  createdAt     DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime           @updatedAt @map("updated_at") @db.Timestamptz(6)
+  student       UserAccount        @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@index([studentId, status, scheduledFor])
+  @@index([status, nextAttemptAt, scheduledFor])
   @@map("notifications")
 }
 

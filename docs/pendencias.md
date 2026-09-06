@@ -42,7 +42,7 @@ Estes pontos não bloqueiam a consolidação inicial, mas devem ser decididos an
 - Hospedagem do frontend Next.js e da API NestJS.
 - Aplicação e validação da migration inicial no projeto Supabase.
 - Configuração final do Supabase Auth e provedor de envio de e-mail.
-- Infraestrutura de notificações push.
+- Agendador de produção que executará o trabalhador Web Push já implementado.
 - Hospedagem, observabilidade, backups e ambientes.
 - Estratégia de ambientes/projetos separados no Supabase.
 - Acompanhar as correções dos avisos do `npm audit` herdados pelo Prisma CLI 7.10 (`deepmerge-ts` e `mysql2`). A correção automática disponível exige downgrade incompatível para Prisma 6 e não será forçada.

@@ -113,8 +113,14 @@ Processos assíncronos usam identificadores idempotentes, estado observável e r
 
 Enquanto o job periódico não estiver implantado, a API reconcilia blocos vencidos de forma idempotente antes de responder agenda, blocos e indicadores. O job futuro complementa essa garantia para notificações sem acesso ativo do aluno.
 
-A camada inicial de notificações já separa registro/revogação da inscrição,
-consulta da caixa e leitura das futuras políticas de agendamento e entrega. A
+A camada de notificações separa registro/revogação da inscrição, consulta da
+caixa, política de agendamento e entrega. Um trabalhador independente reivindica
+notificações vencidas de forma atômica, entrega Web Push a todos os dispositivos
+ativos, revoga inscrições recusadas definitivamente pelo serviço e faz até três
+tentativas com espera exponencial nas falhas transitórias. Processamentos
+interrompidos há mais de quinze minutos voltam à fila. O comando operacional é
+`npm run notifications:dispatch --workspace @planna/api`; sua periodicidade será
+definida junto da infraestrutura de produção. A
 PWA somente solicita permissão por ação do aluno e apenas quando uma chave VAPID
 pública estiver configurada. Endpoint e chaves da inscrição permanecem somente
 na API e não são reapresentados ao cliente.
@@ -137,7 +143,9 @@ Supabase Cron pode executar SQL ou chamar Edge Functions. Jobs candidatos:
 - reavaliar capacidade após mudanças;
 - expirar artefatos temporários conforme política futura.
 
-Frequência e concorrência serão definidas conforme regras de antecedência e custo.
+Frequência do disparo será definida conforme regras de antecedência e custo. A
+concorrência entre executores é protegida pela transição atômica de `scheduled`
+para `processing`.
 
 ## Motor de planejamento
 

@@ -3,11 +3,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PrismaService } from '../database/prisma.service.js';
 import { NotificationStatus } from '../generated/prisma/enums.js';
 import { NotificationsService } from './notifications.service.js';
+import type { WebPushTransport } from './web-push.transport.js';
 
 describe('NotificationsService', () => {
   const prisma = {
     pushSubscription: {
       findUnique: vi.fn(),
+      findMany: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
       updateMany: vi.fn(),
@@ -16,14 +18,19 @@ describe('NotificationsService', () => {
       findFirst: vi.fn(),
       findMany: vi.fn(),
       findUniqueOrThrow: vi.fn(),
+      update: vi.fn(),
       updateMany: vi.fn(),
     },
   };
+  const push = { send: vi.fn() };
   let service: NotificationsService;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    service = new NotificationsService(prisma as unknown as PrismaService);
+    service = new NotificationsService(
+      prisma as unknown as PrismaService,
+      push as unknown as WebPushTransport,
+    );
   });
 
   it('stores a new subscription without returning endpoint or key secrets', async () => {
@@ -144,5 +151,141 @@ describe('NotificationsService', () => {
       id: 'notification-id',
       status: NotificationStatus.READ,
     });
+  });
+
+  it('claims and sends each due notification once', async () => {
+    const now = new Date('2026-09-06T18:00:00.000Z');
+    prisma.notification.updateMany
+      .mockResolvedValueOnce({ count: 0 })
+      .mockResolvedValueOnce({ count: 1 });
+    prisma.notification.findMany.mockResolvedValue([
+      {
+        id: 'notification-id',
+        studentId: 'student-id',
+        kind: 'STUDY_BLOCK_REMINDER',
+        relatedType: 'study_block',
+        relatedId: 'block-id',
+        attemptCount: 0,
+      },
+    ]);
+    prisma.pushSubscription.findMany.mockResolvedValue([
+      {
+        id: 'subscription-id',
+        endpoint: 'https://push.example.test/subscription',
+        publicKey: 'public-key',
+        authSecret: 'auth-secret',
+      },
+    ]);
+    push.send.mockResolvedValue({ delivered: true });
+    prisma.pushSubscription.update.mockResolvedValue({});
+    prisma.notification.update.mockResolvedValue({});
+
+    const result = await service.dispatchDue(now);
+
+    expect(result).toEqual({
+      selected: 1,
+      sent: 1,
+      retried: 0,
+      failed: 0,
+      cancelled: 0,
+    });
+    expect(push.send).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'subscription-id' }),
+      {
+        title: 'Planna',
+        body: 'Você tem um bloco de estudo se aproximando.',
+        url: '/app/blocks/block-id',
+      },
+    );
+    expect(prisma.notification.update).toHaveBeenCalledWith({
+      where: { id: 'notification-id' },
+      data: expect.objectContaining({
+        status: NotificationStatus.SENT,
+        sentAt: now,
+      }),
+    });
+  });
+
+  it('revokes an invalid subscription and retries a transiently failed notification', async () => {
+    const now = new Date('2026-09-06T18:00:00.000Z');
+    prisma.notification.updateMany
+      .mockResolvedValueOnce({ count: 0 })
+      .mockResolvedValueOnce({ count: 1 });
+    prisma.notification.findMany.mockResolvedValue([
+      {
+        id: 'notification-id',
+        studentId: 'student-id',
+        kind: 'RISK_ALERT',
+        relatedType: null,
+        relatedId: null,
+        attemptCount: 0,
+      },
+    ]);
+    prisma.pushSubscription.findMany.mockResolvedValue([
+      {
+        id: 'expired-subscription-id',
+        endpoint: 'https://push.example.test/expired',
+        publicKey: 'public-key',
+        authSecret: 'auth-secret',
+      },
+      {
+        id: 'transient-subscription-id',
+        endpoint: 'https://push.example.test/unavailable',
+        publicKey: 'public-key',
+        authSecret: 'auth-secret',
+      },
+    ]);
+    push.send
+      .mockResolvedValueOnce({
+        delivered: false,
+        permanent: true,
+        code: 'WEB_PUSH_410',
+      })
+      .mockResolvedValueOnce({
+        delivered: false,
+        permanent: false,
+        code: 'WEB_PUSH_503',
+      });
+    prisma.pushSubscription.update.mockResolvedValue({});
+    prisma.notification.update.mockResolvedValue({});
+
+    const result = await service.dispatchDue(now);
+
+    expect(result.retried).toBe(1);
+    expect(prisma.pushSubscription.update).toHaveBeenCalledWith({
+      where: { id: 'expired-subscription-id' },
+      data: { revokedAt: now },
+    });
+    expect(prisma.notification.update).toHaveBeenCalledWith({
+      where: { id: 'notification-id' },
+      data: expect.objectContaining({
+        status: NotificationStatus.SCHEDULED,
+        failureCode: 'WEB_PUSH_503',
+        nextAttemptAt: new Date('2026-09-06T18:05:00.000Z'),
+      }),
+    });
+  });
+
+  it('cancels due notifications when the student has no active device', async () => {
+    prisma.notification.updateMany
+      .mockResolvedValueOnce({ count: 0 })
+      .mockResolvedValueOnce({ count: 1 });
+    prisma.notification.findMany.mockResolvedValue([
+      {
+        id: 'notification-id',
+        studentId: 'student-id',
+        kind: 'OVERDUE_BLOCK',
+        relatedType: null,
+        relatedId: null,
+        attemptCount: 0,
+      },
+    ]);
+    prisma.pushSubscription.findMany.mockResolvedValue([]);
+    prisma.notification.update.mockResolvedValue({});
+
+    const result = await service.dispatchDue(new Date());
+
+    expect(result.cancelled).toBe(1);
+    expect(push.send).not.toHaveBeenCalled();
   });
 });

@@ -7,6 +7,7 @@ import { PrismaService } from '../database/prisma.service.js';
 import { NotificationStatus } from '../generated/prisma/enums.js';
 import type { CreatePushSubscriptionDto } from './dto/create-push-subscription.dto.js';
 import type { ListNotificationsQueryDto } from './dto/list-notifications-query.dto.js';
+import { WebPushTransport } from './web-push.transport.js';
 
 const pageSize = 20;
 const subscriptionSelection = {
@@ -19,7 +20,137 @@ const subscriptionSelection = {
 
 @Injectable()
 export class NotificationsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly push: WebPushTransport,
+  ) {}
+
+  async dispatchDue(now = new Date()) {
+    const staleBefore = new Date(now.getTime() - 15 * 60_000);
+    await this.prisma.notification.updateMany({
+      where: {
+        status: NotificationStatus.PROCESSING,
+        updatedAt: { lt: staleBefore },
+      },
+      data: { status: NotificationStatus.SCHEDULED },
+    });
+
+    const due = await this.prisma.notification.findMany({
+      where: {
+        status: NotificationStatus.SCHEDULED,
+        scheduledFor: { lte: now },
+        OR: [{ nextAttemptAt: null }, { nextAttemptAt: { lte: now } }],
+      },
+      select: {
+        id: true,
+        studentId: true,
+        kind: true,
+        relatedType: true,
+        relatedId: true,
+        attemptCount: true,
+      },
+      orderBy: [{ scheduledFor: 'asc' }, { id: 'asc' }],
+      take: 100,
+    });
+
+    const summary = {
+      selected: due.length,
+      sent: 0,
+      retried: 0,
+      failed: 0,
+      cancelled: 0,
+    };
+    for (const notification of due) {
+      const claimed = await this.prisma.notification.updateMany({
+        where: { id: notification.id, status: NotificationStatus.SCHEDULED },
+        data: {
+          status: NotificationStatus.PROCESSING,
+          attemptCount: { increment: 1 },
+          failureCode: null,
+        },
+      });
+      if (claimed.count !== 1) continue;
+
+      const subscriptions = await this.prisma.pushSubscription.findMany({
+        where: {
+          studentId: notification.studentId,
+          revokedAt: null,
+          OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
+        },
+        select: {
+          id: true,
+          endpoint: true,
+          publicKey: true,
+          authSecret: true,
+        },
+      });
+      if (subscriptions.length === 0) {
+        await this.finishDispatch(
+          notification.id,
+          NotificationStatus.CANCELLED,
+          {
+            failureCode: 'NO_ACTIVE_SUBSCRIPTION',
+          },
+        );
+        summary.cancelled += 1;
+        continue;
+      }
+
+      let delivered = 0;
+      let retryableFailures = 0;
+      let lastFailureCode = 'WEB_PUSH_DELIVERY_FAILED';
+      for (const subscription of subscriptions) {
+        const result = await this.push.send(
+          subscription,
+          this.payload(notification),
+        );
+        if (result.delivered) {
+          delivered += 1;
+          await this.prisma.pushSubscription.update({
+            where: { id: subscription.id },
+            data: { lastSuccessAt: now },
+          });
+        } else {
+          lastFailureCode = result.code;
+          if (result.permanent) {
+            await this.prisma.pushSubscription.update({
+              where: { id: subscription.id },
+              data: { revokedAt: now },
+            });
+          } else {
+            retryableFailures += 1;
+          }
+        }
+      }
+
+      if (delivered > 0) {
+        await this.finishDispatch(notification.id, NotificationStatus.SENT, {
+          sentAt: now,
+        });
+        summary.sent += 1;
+      } else if (
+        retryableFailures === 0 ||
+        notification.attemptCount + 1 >= 3
+      ) {
+        await this.finishDispatch(notification.id, NotificationStatus.FAILED, {
+          failureCode: lastFailureCode,
+        });
+        summary.failed += 1;
+      } else {
+        const delayMinutes = 5 * 2 ** notification.attemptCount;
+        await this.finishDispatch(
+          notification.id,
+          NotificationStatus.SCHEDULED,
+          {
+            failureCode: lastFailureCode,
+            nextAttemptAt: new Date(now.getTime() + delayMinutes * 60_000),
+          },
+        );
+        summary.retried += 1;
+      }
+    }
+    return summary;
+  }
 
   async subscribe(studentId: string, input: CreatePushSubscriptionDto) {
     const existing = await this.prisma.pushSubscription.findUnique({
@@ -156,6 +287,59 @@ export class NotificationsService {
         code: 'PUSH_SUBSCRIPTION_NOT_FOUND',
         message: 'Inscrição de notificação não encontrada.',
       },
+    });
+  }
+
+  private payload(notification: {
+    kind: string;
+    relatedType: string | null;
+    relatedId: string | null;
+  }) {
+    const messages: Record<string, string> = {
+      STUDY_BLOCK_REMINDER: 'Você tem um bloco de estudo se aproximando.',
+      ACADEMIC_EVENT_REMINDER:
+        'Você tem um compromisso acadêmico se aproximando.',
+      RISK_ALERT: 'Seu planejamento precisa de atenção.',
+      OVERDUE_BLOCK: 'Um bloco terminou sem registro de conclusão.',
+      REPLANNING_SUGGESTION:
+        'Há uma nova sugestão de replanejamento para analisar.',
+    };
+    return {
+      title: 'Planna',
+      body:
+        messages[notification.kind] ?? 'Você tem uma atualização no Planna.',
+      url: this.notificationUrl(
+        notification.relatedType,
+        notification.relatedId,
+      ),
+    };
+  }
+
+  private notificationUrl(
+    relatedType: string | null,
+    relatedId: string | null,
+  ) {
+    if (relatedType === 'study_block' && relatedId) {
+      return `/app/blocks/${relatedId}`;
+    }
+    if (relatedType === 'academic_event' && relatedId) {
+      return `/app/events/${relatedId}`;
+    }
+    return '/app/notifications';
+  }
+
+  private async finishDispatch(
+    id: string,
+    status: NotificationStatus,
+    data: {
+      sentAt?: Date;
+      failureCode?: string;
+      nextAttemptAt?: Date;
+    },
+  ) {
+    await this.prisma.notification.update({
+      where: { id },
+      data: { status, nextAttemptAt: null, ...data },
     });
   }
 

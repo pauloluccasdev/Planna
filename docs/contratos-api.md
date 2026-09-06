@@ -407,9 +407,12 @@ Reenviar a mesma inscrição para o mesmo aluno a reativa, mas ela nunca é
 transferida entre contas. `DELETE` faz revogação lógica.
 
 `GET /notifications` retorna `{ items, nextCursor }`, sempre limitado ao aluno
-autenticado. Marcar como lida é idempotente. A criação e a entrega das mensagens
-continuam dependentes das antecedências e da infraestrutura Web Push ainda
-registradas como pendências.
+autenticado. Marcar como lida é idempotente. A entrega não é exposta como
+endpoint público: o trabalhador operacional consome até 100 notificações
+vencidas por execução e usa credenciais VAPID mantidas somente no backend. O
+payload contém uma mensagem genérica e uma rota interna, sem texto acadêmico
+privado. A criação das mensagens continua dependente das antecedências ainda
+registradas como pendência.
 
 ## Administração
 

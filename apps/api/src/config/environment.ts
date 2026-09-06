@@ -50,3 +50,15 @@ export function getWebOrigins(): string[] {
     .map((origin) => origin.trim())
     .filter(Boolean);
 }
+
+export function getWebPushConfiguration() {
+  const publicKey = getRequiredEnvironment('WEB_PUSH_PUBLIC_KEY');
+  const privateKey = getRequiredEnvironment('WEB_PUSH_PRIVATE_KEY');
+  const subject = getRequiredEnvironment('WEB_PUSH_SUBJECT');
+
+  if (!subject.startsWith('mailto:') && !subject.startsWith('https://')) {
+    throw new Error('WEB_PUSH_SUBJECT must start with mailto: or https://');
+  }
+
+  return { publicKey, privateKey, subject };
+}
