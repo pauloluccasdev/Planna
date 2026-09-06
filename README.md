@@ -53,6 +53,7 @@ O smoke remoto permanece manual até existir um ambiente de homologação isolad
 - [Modelo lógico de dados](docs/modelo-logico-de-dados.md)
 - [Arquitetura técnica](docs/arquitetura-tecnica.md)
 - [Contratos da API](docs/contratos-api.md)
+- [Implantação](docs/implantacao.md)
 - [ADR-001 — Supabase e PostgreSQL](docs/decisoes/ADR-001-supabase-postgresql.md)
 - [ADR-002 — Next.js, NestJS e Prisma](docs/decisoes/ADR-002-next-nest-prisma.md)
 - [Pendências e decisões futuras](docs/pendencias.md)

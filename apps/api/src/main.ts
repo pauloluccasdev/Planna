@@ -6,6 +6,7 @@ import { getApiPort, getWebOrigins } from './config/environment.js';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  app.enableShutdownHooks();
   app.use(helmet());
   app.enableCors({
     origin: getWebOrigins(),

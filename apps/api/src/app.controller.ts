@@ -7,6 +7,16 @@ export class AppController {
 
   @Get('health')
   getHealth() {
-    return this.appService.getHealth();
+    return this.appService.getLiveness();
+  }
+
+  @Get('health/live')
+  getLiveness() {
+    return this.appService.getLiveness();
+  }
+
+  @Get('health/ready')
+  getReadiness() {
+    return this.appService.getReadiness();
   }
 }

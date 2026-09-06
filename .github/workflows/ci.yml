@@ -17,7 +17,7 @@ jobs:
   quality:
     name: Quality gate
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
     env:
       API_URL: http://localhost:3001/api/v1
       DATABASE_URL: postgresql://planna:planna@localhost:5432/planna
@@ -61,3 +61,14 @@ jobs:
 
       - name: Build applications
         run: npm run build
+
+      - name: Build API container
+        run: docker build -f Dockerfile.api -t planna-api:ci .
+
+      - name: Build web container
+        run: |
+          docker build -f Dockerfile.web -t planna-web:ci \
+            --build-arg NEXT_PUBLIC_API_URL=http://localhost:3001/api/v1 \
+            --build-arg NEXT_PUBLIC_SUPABASE_URL=https://example.supabase.co \
+            --build-arg NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=ci-publishable-key \
+            --build-arg NEXT_PUBLIC_WEB_PUSH_PUBLIC_KEY=ci-public-key .
