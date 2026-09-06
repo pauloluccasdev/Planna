@@ -19,5 +19,8 @@
     "format": "npm run format --workspaces --if-present",
     "db:generate": "npm run db:generate --workspace @planna/api",
     "db:validate": "npm run db:validate --workspace @planna/api"
+  },
+  "devDependencies": {
+    "vercel": "^59.11.7"
   }
 }
