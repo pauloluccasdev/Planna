@@ -63,11 +63,11 @@ jobs:
         run: npm run build
 
       - name: Build API container
-        run: docker build -f Dockerfile.api -t planna-api:ci .
+        run: docker build --provenance=false -f Dockerfile.api -t planna-api:ci .
 
       - name: Build web container
         run: |
-          docker build -f Dockerfile.web -t planna-web:ci \
+          docker build --provenance=false -f Dockerfile.web -t planna-web:ci \
             --build-arg NEXT_PUBLIC_API_URL=http://localhost:3001/api/v1 \
             --build-arg NEXT_PUBLIC_SUPABASE_URL=https://example.supabase.co \
             --build-arg NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=ci-publishable-key \
