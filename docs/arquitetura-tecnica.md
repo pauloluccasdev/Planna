@@ -162,6 +162,9 @@ Persistência, fila e HTTP ficam fora do algoritmo, permitindo testes rápidos e
 - criação manual de bloco e criação de série diária também são idempotentes; a
   série é referenciada pelo identificador próprio, sem repetir todos os blocos
   no registro técnico.
+- criação, edição e cancelamento de blocos geram auditoria transacional. Antes
+  de cancelamentos individuais ou em série, cada bloco afetado recebe uma
+  versão com a fotografia anterior à mudança.
 - a PWA recebe do servidor uma chave estável por ação crítica e a reenvia em
   novas tentativas do mesmo formulário ou comando.
 

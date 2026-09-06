@@ -698,7 +698,7 @@ export class StudyBlocksService {
           });
         }
       }
-      return transaction.studyBlock.update({
+      const updated = await transaction.studyBlock.update({
         where: { id },
         data: {
           contentId,
@@ -711,6 +711,17 @@ export class StudyBlocksService {
         },
         select: blockSelection,
       });
+      await transaction.auditEvent.create({
+        data: {
+          actorUserId: studentId,
+          studentScopeId: studentId,
+          action: 'STUDY_BLOCK_UPDATED',
+          entityType: 'STUDY_BLOCK',
+          entityId: id,
+          metadata: { previousRevision: locked.revision },
+        },
+      });
+      return updated;
     });
   }
 
@@ -743,7 +754,18 @@ export class StudyBlocksService {
       await transaction.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${studentId}, 0))`;
       const current = await transaction.studyBlock.findFirst({
         where: { id, studentId },
-        select: { id: true, contentId: true, status: true },
+        select: {
+          id: true,
+          contentId: true,
+          status: true,
+          revision: true,
+          startsAt: true,
+          endsAt: true,
+          plannedDurationSeconds: true,
+          focusSeconds: true,
+          breakSeconds: true,
+          parts: { select: { contentPartId: true } },
+        },
       });
       if (!current) this.throwNotFound();
       if (finalBlockStatuses.has(current.status)) {
@@ -755,6 +777,15 @@ export class StudyBlocksService {
         });
       }
       const cancelledAt = new Date();
+      await transaction.studyBlockVersion.create({
+        data: {
+          studyBlockId: id,
+          versionNumber: current.revision,
+          changedByUserId: studentId,
+          changeReason: 'MANUAL_CANCELLATION',
+          snapshot: this.blockVersionSnapshot(current),
+        },
+      });
       const cancelled = await transaction.studyBlock.update({
         where: { id },
         data: {
@@ -770,6 +801,16 @@ export class StudyBlocksService {
         [current.contentId],
         cancelledAt,
       );
+      await transaction.auditEvent.create({
+        data: {
+          actorUserId: studentId,
+          studentScopeId: studentId,
+          action: 'STUDY_BLOCK_CANCELLED',
+          entityType: 'STUDY_BLOCK',
+          entityId: id,
+          metadata: { previousStatus: current.status },
+        },
+      });
       return { ...cancelled, warnings: { uncoveredContents } };
     });
   }
@@ -797,9 +838,30 @@ export class StudyBlocksService {
           recurrenceSeriesId: seriesId,
           status: { in: activeBlockStatuses },
         },
-        select: { contentId: true },
-        distinct: ['contentId'],
+        select: {
+          id: true,
+          contentId: true,
+          status: true,
+          revision: true,
+          startsAt: true,
+          endsAt: true,
+          plannedDurationSeconds: true,
+          focusSeconds: true,
+          breakSeconds: true,
+          parts: { select: { contentPartId: true } },
+        },
       });
+      if (affectedContents.length > 0) {
+        await transaction.studyBlockVersion.createMany({
+          data: affectedContents.map((block) => ({
+            studyBlockId: block.id,
+            versionNumber: block.revision,
+            changedByUserId: studentId,
+            changeReason: 'SERIES_CANCELLATION',
+            snapshot: this.blockVersionSnapshot(block),
+          })),
+        });
+      }
       const result = await transaction.studyBlock.updateMany({
         where: {
           studentId,
@@ -818,6 +880,18 @@ export class StudyBlocksService {
         affectedContents.map(({ contentId }) => contentId),
         cancelledAt,
       );
+      if (result.count > 0) {
+        await transaction.auditEvent.create({
+          data: {
+            actorUserId: studentId,
+            studentScopeId: studentId,
+            action: 'STUDY_BLOCK_SERIES_CANCELLED',
+            entityType: 'RECURRENCE_SERIES',
+            entityId: seriesId,
+            metadata: { cancelledBlockCount: result.count },
+          },
+        });
+      }
       return {
         seriesId,
         cancelledBlocks: result.count,
@@ -825,6 +899,28 @@ export class StudyBlocksService {
         warnings: { uncoveredContents },
       };
     });
+  }
+
+  private blockVersionSnapshot(block: {
+    contentId: string;
+    status: BlockStatus;
+    startsAt: Date;
+    endsAt: Date;
+    plannedDurationSeconds: number;
+    focusSeconds: number;
+    breakSeconds: number;
+    parts: Array<{ contentPartId: string }>;
+  }): Prisma.InputJsonObject {
+    return {
+      contentId: block.contentId,
+      startsAt: block.startsAt.toISOString(),
+      endsAt: block.endsAt.toISOString(),
+      plannedDurationSeconds: block.plannedDurationSeconds,
+      focusSeconds: block.focusSeconds,
+      breakSeconds: block.breakSeconds,
+      partIds: block.parts.map(({ contentPartId }) => contentPartId),
+      status: block.status,
+    };
   }
 
   private async findUncoveredContents(

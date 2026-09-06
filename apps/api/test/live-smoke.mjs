@@ -1526,6 +1526,45 @@ try {
       'Cancelling recurrence did not affect all active occurrences',
     );
   }
+  const planningChangeEvidence = await withDatabase(async (database) => {
+    const [auditResult, versionResult] = await Promise.all([
+      database.query(
+        `select distinct action
+           from audit_events
+          where student_scope_id = $1
+            and action = any($2::text[])`,
+        [
+          userId,
+          [
+            'STUDY_BLOCK_CREATED',
+            'STUDY_BLOCK_UPDATED',
+            'STUDY_BLOCK_CANCELLED',
+            'STUDY_BLOCK_RECURRENCE_CREATED',
+            'STUDY_BLOCK_SERIES_CANCELLED',
+          ],
+        ],
+      ),
+      database.query(
+        `select count(*)::int as count
+           from study_block_versions
+          where study_block_id = any($1::uuid[])
+            and change_reason = 'SERIES_CANCELLATION'`,
+        [recurringBody.data.map((block) => block.id)],
+      ),
+    ]);
+    return {
+      actions: new Set(auditResult.rows.map(({ action }) => action)),
+      cancellationVersions: versionResult.rows[0].count,
+    };
+  });
+  if (
+    planningChangeEvidence.actions.size !== 5 ||
+    planningChangeEvidence.cancellationVersions !== 3
+  ) {
+    throw new Error(
+      'Study block changes were not audited and versioned completely',
+    );
+  }
   const remainingCalendar = await fetch(
     `${apiUrl}/calendar?from=2099-08-01T00%3A00%3A00-03%3A00&to=2099-08-10T00%3A00%3A00-03%3A00`,
     { headers },
@@ -1760,6 +1799,7 @@ try {
       studyBlockCreated: true,
       manualBlockCreationIdempotent: true,
       studyBlockUpdatedWithHistory: true,
+      studyBlockChangesAudited: true,
       studyBlockDetailsAvailable: true,
       staleStudyBlockUpdateRejected: true,
       overlappingBlockRejected: true,
@@ -1791,6 +1831,7 @@ try {
       metricsCalculated: true,
       calendarListed: true,
       recurrenceCancelled: true,
+      cancellationsVersioned: true,
       cancelledRecurrenceHiddenFromCalendar: true,
       contentCompletedManually: true,
       cleanupScheduled: true,

@@ -11,6 +11,18 @@ import type { OverdueService } from '../overdue/overdue.service.js';
 import { StudyBlocksService } from './study-blocks.service.js';
 
 describe('StudyBlocksService', () => {
+  const cancellableBlock = {
+    id: 'block-id',
+    contentId: 'content-id',
+    status: 'CONFIRMED',
+    revision: 1,
+    startsAt: new Date('2099-09-20T22:00:00.000Z'),
+    endsAt: new Date('2099-09-20T23:00:00.000Z'),
+    plannedDurationSeconds: 3600,
+    focusSeconds: 1500,
+    breakSeconds: 300,
+    parts: [],
+  } as const;
   const prisma = {
     content: { findFirst: vi.fn(), findMany: vi.fn() },
     contentPart: { count: vi.fn() },
@@ -287,11 +299,13 @@ describe('StudyBlocksService', () => {
         ]),
       },
       studyBlock: {
-        findMany: vi.fn().mockResolvedValue([{ contentId: 'content-id' }]),
+        findMany: vi.fn().mockResolvedValue([cancellableBlock]),
         updateMany: vi.fn().mockResolvedValue({ count: 2 }),
         groupBy: vi.fn().mockResolvedValue([]),
       },
+      studyBlockVersion: { createMany: vi.fn() },
       studySessionCompletedPart: { findMany: vi.fn().mockResolvedValue([]) },
+      auditEvent: { create: vi.fn() },
     };
     prisma.$transaction.mockImplementation((callback) => callback(transaction));
 
@@ -314,6 +328,20 @@ describe('StudyBlocksService', () => {
         },
       }),
     );
+    expect(transaction.studyBlockVersion.createMany).toHaveBeenCalledWith({
+      data: [
+        expect.objectContaining({
+          studyBlockId: 'block-id',
+          changeReason: 'SERIES_CANCELLATION',
+        }),
+      ],
+    });
+    expect(transaction.auditEvent.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        action: 'STUDY_BLOCK_SERIES_CANCELLED',
+        entityId: 'series-id',
+      }),
+    });
   });
 
   it('does not warn when another future block still covers the content', async () => {
@@ -331,7 +359,7 @@ describe('StudyBlocksService', () => {
         ]),
       },
       studyBlock: {
-        findMany: vi.fn().mockResolvedValue([{ contentId: 'content-id' }]),
+        findMany: vi.fn().mockResolvedValue([cancellableBlock]),
         updateMany: vi.fn().mockResolvedValue({ count: 2 }),
         groupBy: vi
           .fn()
@@ -339,7 +367,9 @@ describe('StudyBlocksService', () => {
             { contentId: 'content-id', _count: { _all: 1 } },
           ]),
       },
+      studyBlockVersion: { createMany: vi.fn() },
       studySessionCompletedPart: { findMany: vi.fn().mockResolvedValue([]) },
+      auditEvent: { create: vi.fn() },
     };
     prisma.$transaction.mockImplementation((callback) => callback(transaction));
 

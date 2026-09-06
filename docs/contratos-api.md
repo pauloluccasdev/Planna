@@ -278,7 +278,9 @@ A consulta individual retorna estado, origem, horários, duração planejada,
 configuração de foco e pausa, conteúdo, partes e datas finais aplicáveis. O
 histórico versionado fica disponível em `GET /study-blocks/{block_id}/history`
 e pode ser consultado mesmo quando o bloco já foi concluído, cancelado ou
-replanejado.
+replanejado. Edições e cancelamentos preservam a fotografia anterior e geram
+auditoria na mesma transação da alteração; no cancelamento de série, isso ocorre
+somente para cada bloco ainda ativo e efetivamente cancelado.
 
 ### Recorrência diária
 
