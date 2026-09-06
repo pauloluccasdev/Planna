@@ -833,6 +833,31 @@ try {
   if (!replayedBlock.ok || replayedBlockBody.data.id !== blockId) {
     throw new Error('Manual block creation was not replayed idempotently');
   }
+  const databaseRejectedOverlap = await withDatabase(async (database) => {
+    await database.query('begin');
+    await database.query(
+      `insert into study_blocks (
+         id, student_id, content_id, source, status, starts_at, ends_at,
+         planned_duration_seconds, focus_seconds, break_seconds, updated_at
+       )
+       select gen_random_uuid(), student_id, content_id, source, status,
+              starts_at + interval '30 minutes', ends_at + interval '30 minutes',
+              planned_duration_seconds, focus_seconds, break_seconds, now()
+         from study_blocks
+        where id = $1`,
+      [blockId],
+    );
+    try {
+      await database.query('commit');
+      return false;
+    } catch (error) {
+      await database.query('rollback').catch(() => {});
+      return error?.code === '23P01';
+    }
+  });
+  if (!databaseRejectedOverlap) {
+    throw new Error('Database allowed overlapping active study blocks');
+  }
 
   const updatedBlock = await fetch(`${apiUrl}/study-blocks/${blockId}`, {
     method: 'PATCH',
@@ -1798,6 +1823,7 @@ try {
       uncoveredContentDetectedAfterCancellation: true,
       studyBlockCreated: true,
       manualBlockCreationIdempotent: true,
+      activeBlockOverlapRejectedByDatabase: true,
       studyBlockUpdatedWithHistory: true,
       studyBlockChangesAudited: true,
       studyBlockDetailsAvailable: true,

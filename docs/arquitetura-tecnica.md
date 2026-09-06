@@ -64,6 +64,12 @@ Devem ser transacionais:
 - ações administrativas;
 - envio de notificação.
 
+Blocos ativos não podem se sobrepor para o mesmo aluno. Além da validação da
+API e do bloqueio transacional por aluno, uma restrição de exclusão `GiST` no
+PostgreSQL protege o intervalo semiaberto `[início, término)`. Ela é diferida
+até o commit para permitir que um replanejamento crie o substituto e encerre o
+estado ativo do bloco original na mesma transação.
+
 ## Autorização em profundidade
 
 ```text

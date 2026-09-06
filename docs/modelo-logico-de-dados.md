@@ -410,6 +410,16 @@ O modelo físico deve impor, no banco ou por mecanismo transacional equivalente,
 
 Pausadas não participam dessa exclusividade.
 
+### Garantia de blocos sem sobreposição
+
+Para cada aluno, blocos nos estados `confirmed`, `in_progress`, `paused` ou
+`overdue` não podem possuir intervalos sobrepostos. O banco aplica uma
+restrição de exclusão sobre o intervalo semiaberto `[starts_at, ends_at)`, de
+modo que um bloco possa começar exatamente quando o anterior termina.
+
+A restrição é verificada no commit para permitir a troca atômica de um bloco
+atrasado pelo substituto confirmado durante o replanejamento.
+
 ## Replanejamento
 
 ### `replanning_suggestions`
