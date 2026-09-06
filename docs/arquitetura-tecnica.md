@@ -224,6 +224,12 @@ correlacionar a interação sem incluir dados pessoais no identificador.
 - jobs idempotentes;
 - restauração de backup em ambiente seguro.
 
+O GitHub Actions aplica em todo push na `main` e em pull requests um gate sem
+segredos: `npm ci`, validação do schema Prisma, tipagem, lint, testes e build das
+duas aplicações. O smoke integrado não usa o projeto remoto no CI enquanto não
+existir um ambiente de homologação separado, preservando a separação de dados e
+ambientes exigida pelo MVP.
+
 ## Decisões abertas
 
 - hospedagem do frontend e da API;

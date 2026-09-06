@@ -1,5 +1,7 @@
 # Planna
 
+[![CI](https://github.com/pauloluccasdev/Planna/actions/workflows/ci.yml/badge.svg)](https://github.com/pauloluccasdev/Planna/actions/workflows/ci.yml)
+
 Planna é uma plataforma de planejamento e acompanhamento adaptativo de estudos para estudantes universitários.
 
 O produto transforma cursos, disciplinas, conteúdos, eventos acadêmicos, prioridades, estimativas e disponibilidade em um planejamento executável. Também registra a execução real, identifica atrasos e propõe replanejamentos que somente são aplicados após confirmação do aluno.
@@ -26,6 +28,13 @@ npm run dev:api
 ```
 
 O frontend utiliza `http://localhost:3000` e a API `http://localhost:3001/api/v1`. As credenciais reais ficam somente no `.env`, que não deve ser versionado.
+
+## Qualidade contínua
+
+Pushes na `main` e pull requests executam automaticamente instalação pelo
+lockfile, validação do schema, tipagem, lint, testes e build. O workflow usa
+somente valores fictícios para compilar e não acessa o projeto Supabase real.
+O smoke remoto permanece manual até existir um ambiente de homologação isolado.
 
 ## Documentação
 
