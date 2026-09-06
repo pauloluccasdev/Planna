@@ -255,6 +255,59 @@ try {
   }
   headers.authorization = `Bearer ${refreshBody.data.session.accessToken}`;
 
+  const disposableCourse = await fetch(`${apiUrl}/courses`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ name: 'Curso descartável' }),
+  });
+  if (disposableCourse.status !== 201) {
+    throw new Error('Creating disposable course failed');
+  }
+  const disposableCourseBody = await disposableCourse.json();
+  const disposableSubject = await fetch(
+    `${apiUrl}/courses/${disposableCourseBody.data.id}/subjects`,
+    {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ name: 'Disciplina descartável' }),
+    },
+  );
+  if (disposableSubject.status !== 201) {
+    throw new Error('Creating disposable subject failed');
+  }
+  const disposableSubjectBody = await disposableSubject.json();
+  const disposableContent = await fetch(
+    `${apiUrl}/subjects/${disposableSubjectBody.data.id}/contents`,
+    {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ name: 'Conteúdo descartável', priority: 1 }),
+    },
+  );
+  if (disposableContent.status !== 201) {
+    throw new Error('Creating disposable content failed');
+  }
+  const disposableContentBody = await disposableContent.json();
+  const deletedContent = await fetch(
+    `${apiUrl}/contents/${disposableContentBody.data.id}`,
+    { method: 'DELETE', headers },
+  );
+  const deletedSubject = await fetch(
+    `${apiUrl}/subjects/${disposableSubjectBody.data.id}`,
+    { method: 'DELETE', headers },
+  );
+  const deletedCourse = await fetch(
+    `${apiUrl}/courses/${disposableCourseBody.data.id}`,
+    { method: 'DELETE', headers },
+  );
+  if (
+    deletedContent.status !== 204 ||
+    deletedSubject.status !== 204 ||
+    deletedCourse.status !== 204
+  ) {
+    throw new Error('Deleting the disposable academic hierarchy failed');
+  }
+
   const createdCourse = await fetch(`${apiUrl}/courses`, {
     method: 'POST',
     headers,
@@ -1472,6 +1525,7 @@ try {
       notificationInboxListed: true,
       notificationReadIdempotently: true,
       pushSubscriptionRevoked: true,
+      emptyAcademicHierarchyDeleted: true,
       courseCreated: true,
       courseListed: true,
       courseUpdated: true,

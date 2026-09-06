@@ -1361,6 +1361,15 @@ a.resource-row:hover {
   font-weight: 750;
   cursor: pointer;
 }
+
+.resource-delete-form {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.resource-delete-form .form-error {
+  max-width: 34rem;
+}
 .decision-backdrop {
   position: fixed;
   z-index: 100;

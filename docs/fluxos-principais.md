@@ -53,6 +53,11 @@ estudo como fora do planejamento ou vinculá-lo a um bloco elegível do mesmo
 conteúdo e ainda sem sessão. Quando há vínculo, salvar o registro também conclui
 o bloco.
 
+Curso, disciplina e conteúdo sem entidades dependentes ou histórico podem ser
+excluídos definitivamente após confirmação explícita. Se houver histórico, a
+exclusão é recusada e os dados são preservados; o arquivamento com blocos futuros
+permanece condicionado à política ainda pendente.
+
 Quando o estudo invade o próximo bloco, o aluno pode continuar, concluir ou
 trocar. Na troca, o Planna encerra o segmento em execução, mantém a sessão atual
 pausada e inicia ou retoma o próximo bloco em uma única transação. Uma falha não

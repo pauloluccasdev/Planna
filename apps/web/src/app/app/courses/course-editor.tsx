@@ -1,7 +1,8 @@
 "use client";
 
 import { useActionState } from "react";
-import { type CourseFormState, updateCourse } from "./actions";
+import { ResourceDeleteButton } from "../_components/resource-delete-button";
+import { deleteCourse, type CourseFormState, updateCourse } from "./actions";
 
 type Course = {
   id: string;
@@ -55,6 +56,12 @@ export function CourseEditor({ course }: { course: Course }) {
           {pending ? "Atualizando…" : "Salvar alterações"}
         </button>
       </form>
+      <ResourceDeleteButton
+        action={deleteCourse.bind(null, course.id)}
+        label="Excluir curso"
+        pendingLabel="Excluindo…"
+        confirmation={`Excluir definitivamente o curso “${course.name}”? Esta ação só será permitida se ele não possuir disciplinas ou histórico.`}
+      />
     </details>
   );
 }

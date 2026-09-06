@@ -9,6 +9,18 @@ export type CourseFormState = {
   nameError?: string;
   success?: string;
 };
+export type DeleteResourceState = { message?: string };
+
+async function deletionError(response: Response, resource: string) {
+  const payload = (await response.json().catch(() => null)) as {
+    error?: { code?: string; message?: string };
+  } | null;
+  if (payload?.error?.code === "ENTITY_HAS_HISTORY")
+    return `Este ${resource} possui histórico e não pode ser excluído definitivamente.`;
+  return (
+    payload?.error?.message ?? `Não foi possível excluir este ${resource}.`
+  );
+}
 
 export async function createCourse(
   _state: CourseFormState,
@@ -62,4 +74,21 @@ export async function updateCourse(
   revalidatePath(`/app/courses/${courseId}`);
   revalidatePath("/app");
   return { success: "Curso atualizado." };
+}
+
+export async function deleteCourse(
+  courseId: string,
+  _state: DeleteResourceState,
+  _formData: FormData,
+): Promise<DeleteResourceState> {
+  void _state;
+  void _formData;
+  const response = await authenticatedApi(`courses/${courseId}`, {
+    method: "DELETE",
+  });
+  if (!response || response.status === 401) redirect("/login");
+  if (!response.ok) return { message: await deletionError(response, "curso") };
+  revalidatePath("/app/courses");
+  revalidatePath("/app");
+  redirect("/app/courses");
 }

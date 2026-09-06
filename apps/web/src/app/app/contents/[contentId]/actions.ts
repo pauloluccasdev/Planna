@@ -10,6 +10,7 @@ export type PartFormState = {
 };
 export type PartEditState = { message?: string; success?: string };
 export type ContentCompletionState = { message?: string };
+export type DeleteResourceState = { message?: string };
 
 export type ContentEditState = {
   message?: string;
@@ -145,6 +146,34 @@ export async function removePart(contentId: string, partId: string) {
   }
   revalidatePath(`/app/contents/${contentId}`);
   return { ok: true, message: "" };
+}
+
+export async function deleteContent(
+  contentId: string,
+  subjectId: string,
+  _state: DeleteResourceState,
+  _formData: FormData,
+): Promise<DeleteResourceState> {
+  void _state;
+  void _formData;
+  const response = await authenticatedApi(`contents/${contentId}`, {
+    method: "DELETE",
+  });
+  if (!response || response.status === 401) redirect("/login");
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as {
+      error?: { code?: string; message?: string };
+    } | null;
+    return {
+      message:
+        payload?.error?.code === "ENTITY_HAS_HISTORY"
+          ? "Este conteúdo possui evento, planejamento ou sessão e não pode ser excluído definitivamente."
+          : (payload?.error?.message ?? "Não foi possível excluir o conteúdo."),
+    };
+  }
+  revalidatePath(`/app/subjects/${subjectId}`);
+  revalidatePath("/app");
+  redirect(`/app/subjects/${subjectId}`);
 }
 
 type Part = { id: string };

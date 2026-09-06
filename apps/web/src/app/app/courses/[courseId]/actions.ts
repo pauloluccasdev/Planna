@@ -10,6 +10,7 @@ export type SubjectFormState = {
   success?: string;
 };
 export type PeriodFormState = { message?: string; success?: string };
+export type DeleteResourceState = { message?: string };
 
 export async function createSubject(
   courseId: string,
@@ -137,4 +138,33 @@ export async function updateSubject(
   revalidatePath(`/app/courses/${courseId}`);
   revalidatePath(`/app/subjects/${subjectId}`);
   return { success: "Disciplina atualizada." };
+}
+
+export async function deleteSubject(
+  courseId: string,
+  subjectId: string,
+  _state: DeleteResourceState,
+  _formData: FormData,
+): Promise<DeleteResourceState> {
+  void _state;
+  void _formData;
+  const response = await authenticatedApi(`subjects/${subjectId}`, {
+    method: "DELETE",
+  });
+  if (!response || response.status === 401) redirect("/login");
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as {
+      error?: { code?: string; message?: string };
+    } | null;
+    return {
+      message:
+        payload?.error?.code === "ENTITY_HAS_HISTORY"
+          ? "Esta disciplina possui conteúdos ou eventos e não pode ser excluída definitivamente."
+          : (payload?.error?.message ??
+            "Não foi possível excluir a disciplina."),
+    };
+  }
+  revalidatePath(`/app/courses/${courseId}`);
+  revalidatePath("/app/courses");
+  redirect(`/app/courses/${courseId}`);
 }

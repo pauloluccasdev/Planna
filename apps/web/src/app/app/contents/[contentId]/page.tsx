@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { authenticatedApi } from "../../../_lib/api";
-import { movePart } from "./actions";
+import { ResourceDeleteButton } from "../../_components/resource-delete-button";
+import { deleteContent, movePart } from "./actions";
 import { ContentCompletion } from "./content-completion";
 import { PartForm } from "./part-form";
 import { PartManager } from "./part-manager";
@@ -94,6 +95,12 @@ export default async function ContentPage({ params }: Props) {
           >
             Planejar este conteúdo
           </Link>
+          <ResourceDeleteButton
+            action={deleteContent.bind(null, contentId, content.subjectId)}
+            label="Excluir conteúdo"
+            pendingLabel="Excluindo…"
+            confirmation={`Excluir definitivamente o conteúdo “${content.name}”? Esta ação só será permitida se ele não possuir eventos, blocos ou sessões.`}
+          />
         </div>
       </section>
       {progress ? (
