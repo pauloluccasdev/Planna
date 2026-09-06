@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
 import { AdminModule } from './admin/admin.module.js';
 import { AcademicPeriodsModule } from './academic-periods/academic-periods.module.js';
 import { AcademicEventTypesModule } from './academic-event-types/academic-event-types.module.js';
@@ -21,6 +22,10 @@ import { StudyBlocksModule } from './study-blocks/study-blocks.module.js';
 import { StudySessionsModule } from './study-sessions/study-sessions.module.js';
 import { ReplanningModule } from './replanning/replanning.module.js';
 import { NotificationsModule } from './notifications/notifications.module.js';
+import {
+  RequestCorrelationExceptionFilter,
+  RequestCorrelationInterceptor,
+} from './common/request-correlation.js';
 
 @Module({
   imports: [
@@ -46,6 +51,16 @@ import { NotificationsModule } from './notifications/notifications.module.js';
     NotificationsModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: RequestCorrelationInterceptor,
+    },
+    {
+      provide: APP_FILTER,
+      useClass: RequestCorrelationExceptionFilter,
+    },
+  ],
 })
 export class AppModule {}

@@ -19,23 +19,36 @@ describe('AppController (e2e)', () => {
     await app.init();
   });
 
-  it('/api/v1/health (GET)', () => {
-    return request(app.getHttpServer())
+  it('/api/v1/health (GET) returns one safe correlation id', async () => {
+    const requestId = '123e4567-e89b-42d3-a456-426614174000';
+    const response = await request(app.getHttpServer())
       .get('/api/v1/health')
-      .expect(200)
-      .expect({ data: { service: 'planna-api', status: 'ok' } });
+      .set('x-request-id', requestId)
+      .expect(200);
+
+    expect(response.headers['x-request-id']).toBe(requestId);
+    expect(response.body).toEqual({
+      data: { service: 'planna-api', status: 'ok' },
+      meta: { request_id: requestId },
+    });
   });
 
-  it('/api/v1/me (GET) requires a bearer token', () => {
-    return request(app.getHttpServer())
+  it('/api/v1/me (GET) requires a bearer token with correlation', async () => {
+    const response = await request(app.getHttpServer())
       .get('/api/v1/me')
-      .expect(401)
-      .expect({
-        error: {
-          code: 'AUTHENTICATION_REQUIRED',
-          message: 'Informe um token Bearer válido.',
-        },
-      });
+      .set('x-request-id', 'invalid')
+      .expect(401);
+
+    expect(response.headers['x-request-id']).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f-]{27}$/,
+    );
+    expect(response.body).toEqual({
+      error: {
+        code: 'AUTHENTICATION_REQUIRED',
+        message: 'Informe um token Bearer válido.',
+      },
+      meta: { request_id: response.headers['x-request-id'] },
+    });
   });
 
   afterEach(async () => {

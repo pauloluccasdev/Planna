@@ -47,6 +47,11 @@ Prefixo proposto: `/api/v1`.
 
 Mensagens são seguras para o usuário; logs internos podem ter diagnóstico adicional sem segredos.
 
+Toda resposta também envia `x-request-id`. Um identificador recebido é
+preservado somente quando é um UUID canônico válido; caso contrário, a API gera
+um novo UUID. O navegador pode ler esse cabeçalho via CORS e o mesmo valor
+sempre aparece em `meta.request_id`.
+
 ### Paginação
 
 Listas extensas usam `?limit=20&cursor=opaque_cursor` e retornam `next_cursor`. A agenda usa janela de datas.

@@ -145,6 +145,29 @@ try {
     console.log(JSON.stringify({ staleSmokeUsersCleaned: true }));
     process.exit(0);
   }
+  const correlationId = randomUUID();
+  const health = await fetch(`${apiUrl}/health`, {
+    headers: { 'x-request-id': correlationId },
+  });
+  const healthBody = await health.json();
+  if (
+    !health.ok ||
+    health.headers.get('x-request-id') !== correlationId ||
+    healthBody.meta?.request_id !== correlationId
+  ) {
+    throw new Error('Successful response did not preserve correlation id');
+  }
+  const unauthenticated = await fetch(`${apiUrl}/me`, {
+    headers: { 'x-request-id': correlationId },
+  });
+  const unauthenticatedBody = await unauthenticated.json();
+  if (
+    unauthenticated.status !== 401 ||
+    unauthenticated.headers.get('x-request-id') !== correlationId ||
+    unauthenticatedBody.meta?.request_id !== correlationId
+  ) {
+    throw new Error('Error response did not preserve correlation id');
+  }
   const createdUser = await admin.auth.admin.createUser({
     email,
     password,
@@ -1584,6 +1607,7 @@ try {
   console.log(
     JSON.stringify({
       authenticated: true,
+      responsesCorrelated: true,
       sessionRefreshed: true,
       profileResolved: true,
       pushSubscriptionStoredSafely: true,

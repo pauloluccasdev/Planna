@@ -185,6 +185,11 @@ Persistência, fila e HTTP ficam fora do algoritmo, permitindo testes rápidos e
 
 Registrar ID de correlação, caso de uso, duração, sucesso/código de falha, versão do algoritmo e resultado dos jobs. Não registrar senha, token, observações, títulos de conteúdo ou payload acadêmico completo.
 
+A API aceita um `x-request-id` seguro fornecido pelo chamador ou gera um UUID
+quando ausente ou inválido. O mesmo valor é devolvido no cabeçalho e em
+`meta.request_id` tanto nas respostas de sucesso quanto de erro, permitindo
+correlacionar a interação sem incluir dados pessoais no identificador.
+
 ## Estratégia de testes
 
 - unitários para motor, KPI e estados;

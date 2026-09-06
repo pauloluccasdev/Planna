@@ -7,7 +7,11 @@ import { getApiPort, getWebOrigins } from './config/environment.js';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.use(helmet());
-  app.enableCors({ origin: getWebOrigins(), credentials: true });
+  app.enableCors({
+    origin: getWebOrigins(),
+    credentials: true,
+    exposedHeaders: ['x-request-id'],
+  });
   app.setGlobalPrefix('api/v1');
   app.useGlobalPipes(
     new ValidationPipe({
