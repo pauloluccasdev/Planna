@@ -151,6 +151,9 @@ Persistência, fila e HTTP ficam fora do algoritmo, permitindo testes rápidos e
 - segmentos de foco e pausa são persistidos;
 - exclusividade de sessão ativa é garantida no PostgreSQL/transação;
 - interrupção incerta exige reconciliação do aluno.
+- início, pausa, retomada, troca, mudança de ciclo, conclusão e registro
+  retroativo geram auditoria na mesma transação, sem nomes de conteúdos ou
+  observações do aluno.
 
 ## Confirmação de proposta
 

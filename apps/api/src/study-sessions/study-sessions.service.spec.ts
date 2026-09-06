@@ -27,6 +27,7 @@ describe('StudySessionsService', () => {
     studyBlock: { findFirst: vi.fn(), update: vi.fn() },
     content: { findFirst: vi.fn() },
     contentPart: { count: vi.fn() },
+    auditEvent: { create: vi.fn() },
   };
   const prisma = {
     studySession: { findFirst: vi.fn(), findMany: vi.fn() },
@@ -164,6 +165,15 @@ describe('StudySessionsService', () => {
         }),
       }),
     );
+    expect(transaction.auditEvent.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        actorUserId: 'student-id',
+        studentScopeId: 'student-id',
+        action: 'STUDY_SESSION_STARTED_BY_SWITCH',
+        entityType: 'STUDY_SESSION',
+        entityId: 'next-session',
+      }),
+    });
   });
 
   it('does not pause the current session when the target block is invalid', async () => {
@@ -217,6 +227,18 @@ describe('StudySessionsService', () => {
         data: expect.objectContaining({ status: 'PAUSED' }),
       }),
     );
+    expect(transaction.auditEvent.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        action: 'STUDY_SESSION_STARTED_BY_SWITCH',
+        entityId: 'unplanned-session',
+        metadata: { previousSessionId: 'current-session' },
+      }),
+    });
+    expect(
+      transaction.auditEvent.create.mock.calls.some(([entry]) =>
+        Object.hasOwn(entry.data.metadata ?? {}, 'note'),
+      ),
+    ).toBe(false);
     expect(transaction.studySession.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
@@ -351,6 +373,17 @@ describe('StudySessionsService', () => {
         completedAt: expect.any(Date),
         revision: { increment: 1 },
       },
+    });
+    expect(transaction.auditEvent.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        action: 'STUDY_SESSION_REGISTERED_RETROACTIVELY',
+        entityId: 'retroactive-session',
+        metadata: {
+          linkedToBlock: true,
+          realizedDurationSeconds: 3600,
+          completedPartCount: 0,
+        },
+      }),
     });
   });
 

@@ -1291,6 +1291,42 @@ try {
     );
   }
 
+  const sessionAuditActions = [
+    'STUDY_SESSION_STARTED',
+    'STUDY_SESSION_CYCLE_CHANGED',
+    'STUDY_SESSION_SWITCHED_FROM',
+    'STUDY_SESSION_STARTED_BY_SWITCH',
+    'STUDY_SESSION_RESUMED_BY_SWITCH',
+    'STUDY_SESSION_PAUSED',
+    'STUDY_SESSION_RESUMED',
+    'STUDY_SESSION_COMPLETED',
+    'STUDY_SESSION_REGISTERED_RETROACTIVELY',
+  ];
+  const auditedSessionActions = await withDatabase(async (database) => {
+    const result = await database.query(
+      `select action, metadata
+         from audit_events
+        where student_scope_id = $1
+          and entity_type = 'STUDY_SESSION'
+          and action = any($2::text[])`,
+      [userId, sessionAuditActions],
+    );
+    return result.rows;
+  });
+  const foundSessionAuditActions = new Set(
+    auditedSessionActions.map(({ action }) => action),
+  );
+  if (
+    sessionAuditActions.some(
+      (action) => !foundSessionAuditActions.has(action),
+    ) ||
+    auditedSessionActions.some(({ metadata }) =>
+      Object.hasOwn(metadata ?? {}, 'note'),
+    )
+  ) {
+    throw new Error('Critical session transitions were not audited safely');
+  }
+
   const metrics = await fetch(
     `${apiUrl}/metrics/summary?from=2020-01-01T00%3A00%3A00-03%3A00&to=2100-01-01T00%3A00%3A00-03%3A00`,
     { headers },
@@ -1597,6 +1633,7 @@ try {
       sessionCompleted: true,
       retroactiveSessionCreated: true,
       retroactiveSessionLinkedToBlock: true,
+      criticalSessionTransitionsAudited: true,
       metricsCalculated: true,
       calendarListed: true,
       recurrenceCancelled: true,

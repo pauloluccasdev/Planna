@@ -332,6 +332,11 @@ conteúdo for inválido, a execução atual permanece inalterada.
 
 Na conclusão, o aluno envia partes confirmadas e observação opcional. O servidor calcula durações; totais enviados pelo cliente não são fonte confiável.
 
+As transições críticas de sessão geram eventos de auditoria dentro da mesma
+transação. Os metadados registram somente identificadores opacos, tipo de
+transição, contagens e durações; nomes de conteúdo e observações não são
+copiados para a trilha de auditoria.
+
 ## Replanejamento
 
 ```text

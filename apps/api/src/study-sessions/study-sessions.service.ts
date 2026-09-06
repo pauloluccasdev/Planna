@@ -5,6 +5,7 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service.js';
+import type { Prisma } from '../generated/prisma/client.js';
 import {
   BlockStatus,
   SessionKind,
@@ -172,6 +173,10 @@ export class StudySessionsService {
         where: { id: block.id },
         data: { status: BlockStatus.IN_PROGRESS, revision: { increment: 1 } },
       });
+      await this.auditSession(transaction, studentId, session.id, 'STARTED', {
+        kind: SessionKind.PLANNED,
+        linkedToBlock: true,
+      });
       return session;
     });
   }
@@ -193,7 +198,7 @@ export class StudySessionsService {
         });
       }
       const now = new Date();
-      return transaction.studySession.create({
+      const session = await transaction.studySession.create({
         data: {
           studentId,
           contentId: content.id,
@@ -213,6 +218,11 @@ export class StudySessionsService {
         },
         select: sessionSelection,
       });
+      await this.auditSession(transaction, studentId, session.id, 'STARTED', {
+        kind: SessionKind.UNPLANNED,
+        linkedToBlock: false,
+      });
+      return session;
     });
   }
 
@@ -240,6 +250,9 @@ export class StudySessionsService {
           data: { status: BlockStatus.PAUSED, revision: { increment: 1 } },
         });
       }
+      await this.auditSession(transaction, studentId, id, 'PAUSED', {
+        linkedToBlock: Boolean(session.studyBlockId),
+      });
       return transaction.studySession.findUniqueOrThrow({
         where: { id },
         select: sessionSelection,
@@ -279,6 +292,9 @@ export class StudySessionsService {
           data: { status: BlockStatus.IN_PROGRESS, revision: { increment: 1 } },
         });
       }
+      await this.auditSession(transaction, studentId, id, 'RESUMED', {
+        linkedToBlock: Boolean(session.studyBlockId),
+      });
       return transaction.studySession.findUniqueOrThrow({
         where: { id },
         select: sessionSelection,
@@ -395,6 +411,20 @@ export class StudySessionsService {
         where: { id: targetBlock.id },
         data: { status: BlockStatus.IN_PROGRESS, revision: { increment: 1 } },
       });
+      await this.auditSession(
+        transaction,
+        studentId,
+        currentSession.id,
+        'SWITCHED_FROM',
+        { targetSessionId, targetKind: SessionKind.PLANNED },
+      );
+      await this.auditSession(
+        transaction,
+        studentId,
+        targetSessionId,
+        pausedTargetSession ? 'RESUMED_BY_SWITCH' : 'STARTED_BY_SWITCH',
+        { previousSessionId: currentSession.id },
+      );
       return transaction.studySession.findUniqueOrThrow({
         where: { id: targetSessionId },
         select: sessionSelection,
@@ -447,7 +477,7 @@ export class StudySessionsService {
           data: { status: BlockStatus.PAUSED, revision: { increment: 1 } },
         });
       }
-      return transaction.studySession.create({
+      const targetSession = await transaction.studySession.create({
         data: {
           studentId,
           contentId: content.id,
@@ -467,6 +497,24 @@ export class StudySessionsService {
         },
         select: sessionSelection,
       });
+      await this.auditSession(
+        transaction,
+        studentId,
+        currentSession.id,
+        'SWITCHED_FROM',
+        {
+          targetSessionId: targetSession.id,
+          targetKind: SessionKind.UNPLANNED,
+        },
+      );
+      await this.auditSession(
+        transaction,
+        studentId,
+        targetSession.id,
+        'STARTED_BY_SWITCH',
+        { previousSessionId: currentSession.id },
+      );
+      return targetSession;
     });
   }
 
@@ -583,6 +631,13 @@ export class StudySessionsService {
           },
         });
       }
+      await this.auditSession(transaction, studentId, id, 'COMPLETED', {
+        linkedToBlock: Boolean(session.studyBlockId),
+        focusDurationSeconds: focusSeconds,
+        pomodoroBreakDurationSeconds: breakSeconds,
+        realizedDurationSeconds: focusSeconds + breakSeconds,
+        completedPartCount: partIds.length,
+      });
       return transaction.studySession.findUniqueOrThrow({
         where: { id },
         select: sessionSelection,
@@ -698,6 +753,17 @@ export class StudySessionsService {
           },
         });
       }
+      await this.auditSession(
+        transaction,
+        studentId,
+        session.id,
+        'REGISTERED_RETROACTIVELY',
+        {
+          linkedToBlock: Boolean(block),
+          realizedDurationSeconds: realizedSeconds,
+          completedPartCount: partIds.length,
+        },
+      );
       return session;
     });
   }
@@ -743,6 +809,10 @@ export class StudySessionsService {
         where: { id },
         data: { revision: { increment: 1 } },
       });
+      await this.auditSession(transaction, studentId, id, 'CYCLE_CHANGED', {
+        from: expectedKind,
+        to: nextKind,
+      });
       return transaction.studySession.findUniqueOrThrow({
         where: { id },
         select: sessionSelection,
@@ -755,6 +825,25 @@ export class StudySessionsService {
     studentId: string,
   ) {
     return transaction.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${studentId}, 0))`;
+  }
+
+  private auditSession(
+    transaction: Parameters<Parameters<PrismaService['$transaction']>[0]>[0],
+    studentId: string,
+    sessionId: string,
+    transition: string,
+    metadata?: Prisma.InputJsonValue,
+  ) {
+    return transaction.auditEvent.create({
+      data: {
+        actorUserId: studentId,
+        studentScopeId: studentId,
+        action: `STUDY_SESSION_${transition}`,
+        entityType: 'STUDY_SESSION',
+        entityId: sessionId,
+        ...(metadata === undefined ? {} : { metadata }),
+      },
+    });
   }
 
   private async ensureNoRunningSession(
