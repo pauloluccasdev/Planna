@@ -51,6 +51,10 @@ Isso favorece transações entre entidades, evolução rápida das regras e oper
 
 A PWA não acessa tabelas acadêmicas pelo Data API do Supabase. Leituras e comandos passam pela API NestJS, que valida o JWT, a propriedade e o caso de uso antes de acessar o PostgreSQL com Prisma.
 
+O smoke test remoto tenta ler e gravar diretamente pelo Data API como visitante
+e como aluno autenticado. O aceite exige negação de privilégio em todos os casos,
+além dos testes de propriedade executados na API.
+
 Devem ser transacionais:
 
 - cadastro e login por nome de usuário;

@@ -50,6 +50,41 @@ async function withDatabase(callback) {
   }
 }
 
+async function attemptAcademicDataApiAccess(method, accessToken) {
+  const response = await fetch(
+    `${process.env.SUPABASE_URL}/rest/v1/courses?select=id&limit=1`,
+    {
+      method,
+      headers: {
+        apikey: process.env.SUPABASE_PUBLISHABLE_KEY,
+        ...(accessToken ? { authorization: `Bearer ${accessToken}` } : {}),
+        ...(method === 'POST'
+          ? {
+              'content-type': 'application/json',
+              prefer: 'return=representation',
+            }
+          : {}),
+      },
+      ...(method === 'POST'
+        ? {
+            body: JSON.stringify({
+              id: randomUUID(),
+              student_id: userId,
+              name: 'Tentativa direta bloqueada',
+              updated_at: new Date().toISOString(),
+            }),
+          }
+        : {}),
+    },
+  );
+  const body = await response.json().catch(() => null);
+  return { status: response.status, code: body?.code };
+}
+
+function dataApiAccessWasDenied(result) {
+  return [401, 403].includes(result.status) && result.code === '42501';
+}
+
 async function cleanupUserData(database, id) {
   await database.query(
     'delete from audit_events where student_scope_id = $1 or actor_user_id = $1',
@@ -342,6 +377,18 @@ try {
     );
   }
   courseId = (await createdCourse.json()).data.id;
+
+  const directAcademicAccessAttempts = await Promise.all([
+    attemptAcademicDataApiAccess('GET'),
+    attemptAcademicDataApiAccess('POST'),
+    attemptAcademicDataApiAccess('GET', refreshBody.data.session.accessToken),
+    attemptAcademicDataApiAccess('POST', refreshBody.data.session.accessToken),
+  ]);
+  if (!directAcademicAccessAttempts.every(dataApiAccessWasDenied)) {
+    throw new Error(
+      'Supabase Data API allowed direct access to academic records',
+    );
+  }
 
   const listedCourses = await fetch(`${apiUrl}/courses`, { headers });
   const listBody = await listedCourses.json();
@@ -1805,6 +1852,7 @@ try {
       pushSubscriptionRevoked: true,
       emptyAcademicHierarchyDeleted: true,
       courseCreated: true,
+      academicDataApiAccessDenied: true,
       courseListed: true,
       courseUpdated: true,
       subjectCreated: true,
