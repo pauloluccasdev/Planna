@@ -254,18 +254,25 @@ export default async function DashboardPage({ searchParams }: Props) {
       {pausedSessions.length ? (
         <section className="paused-sessions dashboard-card">
           <div className="paused-sessions-heading">
-            <div>
-              <span className="eyebrow">Estudos pausados</span>
-              <h2>Continue de onde parou</h2>
+            <div className="paused-sessions-title">
+              <span className="paused-sessions-icon" aria-hidden="true" />
+              <div>
+                <span className="eyebrow">Estudos pausados</span>
+                <h2>Continue de onde parou</h2>
+              </div>
             </div>
-            <span>{pausedSessions.length}</span>
+            <span className="paused-sessions-count">
+              {pausedSessions.length}{" "}
+              {pausedSessions.length === 1 ? "sessão" : "sessões"}
+            </span>
           </div>
           <div className="paused-sessions-list">
             {pausedSessions.map((session) => (
               <article key={session.id}>
-                <div>
+                <div className="paused-session-copy">
+                  <span className="paused-session-status">Pausado</span>
                   <b>{session.content.name}</b>
-                  <span>
+                  <span className="paused-session-date">
                     {session.studyBlock
                       ? `Bloco de ${new Intl.DateTimeFormat("pt-BR", {
                           dateStyle: "short",
@@ -276,10 +283,10 @@ export default async function DashboardPage({ searchParams }: Props) {
                   </span>
                 </div>
                 <Link
-                  className="secondary-button"
+                  className="paused-session-action"
                   href={`/app/session?id=${session.id}`}
                 >
-                  Abrir
+                  Continuar estudo <span aria-hidden="true">→</span>
                 </Link>
               </article>
             ))}
