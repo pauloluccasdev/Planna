@@ -13,7 +13,7 @@ export function LoginForm() {
     <form action={action} className="login-form">
       <div className="field">
         <label htmlFor="username">Nome de usuário</label>
-        <PasswordInput
+        <input
           id="username"
           name="username"
           autoComplete="username"
@@ -31,7 +31,7 @@ export function LoginForm() {
       </div>
       <div className="field">
         <label htmlFor="password">Senha</label>
-        <input
+        <PasswordInput
           id="password"
           name="password"
           autoComplete="current-password"
