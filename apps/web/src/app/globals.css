@@ -1672,10 +1672,16 @@ a.resource-row:hover {
 .resource-delete-form {
   display: grid;
   gap: 0.5rem;
+  margin: 0.5rem 0 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
 }
 
 .resource-delete-form .form-error {
   max-width: 34rem;
+}
+.resource-delete-form > .danger-button {
+  width: 100%;
 }
 .decision-backdrop {
   position: fixed;
@@ -1710,6 +1716,19 @@ a.resource-row:hover {
 .decision-dialog button {
   border-width: 1px;
   cursor: pointer;
+}
+.resource-delete-dialog .eyebrow {
+  margin-bottom: 6px;
+  color: #9a4b37;
+}
+.resource-delete-dialog p {
+  margin: 0;
+}
+.resource-delete-dialog > div {
+  justify-content: flex-end;
+}
+.resource-delete-dialog .danger-button {
+  min-width: 150px;
 }
 .calendar-actions {
   display: flex;
