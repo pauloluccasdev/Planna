@@ -584,16 +584,61 @@ export default async function DashboardPage({ searchParams }: Props) {
           )}
         </article>
         <aside className="dashboard-card next-actions">
-          <span className="eyebrow">Próximos passos</span>
+          <div className="next-actions-heading">
+            <div>
+              <span className="eyebrow">Prepare seu planejamento</span>
+              <h2>Próximos passos</h2>
+            </div>
+            <p>Complete as etapas para o Planna montar uma rotina possível.</p>
+          </div>
           <ol>
             <li>
-              <Link href="/app/courses">Cadastrar curso e disciplinas →</Link>
+              <span>01</span>
+              <div>
+                <b>Curso e disciplinas</b>
+                <small>Organize sua estrutura acadêmica</small>
+              </div>
+              <Link
+                href="/app/courses"
+                aria-label="Cadastrar curso e disciplinas"
+              >
+                →
+              </Link>
             </li>
-            <li>Adicionar conteúdos e prioridades</li>
-            <li>Informar disponibilidade semanal</li>
             <li>
-              <Link href="/app/settings/study">
-                Configurar horários e Pomodoro →
+              <span>02</span>
+              <div>
+                <b>Conteúdos e prioridades</b>
+                <small>Informe o que precisa estudar</small>
+              </div>
+              <Link
+                href="/app/courses"
+                aria-label="Adicionar conteúdos e prioridades"
+              >
+                →
+              </Link>
+            </li>
+            <li>
+              <span>03</span>
+              <div>
+                <b>Disponibilidade</b>
+                <small>Defina seus horários semanais</small>
+              </div>
+              <Link
+                href="/app/settings/study"
+                aria-label="Informar disponibilidade semanal"
+              >
+                →
+              </Link>
+            </li>
+            <li>
+              <span>04</span>
+              <div>
+                <b>Pomodoro</b>
+                <small>Personalize foco e pausas</small>
+              </div>
+              <Link href="/app/settings/study" aria-label="Configurar Pomodoro">
+                →
               </Link>
             </li>
           </ol>
