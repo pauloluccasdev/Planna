@@ -48,6 +48,48 @@ type CalendarItem =
     };
 type ReplanningSuggestion = { status: string };
 
+type QuickActionIcon =
+  "study" | "metrics" | "replanning" | "notifications" | "admin";
+
+function ActionIcon({ name }: { name: QuickActionIcon }) {
+  const paths: Record<QuickActionIcon, React.ReactNode> = {
+    study: (
+      <>
+        <path d="M12 5v14M5 12h14" />
+      </>
+    ),
+    metrics: (
+      <>
+        <path d="M5 19V9M12 19V5M19 19v-7" />
+      </>
+    ),
+    replanning: (
+      <>
+        <path d="M20 7h-6V1" />
+        <path d="M20 7a9 9 0 1 0 1 8" />
+      </>
+    ),
+    notifications: (
+      <>
+        <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
+        <path d="M10 21h4" />
+      </>
+    ),
+    admin: (
+      <>
+        <circle cx="12" cy="8" r="4" />
+        <path d="M4 21a8 8 0 0 1 16 0" />
+      </>
+    ),
+  };
+
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      {paths[name]}
+    </svg>
+  );
+}
+
 const timeOnly = new Intl.DateTimeFormat("pt-BR", {
   timeZone: "America/Sao_Paulo",
   hour: "2-digit",
@@ -211,31 +253,96 @@ export default async function DashboardPage({ searchParams }: Props) {
           <h1>Olá, {user.username}.</h1>
           <p>Seus blocos e compromissos acadêmicos aparecerão aqui.</p>
         </div>
-        <div className="dashboard-intro-actions">
-          {user.role === "ADMIN" ? (
-            <Link className="secondary-button" href="/app/admin">
-              Administrar contas
-            </Link>
-          ) : null}
-          <Link className="secondary-button" href="/app/metrics">
-            Ver indicadores
-          </Link>
-          <Link className="secondary-button" href="/app/notifications">
-            Notificações
-          </Link>
-          <Link className="secondary-button" href="/app/replanning">
-            Replanejar{openReplanningCount ? ` (${openReplanningCount})` : ""}
-          </Link>
-          <Link className="secondary-button" href="/app/study/new">
-            Registrar estudo
-          </Link>
-          <Link className="secondary-button" href="/app/planning">
-            Gerar planejamento
-          </Link>
+        <div className="dashboard-primary-action">
+          <span>Próxima ação</span>
           <Link className="button" href="/app/courses">
-            Organizar estudos
+            Organizar meus estudos <span aria-hidden="true">→</span>
           </Link>
+          <Link href="/app/planning">Criar planejamento</Link>
         </div>
+      </section>
+      <section
+        className="dashboard-actions"
+        aria-labelledby="quick-actions-title"
+      >
+        <div className="dashboard-actions-main">
+          <div className="dashboard-actions-heading">
+            <div>
+              <span className="eyebrow">Atalhos</span>
+              <h2 id="quick-actions-title">Ações rápidas</h2>
+            </div>
+            <span>O que você deseja fazer agora?</span>
+          </div>
+          <div className="quick-actions-grid">
+            <Link href="/app/study/new">
+              <span className="quick-action-icon">
+                <ActionIcon name="study" />
+              </span>
+              <span>
+                <b>Registrar estudo</b>
+                <small>Inclua uma sessão realizada</small>
+              </span>
+              <span className="quick-action-arrow" aria-hidden="true">
+                →
+              </span>
+            </Link>
+            <Link href="/app/metrics">
+              <span className="quick-action-icon">
+                <ActionIcon name="metrics" />
+              </span>
+              <span>
+                <b>Indicadores</b>
+                <small>Acompanhe seu desempenho</small>
+              </span>
+              <span className="quick-action-arrow" aria-hidden="true">
+                →
+              </span>
+            </Link>
+            <Link href="/app/replanning">
+              <span className="quick-action-icon">
+                <ActionIcon name="replanning" />
+              </span>
+              <span>
+                <b>Replanejar</b>
+                <small>Revise atrasos e sugestões</small>
+              </span>
+              {openReplanningCount ? (
+                <span className="quick-action-count">
+                  {openReplanningCount}
+                </span>
+              ) : (
+                <span className="quick-action-arrow" aria-hidden="true">
+                  →
+                </span>
+              )}
+            </Link>
+            <Link href="/app/notifications">
+              <span className="quick-action-icon">
+                <ActionIcon name="notifications" />
+              </span>
+              <span>
+                <b>Notificações</b>
+                <small>Veja lembretes e avisos</small>
+              </span>
+              <span className="quick-action-arrow" aria-hidden="true">
+                →
+              </span>
+            </Link>
+          </div>
+        </div>
+        {user.role === "ADMIN" ? (
+          <aside className="dashboard-admin-action">
+            <span className="quick-action-icon">
+              <ActionIcon name="admin" />
+            </span>
+            <span className="eyebrow">Administração</span>
+            <h2>Gestão de contas</h2>
+            <p>Consulte usuários e gerencie o acesso à plataforma.</p>
+            <Link href="/app/admin">
+              Administrar contas <span aria-hidden="true">→</span>
+            </Link>
+          </aside>
+        ) : null}
       </section>
       {runningSession ? (
         <section className="active-session-banner">
