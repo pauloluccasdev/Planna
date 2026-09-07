@@ -142,7 +142,7 @@ export default async function MetricsPage({
           <span className="brand-mark">P</span>
           Planna
         </Link>
-        <Link className="secondary-button" href="/app">
+        <Link className="back-link" href="/app">
           Voltar à agenda
         </Link>
       </header>

@@ -114,9 +114,11 @@ export default async function SubjectPage({ params }: Props) {
                     {content.progress.futureBlockCount}{" "}
                     {content.progress.futureBlockCount === 1
                       ? "bloco futuro"
-                      : "blocos futuros"}{" "}
-                    →
+                      : "blocos futuros"}
                   </span>
+                  <strong className="resource-card-cta">
+                    Abrir conteúdo <i aria-hidden="true">→</i>
+                  </strong>
                 </div>
               </Link>
             ))

@@ -283,7 +283,7 @@ export default async function DashboardPage({ searchParams }: Props) {
                 <small>Inclua uma sessão realizada</small>
               </span>
               <span className="quick-action-arrow" aria-hidden="true">
-                →
+                Cadastrar
               </span>
             </Link>
             <Link href="/app/metrics">
@@ -295,7 +295,7 @@ export default async function DashboardPage({ searchParams }: Props) {
                 <small>Acompanhe seu desempenho</small>
               </span>
               <span className="quick-action-arrow" aria-hidden="true">
-                →
+                Adicionar
               </span>
             </Link>
             <Link href="/app/replanning">
@@ -325,7 +325,7 @@ export default async function DashboardPage({ searchParams }: Props) {
                 <small>Veja lembretes e avisos</small>
               </span>
               <span className="quick-action-arrow" aria-hidden="true">
-                →
+                Definir
               </span>
             </Link>
           </div>
@@ -638,7 +638,7 @@ export default async function DashboardPage({ searchParams }: Props) {
                 <small>Personalize foco e pausas</small>
               </div>
               <Link href="/app/settings/study" aria-label="Configurar Pomodoro">
-                →
+                Configurar
               </Link>
             </li>
           </ol>

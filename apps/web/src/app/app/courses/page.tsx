@@ -61,7 +61,17 @@ export default async function CoursesPage() {
                       <small>{course.description}</small>
                     ) : null}
                   </div>
-                  <span>{course._count.subjects} disciplinas →</span>
+                  <span className="resource-card-action">
+                    <small>
+                      {course._count.subjects}{" "}
+                      {course._count.subjects === 1
+                        ? "disciplina cadastrada"
+                        : "disciplinas cadastradas"}
+                    </small>
+                    <strong>
+                      Ver disciplinas <i aria-hidden="true">→</i>
+                    </strong>
+                  </span>
                 </Link>
                 <CourseEditor
                   key={`${course.id}:${course.updatedAt}`}

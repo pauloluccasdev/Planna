@@ -118,7 +118,12 @@ export default async function CoursePage({ params }: Props) {
                       <small>{periodNames.get(subject.academicPeriodId)}</small>
                     ) : null}
                   </div>
-                  <span>Ver conteúdos →</span>
+                  <span className="resource-card-action">
+                    <small>Acessar esta disciplina</small>
+                    <strong>
+                      Ver conteúdos <i aria-hidden="true">→</i>
+                    </strong>
+                  </span>
                 </Link>
                 <SubjectEditor
                   key={`${subject.id}:${subject.updatedAt}`}
