@@ -18,7 +18,7 @@ O Planna possui duas imagens independentes e não fica preso a um fornecedor:
 
 As variáveis obrigatórias são `DATABASE_URL`, `SUPABASE_URL`,
 `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`, `SUPABASE_JWKS_URL`,
-`PASSWORD_RECOVERY_REDIRECT_URL`, `WEB_ORIGIN`, `WEB_PUSH_PUBLIC_KEY`,
+`EMAIL_CONFIRMATION_REDIRECT_URL`, `PASSWORD_RECOVERY_REDIRECT_URL`, `WEB_ORIGIN`, `WEB_PUSH_PUBLIC_KEY`,
 `WEB_PUSH_PRIVATE_KEY`, `WEB_PUSH_SUBJECT` e `CRON_SECRET`. `PORT`, limites do
 pool e timeout de transação possuem padrões documentados em `.env.example`.
 

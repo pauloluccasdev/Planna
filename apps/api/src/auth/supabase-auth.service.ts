@@ -50,6 +50,11 @@ export class SupabaseAuthService {
     const { data, error } = await this.client.auth.signUp({
       email,
       password: input.password,
+      options: {
+        emailRedirectTo: getRequiredEnvironment(
+          'EMAIL_CONFIRMATION_REDIRECT_URL',
+        ),
+      },
     });
     const authUser = data.user;
     if (error) {

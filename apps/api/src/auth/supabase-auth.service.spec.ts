@@ -78,6 +78,13 @@ describe('SupabaseAuthService', () => {
       user: account,
       emailVerificationRequired: true,
     });
+    expect(client.client.auth.signUp).toHaveBeenCalledWith({
+      email: 'Paulo@example.com',
+      password: 'senha-segura',
+      options: {
+        emailRedirectTo: expect.stringContaining('/login'),
+      },
+    });
     expect(transaction.userAccount.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
