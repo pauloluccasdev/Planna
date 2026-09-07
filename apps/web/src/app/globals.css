@@ -572,6 +572,42 @@ h1 {
   border-color: var(--ink);
   box-shadow: 0 0 0 3px rgb(23 60 53 / 10%);
 }
+.password-field {
+  position: relative;
+}
+.password-field input {
+  padding-right: 54px;
+}
+.password-field > button {
+  position: absolute;
+  top: 50%;
+  right: 9px;
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  padding: 0;
+  transform: translateY(-50%);
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+.password-field > button:hover,
+.password-field > button:focus-visible {
+  background: #e8eee9;
+  color: var(--ink);
+}
+.password-field svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
+}
 .field-error,
 .form-message {
   color: #a63e2b;

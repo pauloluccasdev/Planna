@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useActionState } from "react";
+import { PasswordInput } from "../_components/password-input";
 import { login, type LoginState } from "./actions";
 
 const initialState: LoginState = {};
@@ -12,7 +13,7 @@ export function LoginForm() {
     <form action={action} className="login-form">
       <div className="field">
         <label htmlFor="username">Nome de usuário</label>
-        <input
+        <PasswordInput
           id="username"
           name="username"
           autoComplete="username"
@@ -33,7 +34,6 @@ export function LoginForm() {
         <input
           id="password"
           name="password"
-          type="password"
           autoComplete="current-password"
           minLength={8}
           required

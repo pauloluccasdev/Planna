@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useActionState, useSyncExternalStore } from "react";
+import { PasswordInput } from "../_components/password-input";
 import { resetPassword, type PasswordResetState } from "./actions";
 
 const initialState: PasswordResetState = {};
@@ -54,13 +55,12 @@ export function PasswordResetForm() {
       <input name="accessToken" type="hidden" value={accessToken} />
       <div className="field">
         <label htmlFor="new-password">Nova senha</label>
-        <input
+        <PasswordInput
           autoComplete="new-password"
           id="new-password"
           maxLength={128}
           minLength={8}
           name="password"
-          type="password"
           required
           aria-describedby={
             state.errors?.password ? "new-password-error" : undefined
@@ -74,13 +74,12 @@ export function PasswordResetForm() {
       </div>
       <div className="field">
         <label htmlFor="new-password-confirmation">Confirmar nova senha</label>
-        <input
+        <PasswordInput
           autoComplete="new-password"
           id="new-password-confirmation"
           maxLength={128}
           minLength={8}
           name="passwordConfirmation"
-          type="password"
           required
           aria-describedby={
             state.errors?.passwordConfirmation

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useActionState } from "react";
+import { PasswordInput } from "../_components/password-input";
 import { register, type RegisterState } from "./actions";
 
 const initialState: RegisterState = {};
@@ -64,13 +65,12 @@ export function RegisterForm() {
       <div className="form-columns">
         <div className="field">
           <label htmlFor="register-password">Senha</label>
-          <input
+          <PasswordInput
             autoComplete="new-password"
             id="register-password"
             maxLength={128}
             minLength={8}
             name="password"
-            type="password"
             required
             aria-describedby={
               state.errors?.password ? "register-password-error" : undefined
@@ -86,13 +86,12 @@ export function RegisterForm() {
           <label htmlFor="register-password-confirmation">
             Confirmar senha
           </label>
-          <input
+          <PasswordInput
             autoComplete="new-password"
             id="register-password-confirmation"
             maxLength={128}
             minLength={8}
             name="passwordConfirmation"
-            type="password"
             required
             aria-describedby={
               state.errors?.passwordConfirmation
