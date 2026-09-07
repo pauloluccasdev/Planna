@@ -32,6 +32,10 @@ deve chamar `GET /api/v1/internal/notifications/dispatch` com o cabeçalho
 plano da Vercel que aceite Cron subdiário; em plano Hobby, use outro agendador
 compatível mantendo o mesmo endpoint protegido.
 
+O agendamento nativo está declarado em `apps/api/vercel.json` com intervalo de
+cinco minutos. A Vercel envia automaticamente `Authorization: Bearer
+<CRON_SECRET>` ao endpoint nos deploys de produção.
+
 O frontend desativa automaticamente o formato `standalone` durante builds na
 Vercel, pois a plataforma realiza seu próprio empacotamento. Fora dela, esse
 formato permanece ativo para a imagem Docker.
