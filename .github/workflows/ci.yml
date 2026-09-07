@@ -22,6 +22,7 @@ jobs:
       API_URL: http://localhost:3001/api/v1
       DATABASE_URL: postgresql://planna:planna@localhost:5432/planna
       DIRECT_URL: postgresql://planna:planna@localhost:5432/planna
+      EMAIL_CONFIRMATION_REDIRECT_URL: http://localhost:3000/login
       NEXT_PUBLIC_API_URL: http://localhost:3001/api/v1
       NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ci-publishable-key
       NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
