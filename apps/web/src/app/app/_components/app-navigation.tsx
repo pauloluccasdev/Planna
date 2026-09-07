@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type Setup = {
   hasCourse: boolean;
@@ -74,6 +74,7 @@ export function AppNavigation({
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   const navigationItems = isAdmin
     ? [
         { href: "/app", label: "Início", icon: "calendar" as const },
@@ -114,6 +115,21 @@ export function AppNavigation({
   const completed = steps.filter((step) => step.done).length;
   const next = steps.find((step) => !step.done);
 
+  useEffect(() => {
+    if (isAdmin) return;
+    const storageKey = "planna-navigation-help-seen";
+    if (!window.localStorage.getItem(storageKey)) {
+      window.localStorage.setItem(storageKey, "true");
+      const timer = window.setTimeout(() => setHelpOpen(true), 0);
+      return () => window.clearTimeout(timer);
+    }
+  }, [isAdmin]);
+
+  function openSetup() {
+    setHelpOpen(false);
+    setOpen(true);
+  }
+
   return (
     <>
       <nav className="app-navigation" aria-label="Navegação do Planna">
@@ -130,19 +146,114 @@ export function AppNavigation({
             </Link>
           ))}
           {!isAdmin ? (
-            <button
-              aria-expanded={open}
-              aria-controls="setup-navigation-panel"
-              className="setup-navigation-trigger"
-              onClick={() => setOpen((value) => !value)}
-              type="button"
-            >
-              <span className="setup-navigation-progress">{completed}/5</span>
-              <span>Preparar plano</span>
-            </button>
+            <>
+              <button
+                aria-expanded={helpOpen}
+                aria-controls="navigation-help-panel"
+                className="navigation-help-trigger"
+                onClick={() => {
+                  setOpen(false);
+                  setHelpOpen((value) => !value);
+                }}
+                type="button"
+              >
+                <span aria-hidden="true">?</span>
+                <span>Ajuda</span>
+              </button>
+              <button
+                aria-expanded={open}
+                aria-controls="setup-navigation-panel"
+                className="setup-navigation-trigger"
+                onClick={() => {
+                  setHelpOpen(false);
+                  setOpen((value) => !value);
+                }}
+                type="button"
+              >
+                <span className="setup-navigation-progress">{completed}/5</span>
+                <span>Preparar plano</span>
+              </button>
+            </>
           ) : null}
         </div>
       </nav>
+      {helpOpen ? (
+        <div
+          className="setup-navigation-backdrop"
+          onClick={() => setHelpOpen(false)}
+        >
+          <aside
+            aria-label="Ajuda de navegação"
+            aria-modal="true"
+            className="setup-navigation-panel navigation-help-panel"
+            id="navigation-help-panel"
+            role="dialog"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <header>
+              <div>
+                <span className="eyebrow">Bem-vindo ao Planna</span>
+                <h2>Seu estudo, passo a passo</h2>
+              </div>
+              <button
+                aria-label="Fechar ajuda"
+                onClick={() => setHelpOpen(false)}
+                type="button"
+              >
+                ×
+              </button>
+            </header>
+            <p className="navigation-help-intro">
+              Você não precisa configurar tudo de uma vez. Comece pela sua
+              estrutura acadêmica e o Planna indicará o próximo passo.
+            </p>
+            <ol className="navigation-help-journey">
+              <li>
+                <span>1</span>
+                <div>
+                  <strong>Organize</strong>
+                  <p>Cadastre cursos, disciplinas, conteúdos e prioridades.</p>
+                </div>
+              </li>
+              <li>
+                <span>2</span>
+                <div>
+                  <strong>Planeje</strong>
+                  <p>Informe seus horários e gere ou monte sua agenda.</p>
+                </div>
+              </li>
+              <li>
+                <span>3</span>
+                <div>
+                  <strong>Estude</strong>
+                  <p>Execute blocos planejados ou registre um estudo livre.</p>
+                </div>
+              </li>
+              <li>
+                <span>4</span>
+                <div>
+                  <strong>Acompanhe</strong>
+                  <p>Veja seu progresso e trate atrasos sem perder o controle.</p>
+                </div>
+              </li>
+            </ol>
+            <div className="navigation-help-note">
+              <strong>Está procurando alguma área?</strong>
+              <p>
+                Use o menu principal. No celular, ele permanece visível na
+                parte inferior da tela.
+              </p>
+            </div>
+            <button
+              className="button setup-next-action"
+              onClick={openSetup}
+              type="button"
+            >
+              {next ? "Ver minha próxima etapa" : "Revisar minha preparação"}
+            </button>
+          </aside>
+        </div>
+      ) : null}
       {open ? (
         <div
           className="setup-navigation-backdrop"
@@ -150,8 +261,10 @@ export function AppNavigation({
         >
           <aside
             aria-label="Etapas para preparar o planejamento"
+            aria-modal="true"
             className="setup-navigation-panel"
             id="setup-navigation-panel"
+            role="dialog"
             onClick={(event) => event.stopPropagation()}
           >
             <header>

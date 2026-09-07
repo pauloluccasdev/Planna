@@ -55,6 +55,7 @@ Os requisitos abaixo definem qualidades mínimas do MVP. Metas numéricas marcad
 - **RNF-UX-007 — Explicabilidade:** propostas, riscos e impedimentos devem indicar o motivo e a ação necessária.
 - **RNF-UX-008 — Estado temporal:** o cronômetro deve ser reconstruído a partir de registros temporais, sem depender apenas de um contador visual contínuo.
 - **RNF-UX-009 — Orientação:** fluxos longos devem preservar a localização do usuário, indicar progresso e apresentar uma próxima ação clara sem depender do botão voltar do navegador.
+- **RNF-UX-010 — Ajuda de navegação:** o primeiro acesso do aluno deve apresentar uma orientação curta sobre o fluxo principal, que poderá ser dispensada e reaberta posteriormente sem bloquear o uso da plataforma.
 
 ## PWA e compatibilidade
 
