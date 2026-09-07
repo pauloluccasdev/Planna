@@ -32,9 +32,11 @@ deve chamar `GET /api/v1/internal/notifications/dispatch` com o cabeçalho
 plano da Vercel que aceite Cron subdiário; em plano Hobby, use outro agendador
 compatível mantendo o mesmo endpoint protegido.
 
-O agendamento nativo está declarado em `apps/api/vercel.json` com intervalo de
-cinco minutos. A Vercel envia automaticamente `Authorization: Bearer
-<CRON_SECRET>` ao endpoint nos deploys de produção.
+No plano Hobby da Vercel, o gatilho está em
+`.github/workflows/notifications.yml`, com intervalo de cinco minutos. O segredo
+`PLANNA_CRON_SECRET` do GitHub deve possuir exatamente o mesmo valor de
+`CRON_SECRET` na API. O workflow chama o endpoint com `Authorization: Bearer
+<CRON_SECRET>` e impede execuções simultâneas.
 
 O frontend desativa automaticamente o formato `standalone` durante builds na
 Vercel, pois a plataforma realiza seu próprio empacotamento. Fora dela, esse
