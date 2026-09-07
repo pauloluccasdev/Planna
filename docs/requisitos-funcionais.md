@@ -74,6 +74,11 @@
 - **RF-PLM-007 — Alertar déficit:** o sistema deve comparar a carga planejada com a estimativa e alertar sobre carga insuficiente. Referência: RN-PLN-013.
 - **RF-PLM-008 — Indicar excedente:** o sistema deve permitir carga superior à estimativa e informar o excedente. Referência: RN-PLN-014.
 
+## Navegação e orientação
+
+- **RF-NAV-001 — Navegar pelas áreas principais:** a área autenticada deve manter acesso persistente à semana, organização acadêmica, planejamento, estudo e indicadores, com indicação da seção atual em desktop e mobile.
+- **RF-NAV-002 — Orientar a preparação:** antes do primeiro planejamento, o aluno deve visualizar quais dados essenciais já informou, qual é a próxima etapa e um atalho para continuá-la.
+
 ## Planejamento automático
 
 - **RF-PLA-001 — Solicitar geração:** o aluno deve escolher período, cursos e disciplinas para solicitar uma proposta. Referência: RN-PLN-004.
