@@ -68,9 +68,11 @@ function isCurrent(pathname: string, href: string) {
 export function AppNavigation({
   setup,
   isAdmin,
+  userId,
 }: {
   setup: Setup;
   isAdmin: boolean;
+  userId: string;
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -117,13 +119,26 @@ export function AppNavigation({
 
   useEffect(() => {
     if (isAdmin) return;
-    const storageKey = "planna-navigation-help-seen";
-    if (!window.localStorage.getItem(storageKey)) {
-      window.localStorage.setItem(storageKey, "true");
-      const timer = window.setTimeout(() => setHelpOpen(true), 0);
+    const storageKey = `planna-setup-progress:${userId}`;
+    const savedProgress = window.localStorage.getItem(storageKey);
+    const lastShownProgress =
+      savedProgress === null ? -1 : Number(savedProgress);
+
+    window.localStorage.setItem(storageKey, String(completed));
+
+    if (completed === steps.length) {
+      const timer = window.setTimeout(() => setOpen(false), 0);
       return () => window.clearTimeout(timer);
     }
-  }, [isAdmin]);
+
+    if (completed > lastShownProgress) {
+      const timer = window.setTimeout(() => {
+        setHelpOpen(false);
+        setOpen(true);
+      }, 0);
+      return () => window.clearTimeout(timer);
+    }
+  }, [completed, isAdmin, steps.length, userId]);
 
   function openSetup() {
     setHelpOpen(false);
@@ -233,15 +248,17 @@ export function AppNavigation({
                 <span>4</span>
                 <div>
                   <strong>Acompanhe</strong>
-                  <p>Veja seu progresso e trate atrasos sem perder o controle.</p>
+                  <p>
+                    Veja seu progresso e trate atrasos sem perder o controle.
+                  </p>
                 </div>
               </li>
             </ol>
             <div className="navigation-help-note">
               <strong>Está procurando alguma área?</strong>
               <p>
-                Use o menu principal. No celular, ele permanece visível na
-                parte inferior da tela.
+                Use o menu principal. No celular, ele permanece visível na parte
+                inferior da tela.
               </p>
             </div>
             <button

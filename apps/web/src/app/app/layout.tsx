@@ -20,8 +20,8 @@ export default async function AppLayout({
   if (!meResponse || meResponse.status === 401) redirect("/login");
 
   const user = meResponse.ok
-    ? ((await meResponse.json()) as { data: { role: string } }).data
-    : { role: "STUDENT" };
+    ? ((await meResponse.json()) as { data: { id: string; role: string } }).data
+    : { id: "unknown", role: "STUDENT" };
   const courses = coursesResponse?.ok
     ? ((await coursesResponse.json()) as { data: Course[] }).data
     : [];
@@ -44,6 +44,7 @@ export default async function AppLayout({
     <div className="authenticated-app">
       <AppNavigation
         isAdmin={user.role === "ADMIN"}
+        userId={user.id}
         setup={{
           hasCourse: courses.length > 0,
           hasSubject: subjectCount > 0,
