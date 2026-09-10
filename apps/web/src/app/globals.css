@@ -3344,9 +3344,13 @@ a.resource-row:hover {
 }
 .content-primary-actions .button,
 .content-primary-actions .secondary-button {
+  display: flex;
+  width: 100%;
   min-height: 48px;
+  align-items: center;
   justify-content: center;
   padding-inline: 16px;
+  line-height: 1.2;
   text-align: center;
 }
 .content-danger-action {
