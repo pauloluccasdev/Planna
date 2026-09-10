@@ -153,63 +153,106 @@ export default async function ContentPage({ params }: Props) {
           ) : null}
         </section>
       ) : null}
-      <section className="content-layout">
-        <div className="resource-list">
-          {parts.length === 0 ? (
-            <div className="dashboard-card resource-empty">
-              <h2>Nenhuma parte cadastrada.</h2>
-              <p>Você também pode estudar o conteúdo completo sem dividi-lo.</p>
+      <section className="content-parts-section">
+        <header className="content-parts-heading">
+          <div>
+            <span className="eyebrow">Organização do estudo</span>
+            <h2>Partes do conteúdo</h2>
+          </div>
+          <p>
+            Dividir é opcional. Use partes apenas se quiser acompanhar capítulos
+            ou etapas separadamente.
+          </p>
+        </header>
+        {parts.length === 0 ? (
+          <div className="dashboard-card content-parts-empty">
+            <div className="content-parts-empty-icon" aria-hidden="true">
+              01
             </div>
-          ) : (
-            parts.map((part, index) => (
-              <article
-                className={`dashboard-card part-row ${completedPartIds.has(part.id) ? "part-completed" : ""}`}
-                key={part.id}
-              >
-                <span className="part-position">
-                  {String(index + 1).padStart(2, "0")}
-                </span>
-                <div>
-                  <h2>{part.name}</h2>
-                  {completedPartIds.has(part.id) ? (
-                    <small>Concluída</small>
-                  ) : null}
-                  {part.description && <p>{part.description}</p>}
-                </div>
-                <div
-                  className="order-actions"
-                  aria-label={`Ordenar ${part.name}`}
+            <div className="content-parts-empty-copy">
+              <span className="eyebrow">Configuração atual</span>
+              <h3>Estudar o conteúdo completo</h3>
+              <p>
+                Você não precisa cadastrar partes para planejar ou estudar este
+                conteúdo. Se ele tiver capítulos ou etapas, você pode dividi-lo
+                agora.
+              </p>
+            </div>
+            <details className="content-parts-disclosure">
+              <summary>Dividir este conteúdo em partes</summary>
+              <div className="content-parts-form-panel">
+                <h3>Adicionar a primeira parte</h3>
+                <p>
+                  Comece pelo primeiro capítulo, tópico ou etapa que deseja
+                  acompanhar.
+                </p>
+                <PartForm contentId={contentId} />
+              </div>
+            </details>
+          </div>
+        ) : (
+          <div className="content-layout">
+            <div className="resource-list" aria-label="Partes cadastradas">
+              <div className="content-parts-list-heading">
+                <strong>
+                  {parts.length} {parts.length === 1 ? "parte" : "partes"}
+                </strong>
+                <span>Use as setas para definir a ordem de estudo.</span>
+              </div>
+              {parts.map((part, index) => (
+                <article
+                  className={`dashboard-card part-row ${completedPartIds.has(part.id) ? "part-completed" : ""}`}
+                  key={part.id}
                 >
-                  <form action={movePart.bind(null, contentId, part.id, "up")}>
-                    <button
-                      disabled={index === 0}
-                      type="submit"
-                      aria-label="Mover para cima"
-                    >
-                      ↑
-                    </button>
-                  </form>
-                  <form
-                    action={movePart.bind(null, contentId, part.id, "down")}
+                  <span className="part-position">
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
+                  <div>
+                    <h2>{part.name}</h2>
+                    {completedPartIds.has(part.id) ? (
+                      <small>Concluída</small>
+                    ) : null}
+                    {part.description && <p>{part.description}</p>}
+                  </div>
+                  <div
+                    className="order-actions"
+                    aria-label={`Ordenar ${part.name}`}
                   >
-                    <button
-                      disabled={index === parts.length - 1}
-                      type="submit"
-                      aria-label="Mover para baixo"
+                    <form
+                      action={movePart.bind(null, contentId, part.id, "up")}
                     >
-                      ↓
-                    </button>
-                  </form>
-                </div>
-                <PartManager contentId={contentId} part={part} />
-              </article>
-            ))
-          )}
-        </div>
-        <aside className="dashboard-card create-card content-create-card">
-          <span className="eyebrow">Nova parte</span>
-          <PartForm contentId={contentId} />
-        </aside>
+                      <button
+                        disabled={index === 0}
+                        type="submit"
+                        aria-label="Mover para cima"
+                      >
+                        ↑
+                      </button>
+                    </form>
+                    <form
+                      action={movePart.bind(null, contentId, part.id, "down")}
+                    >
+                      <button
+                        disabled={index === parts.length - 1}
+                        type="submit"
+                        aria-label="Mover para baixo"
+                      >
+                        ↓
+                      </button>
+                    </form>
+                  </div>
+                  <PartManager contentId={contentId} part={part} />
+                </article>
+              ))}
+            </div>
+            <aside className="dashboard-card create-card content-create-card">
+              <span className="eyebrow">Continuar dividindo</span>
+              <h2>Adicionar outra parte</h2>
+              <p>Cadastre o próximo capítulo ou etapa deste conteúdo.</p>
+              <PartForm contentId={contentId} />
+            </aside>
+          </div>
+        )}
       </section>
     </main>
   );
