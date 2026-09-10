@@ -26,6 +26,19 @@ type Period = {
 
 export const metadata: Metadata = { title: "Disciplinas" };
 
+const periodDate = new Intl.DateTimeFormat("pt-BR", {
+  timeZone: "UTC",
+  day: "2-digit",
+  month: "short",
+  year: "numeric",
+});
+
+function formatPeriodDate(value: string | null) {
+  return value
+    ? periodDate.format(new Date(`${value.slice(0, 10)}T12:00:00Z`))
+    : "…";
+}
+
 export default async function CoursePage({ params }: Props) {
   const { courseId } = await params;
   const [courseResponse, subjectsResponse, periodsResponse] = await Promise.all(
@@ -67,19 +80,33 @@ export default async function CoursePage({ params }: Props) {
         </div>
       </section>
       <section className="periods-panel dashboard-card">
-        <div>
-          <span className="eyebrow">Calendário letivo</span>
-          <h2>Períodos do curso</h2>
+        <div className="periods-overview">
+          <header className="periods-heading">
+            <div>
+              <span className="eyebrow">Calendário letivo</span>
+              <h2>Períodos do curso</h2>
+              <p>Organize suas disciplinas por semestre ou período.</p>
+            </div>
+            <span className="periods-count">
+              {periods.length} {periods.length === 1 ? "período" : "períodos"}
+            </span>
+          </header>
           {periods.length ? (
             <div className="period-list">
               {periods.map((period) => (
                 <article key={period.id}>
+                  <span className="period-calendar-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24">
+                      <path d="M7 3v3m10-3v3M4 9h16" />
+                      <rect x="4" y="5" width="16" height="16" rx="2" />
+                    </svg>
+                  </span>
                   <div className="period-summary">
                     <b>{period.name}</b>
                     {period.startsOn || period.endsOn ? (
                       <small>
-                        {period.startsOn?.slice(0, 10) ?? "…"} —{" "}
-                        {period.endsOn?.slice(0, 10) ?? "…"}
+                        {formatPeriodDate(period.startsOn)} —{" "}
+                        {formatPeriodDate(period.endsOn)}
                       </small>
                     ) : null}
                   </div>
@@ -92,7 +119,10 @@ export default async function CoursePage({ params }: Props) {
               ))}
             </div>
           ) : (
-            <p>Nenhum período cadastrado.</p>
+            <div className="periods-empty">
+              <strong>Nenhum período cadastrado</strong>
+              <span>Use o formulário ao lado para adicionar o primeiro.</span>
+            </div>
           )}
         </div>
         <PeriodForm courseId={courseId} />

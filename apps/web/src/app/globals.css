@@ -2988,43 +2988,100 @@ a.resource-row:hover {
 }
 .periods-panel {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 32px;
+  grid-template-columns: minmax(0, 0.95fr) minmax(420px, 1.05fr);
+  gap: clamp(24px, 4vw, 48px);
   margin-bottom: 24px;
   padding: clamp(22px, 4vw, 32px);
 }
-.periods-panel h2 {
-  margin: 7px 0 12px;
+.periods-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
 }
-.periods-panel > div > p {
+.periods-heading .eyebrow {
+  margin-bottom: 8px;
+}
+.periods-heading h2 {
+  margin: 0 0 6px;
+  font-size: 1.35rem;
+}
+.periods-heading p {
+  margin: 0;
   color: var(--muted);
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+.periods-count {
+  flex: 0 0 auto;
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: #edf2eb;
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 750;
 }
 .period-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  display: grid;
+  gap: 10px;
+  margin-top: 22px;
 }
 .period-list > article {
   display: grid;
-  gap: 2px;
-  padding: 9px 12px;
-  border-radius: 9px;
-  background: #eef4ef;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid #dce4dc;
+  border-radius: 13px;
+  background: #f8faf6;
+}
+.period-calendar-icon {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border-radius: 11px;
+  background: #e4eee7;
+  color: var(--green-800);
+}
+.period-calendar-icon svg {
+  width: 19px;
+  height: 19px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.7;
 }
 .period-summary {
   display: grid;
-  gap: 2px;
+  gap: 4px;
 }
 .period-list small,
 .resource-row small {
   color: var(--muted);
 }
 .period-editor > summary {
+  display: flex;
+  align-items: center;
+  gap: 7px;
   color: var(--muted);
   cursor: pointer;
   font-size: 0.75rem;
   font-weight: 700;
-  padding-top: 0.4rem;
+  list-style: none;
+}
+.period-editor > summary::-webkit-details-marker {
+  display: none;
+}
+.period-editor > summary:hover {
+  color: var(--ink);
+}
+.period-editor[open] {
+  grid-column: 1 / -1;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
 }
 .period-edit-form {
   display: grid;
@@ -3040,13 +3097,65 @@ a.resource-row:hover {
   display: grid;
   gap: 14px;
 }
+.period-create-form {
+  align-self: start;
+  padding: 24px;
+  border: 1px solid #dce4dc;
+  border-radius: 16px;
+  background: #f7f9f5;
+}
+.period-create-heading {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 12px;
+  margin-bottom: 6px;
+}
+.period-create-heading > span {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--ink);
+  color: var(--lime);
+  font-size: 1.25rem;
+}
+.period-create-heading small {
+  color: #547064;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+.period-create-heading h3 {
+  margin: 3px 0 4px;
+  font-size: 1.1rem;
+}
+.period-create-heading p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+.periods-empty {
+  display: grid;
+  gap: 5px;
+  margin-top: 22px;
+  padding: 18px;
+  border: 1px dashed #cbd7cd;
+  border-radius: 13px;
+  color: var(--muted);
+}
+.periods-empty strong {
+  color: var(--ink);
+}
 .period-create-form .form-error,
 .period-create-form .form-success,
 .subject-create-form .form-message,
 .subject-create-form .form-success {
   margin: 0;
 }
-.period-create-form > .secondary-button,
+.period-create-form > .button,
 .subject-create-form > .button {
   justify-self: start;
   border: 0;
@@ -3401,6 +3510,9 @@ a.resource-row:hover {
   .periods-panel {
     grid-template-columns: 1fr;
   }
+  .period-create-form {
+    padding: 20px;
+  }
   .content-progress {
     grid-template-columns: 1fr;
   }
@@ -3461,6 +3573,23 @@ a.resource-row:hover {
   }
   .dashboard-card {
     padding: 20px;
+  }
+  .periods-panel.dashboard-card {
+    padding: 18px;
+  }
+  .periods-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .period-list > article {
+    grid-template-columns: 40px minmax(0, 1fr);
+  }
+  .period-editor {
+    grid-column: 1 / -1;
+  }
+  .period-create-form {
+    padding: 18px;
   }
   .course-row.dashboard-card,
   .subject-row.dashboard-card {

@@ -14,6 +14,14 @@ export function PeriodForm({ courseId }: { courseId: string }) {
   }, [state.success]);
   return (
     <form ref={formRef} action={action} className="period-create-form">
+      <header className="period-create-heading">
+        <span aria-hidden="true">+</span>
+        <div>
+          <small>Novo período</small>
+          <h3>Adicionar ao calendário</h3>
+          <p>As datas são opcionais e podem ser preenchidas depois.</p>
+        </div>
+      </header>
       <label className="field">
         <span>Nome do período</span>
         <input
@@ -36,7 +44,7 @@ export function PeriodForm({ courseId }: { courseId: string }) {
       </div>
       {state.message ? <p className="form-error">{state.message}</p> : null}
       {state.success ? <p className="form-success">{state.success}</p> : null}
-      <button className="secondary-button" type="submit" disabled={pending}>
+      <button className="button" type="submit" disabled={pending}>
         {pending ? "Salvando…" : "Criar período"}
       </button>
     </form>

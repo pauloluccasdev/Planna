@@ -25,7 +25,10 @@ export function PeriodEditor({
 
   return (
     <details className="period-editor">
-      <summary>Editar período</summary>
+      <summary>
+        <span>Editar período</span>
+        <span aria-hidden="true">→</span>
+      </summary>
       <form action={formAction} className="period-edit-form">
         <label className="field">
           <span>Nome do período</span>
