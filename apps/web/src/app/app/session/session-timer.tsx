@@ -1,5 +1,6 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import {
@@ -89,6 +90,10 @@ export function SessionTimer({
       )
     : 0;
   const recommended = current?.kind === "FOCUS" ? focusSeconds : breakSeconds;
+  const cycleRemaining = Math.max(0, recommended - currentElapsed);
+  const cycleProgress = recommended
+    ? Math.min(100, (currentElapsed / recommended) * 100)
+    : 0;
   const cycleFinished = Boolean(current && currentElapsed >= recommended);
   const plannedTimePassed = Boolean(
     plannedEndsAt && now >= new Date(plannedEndsAt).getTime(),
@@ -134,16 +139,47 @@ export function SessionTimer({
 
   return (
     <section className="session-clock" aria-live="polite">
-      <span className="eyebrow">
-        {current?.kind === "POMODORO_BREAK"
-          ? "Pausa Pomodoro"
-          : "Tempo efetivo"}
-      </span>
-      <strong>{formatDuration(totals.total)}</strong>
-      <p>
-        Foco {formatDuration(totals.focus)} · Pausas{" "}
-        {formatDuration(totals.pause)}
-      </p>
+      <header className="session-clock-heading">
+        <span className="eyebrow">Pomodoro</span>
+        <span className="session-phase">
+          {liveSession.status === "PAUSED"
+            ? "Sessão pausada"
+            : current?.kind === "POMODORO_BREAK"
+              ? "Momento de pausa"
+              : "Momento de foco"}
+        </span>
+      </header>
+      <div
+        className={`session-timer-ring ${liveSession.status === "PAUSED" ? "is-paused" : ""}`}
+        style={{ "--cycle-progress": `${cycleProgress}%` } as CSSProperties}
+        role="timer"
+        aria-label={`${formatDuration(cycleRemaining)} restantes neste ciclo`}
+      >
+        <div className="session-timer-face">
+          <strong>{formatDuration(cycleRemaining)}</strong>
+          <span>
+            {liveSession.status === "PAUSED"
+              ? "PAUSADO"
+              : cycleFinished
+                ? "CICLO CONCLUÍDO"
+                : "RESTANTES"}
+          </span>
+        </div>
+      </div>
+      <div className="session-time-summary" aria-label="Resumo da sessão">
+        <div>
+          <span>Foco</span>
+          <strong>{formatDuration(totals.focus)}</strong>
+        </div>
+        <div>
+          <span>Pausas</span>
+          <strong>{formatDuration(totals.pause)}</strong>
+        </div>
+        <div>
+          <span>Tempo efetivo</span>
+          <strong>{formatDuration(totals.total)}</strong>
+        </div>
+      </div>
 
       {cycleFinished && liveSession.status === "RUNNING" ? (
         <div className="session-notice">

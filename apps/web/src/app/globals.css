@@ -2516,25 +2516,113 @@ a.resource-row:hover {
 .completion-card {
   padding: clamp(22px, 4vw, 36px);
 }
-.session-clock > strong {
-  display: block;
-  margin: 18px 0 5px;
-  font-size: clamp(3rem, 8vw, 5.5rem);
-  letter-spacing: -0.06em;
+.session-clock {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
 }
-.session-clock > p {
-  margin: 0;
+.session-clock-heading {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  text-align: center;
+}
+.session-phase {
+  display: inline-flex;
+  min-height: 30px;
+  align-items: center;
+  padding: 0 13px;
+  border-radius: 999px;
+  background: #eaf0eb;
+  color: var(--green-800);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+.session-timer-ring {
+  --cycle-progress: 0%;
+  position: relative;
+  display: grid;
+  width: min(78vw, 290px);
+  aspect-ratio: 1;
+  margin: 28px auto 24px;
+  place-items: center;
+  border-radius: 50%;
+  background: conic-gradient(
+    var(--lime) var(--cycle-progress),
+    #dfe7e1 var(--cycle-progress)
+  );
+  box-shadow: 0 20px 42px rgb(21 54 45 / 14%);
+}
+.session-timer-ring::before {
+  position: absolute;
+  width: calc(100% - 14px);
+  aspect-ratio: 1;
+  border-radius: inherit;
+  background: var(--ink);
+  content: "";
+}
+.session-timer-ring.is-paused {
+  filter: saturate(0.6);
+}
+.session-timer-face {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  color: #fff;
+}
+.session-timer-face strong {
+  font-size: clamp(2.4rem, 6vw, 4rem);
+  letter-spacing: -0.055em;
+  line-height: 1;
+}
+.session-timer-face span {
+  color: #cbd8d1;
+  font-size: 0.62rem;
+  font-weight: 850;
+  letter-spacing: 0.2em;
+}
+.session-time-summary {
+  display: grid;
+  width: 100%;
+  grid-template-columns: repeat(3, 1fr);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #f7f9f5;
+}
+.session-time-summary > div {
+  display: grid;
+  justify-items: center;
+  gap: 5px;
+  padding: 13px 8px;
+  text-align: center;
+}
+.session-time-summary > div + div {
+  border-left: 1px solid var(--line);
+}
+.session-time-summary span {
   color: var(--muted);
+  font-size: 0.68rem;
+}
+.session-time-summary strong {
+  font-size: 0.82rem;
 }
 .session-controls {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   gap: 10px;
-  margin-top: 28px;
+  margin-top: 20px;
 }
 .session-controls .button {
   border: 0;
   cursor: pointer;
+}
+.session-clock > .session-notice,
+.session-clock > .session-warning,
+.session-clock > .form-error {
+  width: 100%;
 }
 .focus-music-player {
   margin-top: 28px;
