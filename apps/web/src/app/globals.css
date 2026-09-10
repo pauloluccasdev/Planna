@@ -2536,6 +2536,119 @@ a.resource-row:hover {
   border: 0;
   cursor: pointer;
 }
+.focus-music-player {
+  margin-top: 28px;
+  padding: 20px;
+  border: 1px solid #dce4dc;
+  border-radius: 16px;
+  background: #f7f9f5;
+}
+.focus-music-player > header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.focus-music-player .eyebrow {
+  margin-bottom: 4px;
+}
+.focus-music-player h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+.focus-music-icon {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--ink);
+  color: var(--lime);
+  font-size: 1.1rem;
+}
+.focus-track {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 18px;
+  padding: 14px;
+  border-radius: 12px;
+  background: #fff;
+}
+.focus-track > div:first-child {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+.focus-track strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.focus-track span {
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+.focus-track-controls {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 6px;
+}
+.focus-track-controls button,
+.focus-volume button {
+  min-height: 36px;
+  padding: 0 11px;
+  border: 1px solid #d4ddd6;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--ink);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 750;
+}
+.focus-track-controls .focus-play {
+  min-width: 88px;
+  border-color: var(--ink);
+  background: var(--ink);
+  color: #fff;
+}
+.focus-volume {
+  display: grid;
+  grid-template-columns: auto minmax(100px, 1fr) 38px;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+}
+.focus-volume input {
+  width: 100%;
+  accent-color: var(--green-800);
+  cursor: pointer;
+}
+.focus-volume output {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 750;
+  text-align: right;
+}
+.focus-music-error {
+  margin: 12px 0 0;
+  color: #a63e2b;
+  font-size: 0.78rem;
+}
+.focus-music-credit {
+  margin: 13px 0 0;
+  color: var(--muted);
+  font-size: 0.66rem;
+  line-height: 1.4;
+}
+.focus-music-credit a {
+  color: var(--green-800);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
 .session-content-switcher {
   margin-top: 28px;
   padding-top: 22px;
@@ -3602,6 +3715,24 @@ a.resource-row:hover {
   }
   .dashboard-card {
     padding: 20px;
+  }
+  .focus-music-player {
+    padding: 16px;
+  }
+  .focus-track {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .focus-track-controls {
+    display: grid;
+    grid-template-columns: 40px 1fr 40px;
+  }
+  .focus-volume {
+    grid-template-columns: 1fr 38px;
+  }
+  .focus-volume button {
+    grid-column: 1 / -1;
+    justify-self: start;
   }
   .periods-panel.dashboard-card {
     padding: 18px;

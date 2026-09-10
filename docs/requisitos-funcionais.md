@@ -124,6 +124,7 @@
 - **RF-SES-017 — Organizar sequência:** o aluno deve poder definir pausas e alternar conteúdos por meio de blocos consecutivos, mantendo um conteúdo por bloco. Referência: RN-SES-014.
 - **RF-SES-018 — Mudar durante a execução:** o aluno deve poder mudar conteúdo ou pausas durante o estudo, preservando separadamente o planejamento confirmado e a execução real. Referência: RN-SES-015.
 - **RF-SES-019 — Trocar para o próximo bloco:** ao aceitar a troca indicada pelo alerta de conflito, o sistema deve pausar a sessão atual e iniciar ou retomar o próximo bloco atomicamente. Referência: RN-SES-016.
+- **RF-SES-020 — Reproduzir som para foco:** durante a sessão, o aluno deve poder reproduzir a playlist licenciada do Planna, avançar ou voltar faixas, pausar, silenciar e ajustar o volume sem interferir no cronômetro. A preferência de volume deve ser preservada no navegador. Referência: RN-SES-017.
 
 ## Estados, atraso e cancelamento
 

@@ -5,6 +5,7 @@ import { notFound, redirect } from "next/navigation";
 import { authenticatedApi } from "../../_lib/api";
 import { CompletionForm } from "./completion-form";
 import { ContentSwitcher } from "./content-switcher";
+import { FocusMusicPlayer } from "./focus-music-player";
 import { SessionTimer } from "./session-timer";
 
 export const metadata: Metadata = { title: "Sessão de estudo" };
@@ -162,6 +163,7 @@ export default async function StudySessionPage({ searchParams }: Props) {
             breakSeconds={session.studyBlock?.breakSeconds ?? 300}
             resumeBlockedBy={runningOtherSession?.content.name ?? null}
           />
+          <FocusMusicPlayer />
           <ContentSwitcher sessionId={session.id} contents={otherContents} />
         </article>
         <article

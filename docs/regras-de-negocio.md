@@ -88,6 +88,7 @@ Este documento registra somente decisões confirmadas. As identificações devem
 - **RN-SES-014** — O aluno define como organizar sua sequência de estudo, inclusive quantidade de pausas e alternância de conteúdos. Cada bloco continua pertencendo a um único conteúdo; uma sequência com matérias diferentes é representada por blocos consecutivos.
 - **RN-SES-015** — Durante a execução, o aluno pode mudar livremente o conteúdo ou as pausas. O Planna registra o que foi efetivamente realizado sem reescrever silenciosamente os blocos confirmados.
 - **RN-SES-016** — Ao escolher o próximo bloco em um alerta de conflito, o Planna pausa a sessão atual e inicia ou retoma a sessão do bloco escolhido atomicamente. Se a troca falhar, a sessão atual continua em execução.
+- **RN-SES-017** — Durante uma sessão, o aluno pode reproduzir opcionalmente a playlist de foco disponibilizada pelo Planna, trocar de faixa, pausar a música, silenciá-la e ajustar o volume. Os controles de áudio não alteram, pausam ou concluem o cronômetro da sessão.
 
 ## Estados e progresso
 
