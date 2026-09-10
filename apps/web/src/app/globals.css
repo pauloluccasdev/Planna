@@ -3108,6 +3108,51 @@ a.resource-row:hover {
   align-items: center;
   text-decoration: none;
 }
+.content-detail-heading {
+  align-items: center;
+}
+.content-detail-heading-copy {
+  min-width: 0;
+  max-width: 720px;
+}
+.content-action-panel {
+  width: min(100%, 390px);
+  flex: 0 0 390px;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 16px 40px rgb(21 54 45 / 7%);
+}
+.content-action-panel-heading p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+.content-primary-actions {
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+}
+.content-primary-actions .button,
+.content-primary-actions .secondary-button {
+  min-height: 48px;
+  justify-content: center;
+  padding-inline: 16px;
+  text-align: center;
+}
+.content-danger-action {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+.content-danger-action .resource-delete-form,
+.content-danger-action .danger-button {
+  width: 100%;
+}
+.content-danger-action .danger-button {
+  min-height: 42px;
+}
 .content-edit-card {
   padding: clamp(24px, 5vw, 44px);
 }
@@ -3608,6 +3653,14 @@ a.resource-row:hover {
   }
   .content-layout {
     grid-template-columns: 1fr;
+  }
+  .content-detail-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .content-action-panel {
+    width: 100%;
+    flex-basis: auto;
   }
   .content-row {
     align-items: flex-start;

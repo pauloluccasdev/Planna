@@ -71,8 +71,8 @@ export default async function ContentPage({ params }: Props) {
           Voltar aos conteúdos
         </Link>
       </header>
-      <section className="resource-heading">
-        <div>
+      <section className="resource-heading content-detail-heading">
+        <div className="content-detail-heading-copy">
           <span className="eyebrow">
             Conteúdo · Prioridade {content.priority}
           </span>
@@ -82,26 +82,34 @@ export default async function ContentPage({ params }: Props) {
               "Divida o conteúdo para acompanhar o progresso com mais precisão."}
           </p>
         </div>
-        <div className="resource-heading-actions">
-          <Link
-            className="secondary-button"
-            href={`/app/contents/${contentId}/edit`}
-          >
-            Editar conteúdo
-          </Link>
-          <Link
-            className="button"
-            href={`/app/contents/${contentId}/blocks/new`}
-          >
-            Planejar este conteúdo
-          </Link>
-          <ResourceDeleteButton
-            action={deleteContent.bind(null, contentId, content.subjectId)}
-            label="Excluir conteúdo"
-            pendingLabel="Excluindo…"
-            confirmation={`Excluir definitivamente o conteúdo “${content.name}”? Esta ação só será permitida se ele não possuir eventos, blocos ou sessões.`}
-          />
-        </div>
+        <aside className="content-action-panel" aria-label="Ações do conteúdo">
+          <div className="content-action-panel-heading">
+            <span className="eyebrow">Ações do conteúdo</span>
+            <p>Escolha o que deseja fazer agora.</p>
+          </div>
+          <div className="content-primary-actions">
+            <Link
+              className="button"
+              href={`/app/contents/${contentId}/blocks/new`}
+            >
+              Planejar este conteúdo
+            </Link>
+            <Link
+              className="secondary-button"
+              href={`/app/contents/${contentId}/edit`}
+            >
+              Editar informações
+            </Link>
+          </div>
+          <div className="content-danger-action">
+            <ResourceDeleteButton
+              action={deleteContent.bind(null, contentId, content.subjectId)}
+              label="Excluir conteúdo"
+              pendingLabel="Excluindo…"
+              confirmation={`Excluir definitivamente o conteúdo “${content.name}”? Esta ação só será permitida se ele não possuir eventos, blocos ou sessões.`}
+            />
+          </div>
+        </aside>
       </section>
       {progress ? (
         <section className="content-progress dashboard-card">
