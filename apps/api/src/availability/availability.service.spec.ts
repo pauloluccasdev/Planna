@@ -54,6 +54,33 @@ describe('AvailabilityService', () => {
     ).resolves.toEqual({ valid: true, conflicts: [] });
   });
 
+  it('treats 00:00 as the end of the selected weekday', async () => {
+    await expect(
+      service.validate('student-id', [
+        { weekday: 1, startLocalTime: '22:00', endLocalTime: '00:00' },
+        { weekday: 2, startLocalTime: '22:00', endLocalTime: '00:00' },
+      ]),
+    ).resolves.toEqual({ valid: true, conflicts: [] });
+  });
+
+  it('covers a block ending exactly at midnight', async () => {
+    prisma.availabilityInterval.findMany.mockResolvedValue([
+      {
+        weekday: 1,
+        startLocalTime: new Date('1970-01-01T22:00:00.000Z'),
+        endLocalTime: new Date('1970-01-01T00:00:00.000Z'),
+      },
+    ]);
+
+    await expect(
+      service.coversInterval(
+        'student-id',
+        new Date('2026-09-08T01:00:00.000Z'),
+        new Date('2026-09-08T03:00:00.000Z'),
+      ),
+    ).resolves.toBe(true);
+  });
+
   it('does not replace the grade when a future block would fall outside it', async () => {
     transaction.studyBlock.findMany.mockResolvedValue([
       {

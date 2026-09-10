@@ -28,6 +28,7 @@ export function AvailabilityForm({ initial }: { initial: Interval[] }) {
       key: interval.id ?? `initial-${index}`,
     })),
   );
+  const [copyMessage, setCopyMessage] = useState<string>();
   const [state, action, pending] = useActionState(
     saveAvailability,
     initialState,
@@ -42,6 +43,44 @@ export function AvailabilityForm({ initial }: { initial: Interval[] }) {
         endLocalTime: "21:00",
       },
     ]);
+  }
+  function update(
+    key: string,
+    field: "startLocalTime" | "endLocalTime",
+    value: string,
+  ) {
+    setRows((current) =>
+      current.map((row) =>
+        row.key === key ? { ...row, [field]: value } : row,
+      ),
+    );
+  }
+  function copyToOtherDays(source: (typeof rows)[number]) {
+    setRows((current) => {
+      const additions = dayNames.flatMap((_, weekday) => {
+        const alreadyExists = current.some(
+          (row) =>
+            row.weekday === weekday &&
+            row.startLocalTime.slice(0, 5) ===
+              source.startLocalTime.slice(0, 5) &&
+            row.endLocalTime.slice(0, 5) === source.endLocalTime.slice(0, 5),
+        );
+        return alreadyExists
+          ? []
+          : [
+              {
+                key: crypto.randomUUID(),
+                weekday,
+                startLocalTime: source.startLocalTime.slice(0, 5),
+                endLocalTime: source.endLocalTime.slice(0, 5),
+              },
+            ];
+      });
+      return [...current, ...additions];
+    });
+    setCopyMessage(
+      `Horário de ${source.startLocalTime.slice(0, 5)} às ${source.endLocalTime.slice(0, 5)} replicado nos demais dias.`,
+    );
   }
   return (
     <form action={action} className="availability-form">
@@ -67,7 +106,10 @@ export function AvailabilityForm({ initial }: { initial: Interval[] }) {
                       <input
                         name="startLocalTime"
                         type="time"
-                        defaultValue={row.startLocalTime.slice(0, 5)}
+                        value={row.startLocalTime.slice(0, 5)}
+                        onChange={(event) =>
+                          update(row.key, "startLocalTime", event.target.value)
+                        }
                         required
                       />
                     </label>
@@ -76,22 +118,36 @@ export function AvailabilityForm({ initial }: { initial: Interval[] }) {
                       <input
                         name="endLocalTime"
                         type="time"
-                        defaultValue={row.endLocalTime.slice(0, 5)}
+                        value={row.endLocalTime.slice(0, 5)}
+                        onChange={(event) =>
+                          update(row.key, "endLocalTime", event.target.value)
+                        }
                         required
                       />
                     </label>
-                    <button
-                      className="remove-time"
-                      type="button"
-                      aria-label={`Remover intervalo de ${name}`}
-                      onClick={() =>
-                        setRows((current) =>
-                          current.filter((item) => item.key !== row.key),
-                        )
-                      }
-                    >
-                      ×
-                    </button>
+                    <div className="time-row-actions">
+                      <button
+                        className="copy-time"
+                        type="button"
+                        aria-label={`Replicar este horário de ${name} nos demais dias`}
+                        title="Replicar nos demais dias"
+                        onClick={() => copyToOtherDays(row)}
+                      >
+                        <span aria-hidden="true">⧉</span> Replicar
+                      </button>
+                      <button
+                        className="remove-time"
+                        type="button"
+                        aria-label={`Remover intervalo de ${name}`}
+                        onClick={() =>
+                          setRows((current) =>
+                            current.filter((item) => item.key !== row.key),
+                          )
+                        }
+                      >
+                        ×
+                      </button>
+                    </div>
                   </div>
                 ))
               )}
@@ -99,6 +155,11 @@ export function AvailabilityForm({ initial }: { initial: Interval[] }) {
           );
         })}
       </div>
+      {copyMessage ? (
+        <p className="availability-copy-message" role="status">
+          {copyMessage}
+        </p>
+      ) : null}
       {state.message && (
         <p className="form-message" role="alert">
           {state.message}

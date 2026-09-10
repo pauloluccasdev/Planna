@@ -36,6 +36,29 @@ function timeToSeconds(value: string): number {
   return hour * 3600 + minute * 60 + second;
 }
 
+function endTimeToSeconds(value: string): number {
+  const seconds = timeToSeconds(value);
+  return seconds === 0 ? 24 * 3600 : seconds;
+}
+
+function rangeEndSeconds(
+  start: { weekday: number; seconds: number },
+  end: { weekday: number; seconds: number },
+  startsAt: Date,
+  endsAt: Date,
+): number | null {
+  if (start.weekday === end.weekday) return end.seconds;
+  const nextWeekday = (start.weekday + 1) % 7;
+  if (
+    end.weekday === nextWeekday &&
+    end.seconds === 0 &&
+    endsAt.getTime() - startsAt.getTime() <= 86_400_000
+  ) {
+    return 24 * 3600;
+  }
+  return null;
+}
+
 function timeToDatabaseDate(value: string): Date {
   return new Date(`1970-01-01T${normalizeTime(value)}.000Z`);
 }
@@ -71,11 +94,11 @@ export function mergeAvailabilityIntervals(
     if (
       previous?.weekday === interval.weekday &&
       timeToSeconds(interval.startLocalTime) <=
-        timeToSeconds(previous.endLocalTime)
+        endTimeToSeconds(previous.endLocalTime)
     ) {
       if (
-        timeToSeconds(interval.endLocalTime) >
-        timeToSeconds(previous.endLocalTime)
+        endTimeToSeconds(interval.endLocalTime) >
+        endTimeToSeconds(previous.endLocalTime)
       ) {
         previous.endLocalTime = interval.endLocalTime;
       }
@@ -156,14 +179,15 @@ export class AvailabilityService {
     return ranges.map(({ startsAt, endsAt }) => {
       const start = instantToLocalPoint(startsAt);
       const end = instantToLocalPoint(endsAt);
-      if (start.weekday !== end.weekday || startsAt >= endsAt) return false;
+      const endSeconds = rangeEndSeconds(start, end, startsAt, endsAt);
+      if (endSeconds === null || startsAt >= endsAt) return false;
       return intervals.some(
         (interval) =>
           interval.weekday === start.weekday &&
           timeToSeconds(databaseTimeToString(interval.startLocalTime)) <=
             start.seconds &&
-          timeToSeconds(databaseTimeToString(interval.endLocalTime)) >=
-            end.seconds,
+          endTimeToSeconds(databaseTimeToString(interval.endLocalTime)) >=
+            endSeconds,
       );
     });
   }
@@ -273,7 +297,7 @@ export class AvailabilityService {
     for (const [index, interval] of normalized.entries()) {
       if (
         timeToSeconds(interval.startLocalTime) >=
-        timeToSeconds(interval.endLocalTime)
+        endTimeToSeconds(interval.endLocalTime)
       ) {
         this.throwInvalid('O horário final deve ser posterior ao inicial.');
       }
@@ -281,7 +305,7 @@ export class AvailabilityService {
       if (
         previous?.weekday === interval.weekday &&
         timeToSeconds(interval.startLocalTime) <
-          timeToSeconds(previous.endLocalTime)
+          endTimeToSeconds(previous.endLocalTime)
       ) {
         this.throwInvalid('Intervalos do mesmo dia não podem se sobrepor.');
       }
@@ -313,13 +337,19 @@ export class AvailabilityService {
     return blocks.flatMap((block) => {
       const start = instantToLocalPoint(block.startsAt);
       const end = instantToLocalPoint(block.endsAt);
+      const endSeconds = rangeEndSeconds(
+        start,
+        end,
+        block.startsAt,
+        block.endsAt,
+      );
       const fits =
-        start.weekday === end.weekday &&
+        endSeconds !== null &&
         intervals.some(
           (interval) =>
             interval.weekday === start.weekday &&
             timeToSeconds(interval.startLocalTime) <= start.seconds &&
-            timeToSeconds(interval.endLocalTime) >= end.seconds,
+            endTimeToSeconds(interval.endLocalTime) >= endSeconds,
         );
       return fits
         ? []

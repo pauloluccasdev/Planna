@@ -28,11 +28,15 @@ export async function saveAvailability(
   });
   if (!response || response.status === 401) redirect("/login");
   if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as {
+      error?: { message?: string };
+    } | null;
     return {
       message:
         response.status === 409
           ? "A alteração deixaria blocos futuros fora da disponibilidade."
-          : "Revise os intervalos: eles não podem se sobrepor.",
+          : (payload?.error?.message ??
+            "Revise os intervalos informados e tente novamente."),
     };
   }
   revalidatePath("/app/settings/study");

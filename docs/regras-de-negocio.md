@@ -40,6 +40,7 @@ Este documento registra somente decisões confirmadas. As identificações devem
 - **RN-DSP-004** — O Planna impede blocos de estudo sobrepostos.
 - **RN-DSP-005** — O Planna impede blocos durante o intervalo de um evento acadêmico que possua horário de término.
 - **RN-DSP-006** — Uma disponibilidade não pode ser removida ou reduzida se isso invalidar blocos futuros; estes devem ser tratados primeiro.
+- **RN-DSP-007** — Em um intervalo de disponibilidade, o término `00:00` representa o fim do dia selecionado. O aluno pode replicar uma faixa de horário para os demais dias e editar as cópias antes de salvar.
 
 ## Planejamento
 

@@ -89,6 +89,13 @@ function timeText(value: Date) {
   return value.toISOString().slice(11, 19);
 }
 
+function availabilityEnd(civilDate: string, value: Date) {
+  const text = timeText(value);
+  const end = new Date(`${civilDate}T${text}-03:00`);
+  if (text === '00:00:00') end.setTime(end.getTime() + 86_400_000);
+  return end;
+}
+
 export function planningEventLookupEnd(
   periodStart: Date,
   periodEnd: Date,
@@ -121,9 +128,7 @@ function materializeAvailability(
         startsAt: new Date(
           `${civilDate}T${timeText(interval.startLocalTime)}-03:00`,
         ),
-        endsAt: new Date(
-          `${civilDate}T${timeText(interval.endLocalTime)}-03:00`,
-        ),
+        endsAt: availabilityEnd(civilDate, interval.endLocalTime),
       });
     }
     cursor.setUTCDate(cursor.getUTCDate() + 1);

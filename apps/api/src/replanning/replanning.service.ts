@@ -142,6 +142,18 @@ function databaseTimeSeconds(value: Date) {
   return hour * 3600 + minute * 60 + second;
 }
 
+function databaseEndTimeSeconds(value: Date) {
+  const seconds = databaseTimeSeconds(value);
+  return seconds === 0 ? 24 * 3600 : seconds;
+}
+
+function availabilityEnd(civilDate: string, value: Date) {
+  const text = timeText(value);
+  const end = new Date(`${civilDate}T${text}-03:00`);
+  if (text === '00:00:00') end.setTime(end.getTime() + 86_400_000);
+  return end;
+}
+
 function weeklyAvailabilityCovers(
   startsAt: Date,
   endsAt: Date,
@@ -153,14 +165,19 @@ function weeklyAvailabilityCovers(
 ) {
   const start = pointInBrazil(startsAt);
   const end = pointInBrazil(endsAt);
+  const endsAtMidnight =
+    end.weekday === (start.weekday + 1) % 7 &&
+    end.seconds === 0 &&
+    endsAt.getTime() - startsAt.getTime() <= 86_400_000;
+  const endSeconds = endsAtMidnight ? 24 * 3600 : end.seconds;
   return (
     startsAt < endsAt &&
-    start.weekday === end.weekday &&
+    (start.weekday === end.weekday || endsAtMidnight) &&
     intervals.some(
       (interval) =>
         interval.weekday === start.weekday &&
         databaseTimeSeconds(interval.startLocalTime) <= start.seconds &&
-        databaseTimeSeconds(interval.endLocalTime) >= end.seconds,
+        databaseEndTimeSeconds(interval.endLocalTime) >= endSeconds,
     )
   );
 }
@@ -703,7 +720,8 @@ export class ReplanningService {
     if (
       !availability.some(
         ({ startLocalTime, endLocalTime }) =>
-          (endLocalTime.getTime() - startLocalTime.getTime()) / 1000 >=
+          databaseEndTimeSeconds(endLocalTime) -
+            databaseTimeSeconds(startLocalTime) >=
           durationSeconds,
       )
     ) {
@@ -729,9 +747,7 @@ export class ReplanningService {
         const intervalStart = new Date(
           `${civil}T${timeText(interval.startLocalTime)}-03:00`,
         );
-        const intervalEnd = new Date(
-          `${civil}T${timeText(interval.endLocalTime)}-03:00`,
-        );
+        const intervalEnd = availabilityEnd(civil, interval.endLocalTime);
         let cursor = new Date(
           Math.max(earliestStart.getTime(), intervalStart.getTime()),
         );

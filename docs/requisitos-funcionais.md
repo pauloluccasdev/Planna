@@ -62,6 +62,8 @@
 - **RF-DSP-002 — Validar intervalo:** o sistema deve impedir intervalos inválidos ou sobrepostos dentro da grade do aluno.
 - **RF-DSP-003 — Validar blocos afetados:** antes de reduzir ou remover disponibilidade, o sistema deve localizar blocos futuros que seriam invalidados e impedir a alteração. Referência: RN-DSP-006.
 - **RF-DSP-004 — Ampliar disponibilidade durante criação:** ao criar bloco fora da grade, o sistema deve oferecer inclusão daquele horário na disponibilidade semanal. Referência: RN-DSP-003.
+- **RF-DSP-005 — Replicar intervalo:** o aluno deve poder copiar uma faixa de disponibilidade para os demais dias da semana antes de salvar. Referência: RN-DSP-007.
+- **RF-DSP-006 — Aceitar término à meia-noite:** o sistema deve interpretar `00:00` como o fim do dia quando usado no término de um intervalo. Referência: RN-DSP-007.
 
 ## Planejamento manual
 

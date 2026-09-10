@@ -1558,9 +1558,29 @@ a.resource-row:hover {
 }
 .time-row {
   display: grid;
-  grid-template-columns: minmax(120px, 1fr) minmax(120px, 1fr) 36px;
+  grid-template-columns: minmax(120px, 1fr) minmax(120px, 1fr) auto;
   gap: 10px;
   align-items: end;
+}
+.time-row-actions {
+  display: flex;
+  gap: 7px;
+}
+.copy-time {
+  min-height: 40px;
+  padding: 0 11px;
+  border: 1px solid #d5dcd7;
+  border-radius: 9px;
+  background: #f8faf6;
+  color: #4f6e64;
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 750;
+}
+.copy-time:hover {
+  border-color: #aebeb3;
+  background: #edf3ed;
+  color: var(--ink);
 }
 .time-row label {
   display: grid;
@@ -1590,6 +1610,15 @@ a.resource-row:hover {
   margin-top: 22px;
   border: 0;
   cursor: pointer;
+}
+.availability-copy-message {
+  margin: 14px 0 0;
+  padding: 11px 14px;
+  border-radius: 10px;
+  background: #edf5e2;
+  color: #376b5c;
+  font-size: 0.8rem;
+  font-weight: 700;
 }
 .form-success {
   margin: 16px 0 0;
@@ -3787,7 +3816,11 @@ a.resource-row:hover {
     grid-row: auto;
   }
   .time-row {
-    grid-template-columns: 1fr 1fr 36px;
+    grid-template-columns: 1fr 1fr;
+  }
+  .time-row-actions {
+    grid-column: 1 / -1;
+    justify-content: flex-end;
   }
   .admin-filters {
     grid-template-columns: 1fr;
